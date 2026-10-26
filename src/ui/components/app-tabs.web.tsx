@@ -8,7 +8,8 @@ import {
 } from 'expo-router/ui';
 import { Pressable, View, StyleSheet } from 'react-native';
 
-import { MaxContentWidth, Spacing } from '@/ui/theme/theme';
+import { useTheme } from '@/ui/hooks/use-theme';
+import { MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -35,9 +36,7 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
+      <ThemedView type={isFocused ? 'subtle' : 'surface'} style={styles.tabButtonView}>
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
@@ -47,9 +46,11 @@ export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTrigg
 }
 
 export function CustomTabList(props: TabListProps) {
+  const theme = useTheme();
+
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
+      <ThemedView type="surface" style={[styles.innerContainer, { borderColor: theme.border }]}>
         <ThemedText type="smallBold" style={styles.brandText}>
           Kampus
         </ThemedText>
@@ -72,7 +73,8 @@ const styles = StyleSheet.create({
   innerContainer: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
+    borderRadius: Radius.card,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,

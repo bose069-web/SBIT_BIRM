@@ -1,6 +1,6 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/ui/theme/theme';
+import { FontFamily, Fonts, ThemeColor } from '@/ui/theme/theme';
 import { useTheme } from '@/ui/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -18,40 +18,43 @@ const styles = StyleSheet.create({
   small: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: 500,
+    fontFamily: FontFamily.regular,
   },
   smallBold: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: 700,
+    fontFamily: FontFamily.semibold,
   },
   default: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: 500,
+    fontFamily: FontFamily.regular,
   },
   title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
+    fontFamily: FontFamily.semibold,
   },
   subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.4,
+    fontFamily: FontFamily.semibold,
   },
   link: {
     lineHeight: 30,
     fontSize: 14,
+    fontFamily: FontFamily.regular,
   },
   linkPrimary: {
     lineHeight: 30,
     fontSize: 14,
-    color: '#3c87f7',
+    fontFamily: FontFamily.medium,
+    textDecorationLine: 'underline',
   },
   code: {
     fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
     fontSize: 12,
   },
 });

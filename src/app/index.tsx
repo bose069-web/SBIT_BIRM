@@ -7,7 +7,8 @@ import { comprobarConexion } from '@/core/application/auth';
 import { HintRow } from '@/ui/components/hint-row';
 import { ThemedText } from '@/ui/components/themed-text';
 import { ThemedView } from '@/ui/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/ui/theme/theme';
+import { useTheme } from '@/ui/hooks/use-theme';
+import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
 
 type Estado = 'comprobando' | 'conectado' | 'error';
 
@@ -18,6 +19,7 @@ const textoEstado: Record<Estado, string> = {
 };
 
 export default function InicioScreen() {
+  const theme = useTheme();
   const [estado, setEstado] = useState<Estado>('comprobando');
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function InicioScreen() {
           </ThemedText>
         </ThemedView>
 
-        <ThemedView type="backgroundElement" style={styles.panel}>
+        <ThemedView type="surface" style={[styles.panel, { borderColor: theme.border }]}>
           <HintRow
             title="Backend"
             hint={<ThemedText type="small">{container.auth.nombre}</ThemedText>}
@@ -78,6 +80,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    borderRadius: Radius.card,
+    borderWidth: 1,
   },
 });
