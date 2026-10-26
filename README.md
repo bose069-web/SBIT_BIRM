@@ -51,7 +51,7 @@ Reglas (las comprueba ESLint):
 ### Elegir backend
 
 En `.env.local`, `EXPO_PUBLIC_BACKEND=memory` (por defecto) o `EXPO_PUBLIC_BACKEND=supabase`.
-Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `profesor@kampus.test`, `familia@kampus.test`, `admin@kampus.test`; contraseña `kampus`).
+Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `profe@kampus.test`, `admin@kampus.test`; contraseña `kampus`).
 
 ### Añadir una funcionalidad nueva (ej. notas)
 

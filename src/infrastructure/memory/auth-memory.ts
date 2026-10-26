@@ -5,9 +5,8 @@ import type { AuthPort } from '@/core/ports/auth-port';
 // Usuarios de prueba para desarrollar sin backend. Contraseña de todos: kampus
 const USUARIOS_DEMO: Usuario[] = [
   { id: '1', nombre: 'Alumno Demo', email: 'alumno@kampus.test', rol: 'alumno' },
-  { id: '2', nombre: 'Profesora Demo', email: 'profesor@kampus.test', rol: 'profesor' },
-  { id: '3', nombre: 'Familia Demo', email: 'familia@kampus.test', rol: 'familia' },
-  { id: '4', nombre: 'Secretaría Demo', email: 'admin@kampus.test', rol: 'administracion' },
+  { id: '2', nombre: 'Profe Demo', email: 'profe@kampus.test', rol: 'profe' },
+  { id: '3', nombre: 'Admin Demo', email: 'admin@kampus.test', rol: 'admin' },
 ];
 const CONTRASENA_DEMO = 'kampus';
 
