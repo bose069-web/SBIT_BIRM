@@ -23,8 +23,6 @@ export class RegistroDiarioMemory implements RegistroDiarioPort {
     const registro: RegistroDiario = {
       ...b,
       id: existente?.id ?? `registro-${this.siguienteId++}`,
-      estado: 'pendiente',
-      comentarioTutor: null,
     };
     this.registros.set(registro.id, registro);
     return registro;
@@ -32,13 +30,5 @@ export class RegistroDiarioMemory implements RegistroDiarioPort {
 
   async eliminar(id: string) {
     this.registros.delete(id);
-  }
-
-  async cambiarEstado(id: string, estado: 'validado' | 'rechazado', comentario: string | null) {
-    const registro = this.registros.get(id);
-    if (!registro) throw new Error('Registro no encontrado');
-    const actualizado = { ...registro, estado, comentarioTutor: comentario };
-    this.registros.set(id, actualizado);
-    return actualizado;
   }
 }

@@ -9,13 +9,10 @@ interface FilaRegistro {
   fecha: string;
   tipo: RegistroDiario['tipo'];
   observaciones: string | null;
-  estado: RegistroDiario['estado'];
-  comentario_tutor: string | null;
   horas_actividad: { actividad_id: string; horas: number | string }[];
 }
 
-const COLUMNAS =
-  'id, dossier_id, fecha, tipo, observaciones, estado, comentario_tutor, horas_actividad(actividad_id, horas)';
+const COLUMNAS = 'id, dossier_id, fecha, tipo, observaciones, horas_actividad(actividad_id, horas)';
 
 function aRegistro(f: FilaRegistro): RegistroDiario {
   return {
@@ -24,8 +21,6 @@ function aRegistro(f: FilaRegistro): RegistroDiario {
     fecha: f.fecha,
     tipo: f.tipo,
     observaciones: f.observaciones,
-    estado: f.estado,
-    comentarioTutor: f.comentario_tutor,
     // numeric de Postgres llega como texto.
     horas: f.horas_actividad.map((h) => ({ actividadId: h.actividad_id, horas: Number(h.horas) })),
   };
@@ -77,8 +72,6 @@ export class RegistroDiarioSupabase implements RegistroDiarioPort {
           fecha: b.fecha,
           tipo: b.tipo,
           observaciones: b.observaciones,
-          estado: 'pendiente',
-          comentario_tutor: null,
         },
         { onConflict: 'dossier_id,fecha' },
       )
@@ -93,6 +86,7 @@ export class RegistroDiarioSupabase implements RegistroDiarioPort {
       const { error: errorHoras } = await this.cliente.from('horas_actividad').insert(
         b.horas.map((h) => ({
           registro_id: data.id,
+          dossier_id: b.dossierId,
           actividad_id: h.actividadId,
           horas: h.horas,
         })),
@@ -105,20 +99,5 @@ export class RegistroDiarioSupabase implements RegistroDiarioPort {
   async eliminar(id: string) {
     const { error } = await this.cliente.from('registros_diarios').delete().eq('id', id);
     if (error) throw new Error(error.message);
-  }
-
-  async cambiarEstado(id: string, estado: 'validado' | 'rechazado', comentario: string | null) {
-    const { data: sesion } = await this.cliente.auth.getUser();
-    const { error } = await this.cliente
-      .from('registros_diarios')
-      .update({
-        estado,
-        comentario_tutor: comentario,
-        validado_por: sesion.user?.id ?? null,
-        validado_en: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (error) throw new Error(error.message);
-    return this.obtener(id);
   }
 }
