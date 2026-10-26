@@ -6,7 +6,7 @@ import type { AuthPort } from '@/core/ports/auth-port';
 const USUARIOS_DEMO: Usuario[] = [
   { id: '1', nombre: 'Alumno Demo', email: 'alumno@kampus.test', rol: 'alumno' },
   { id: '2', nombre: 'Profe Demo', email: 'profe@kampus.test', rol: 'profe' },
-  { id: '3', nombre: 'Admin Demo', email: 'admin@kampus.test', rol: 'admin' },
+  { id: '3', nombre: 'Tutor Empresa Demo', email: 'empresa@kampus.test', rol: 'empresa' },
 ];
 const CONTRASENA_DEMO = 'kampus';
 

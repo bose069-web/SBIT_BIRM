@@ -1,4 +1,9 @@
-export const ROLES = ['alumno', 'profe', 'admin'] as const;
+/**
+ * - alumno: apunta cada día lo que ha hecho.
+ * - empresa: tutor de la empresa; valora cada mes al alumno.
+ * - profe: tutor del centro y administrador; lo gestiona todo y pone la valoración final.
+ */
+export const ROLES = ['alumno', 'empresa', 'profe'] as const;
 
 export type Rol = (typeof ROLES)[number];
 
