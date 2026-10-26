@@ -70,3 +70,17 @@ Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `profe@kampus.test`, 
 - GitHub Actions comprueba lint, tipos y formato en cada PR.
 - Nunca subas `.env.local` ni claves secretas.
 - Para añadir paquetes usa `npx expo install <paquete>` (elige versiones compatibles con Expo).
+
+## Docker (versión web)
+
+Con Docker Desktop abierto:
+
+```bash
+docker compose up --build
+```
+
+Abre http://localhost:8080. Por defecto usa el backend en memoria (`alumno@kampus.test`, `profe@kampus.test` o `admin@kampus.test`, contraseña `kampus`).
+
+Para conectarlo a Supabase, crea un `.env` junto a `docker-compose.yml` (no se sube a git) con `EXPO_PUBLIC_BACKEND=supabase`, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_KEY` (solo la clave publishable), y vuelve a construir.
+
+La app móvil no corre en Docker: se usa con Expo Go o con un build de EAS. Supabase también se puede levantar en local con Docker: `npx supabase start`.

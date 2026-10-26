@@ -1,0 +1,15 @@
+# docker compose up --build  ->  http://localhost:8080
+# Por defecto usa el backend en memoria (usuarios demo, contraseña "kampus").
+# Para Supabase: EXPO_PUBLIC_BACKEND=supabase y la URL y la clave publishable en un .env junto a este archivo.
+services:
+  web:
+    build:
+      context: .
+      args:
+        EXPO_PUBLIC_BACKEND: ${EXPO_PUBLIC_BACKEND:-memory}
+        EXPO_PUBLIC_SUPABASE_URL: ${EXPO_PUBLIC_SUPABASE_URL:-}
+        EXPO_PUBLIC_SUPABASE_KEY: ${EXPO_PUBLIC_SUPABASE_KEY:-}
+    image: kampus-web
+    ports:
+      - '8080:80'
+    restart: unless-stopped
