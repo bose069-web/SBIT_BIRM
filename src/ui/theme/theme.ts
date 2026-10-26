@@ -3,7 +3,7 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
  */
 
-import '@/global.css';
+import '@/ui/theme/global.css';
 
 import { Platform } from 'react-native';
 
@@ -62,4 +62,6 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+// En web las pestañas son una barra flotante arriba; el contenido empieza debajo.
+export const TopTabInset = Platform.OS === 'web' ? 80 : 0;
 export const MaxContentWidth = 800;

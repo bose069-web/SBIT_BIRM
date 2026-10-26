@@ -2,32 +2,26 @@ import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { container } from '@/config/container';
+import { comprobarConexion } from '@/core/application/auth';
+import { HintRow } from '@/ui/components/hint-row';
+import { ThemedText } from '@/ui/components/themed-text';
+import { ThemedView } from '@/ui/components/themed-view';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/ui/theme/theme';
 
-type Estado = 'comprobando' | 'conectado' | 'sin-configurar' | 'error';
+type Estado = 'comprobando' | 'conectado' | 'error';
 
 const textoEstado: Record<Estado, string> = {
   comprobando: 'Comprobando…',
   conectado: 'Conectado ✅',
-  'sin-configurar': 'Falta .env.local ⚠️',
-  error: 'Error de conexión ❌',
+  error: 'Sin conexión ❌',
 };
 
 export default function InicioScreen() {
-  const [estado, setEstado] = useState<Estado>(
-    isSupabaseConfigured ? 'comprobando' : 'sin-configurar',
-  );
+  const [estado, setEstado] = useState<Estado>('comprobando');
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    supabase.auth
-      .getSession()
-      .then(({ error }) => setEstado(error ? 'error' : 'conectado'))
-      .catch(() => setEstado('error'));
+    comprobarConexion(container.auth).then((ok) => setEstado(ok ? 'conectado' : 'error'));
   }, []);
 
   return (
@@ -42,7 +36,11 @@ export default function InicioScreen() {
 
         <ThemedView type="backgroundElement" style={styles.panel}>
           <HintRow
-            title="Supabase"
+            title="Backend"
+            hint={<ThemedText type="small">{container.auth.nombre}</ThemedText>}
+          />
+          <HintRow
+            title="Estado"
             hint={<ThemedText type="small">{textoEstado[estado]}</ThemedText>}
           />
           <HintRow title="Equipo" hint={<ThemedText type="small">TEAM BIRM</ThemedText>} />
