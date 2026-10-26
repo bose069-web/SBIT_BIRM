@@ -1,3 +1,42 @@
+# Kampus — instrucciones para agentes (OpenCode, Codex, Claude)
+
+App móvil del TEAM BIRM. Documentación y plan: vault de Obsidian https://github.com/Izanml13/Vault-sbit
+
+## Arquitectura hexagonal (obligatoria)
+
+```
+src/core/            Núcleo, TypeScript puro: domain/ (entidades), ports/ (interfaces), application/ (casos de uso)
+src/infrastructure/  Adaptadores que implementan los puertos (memory/, supabase/…)
+src/config/          container.ts: único sitio que elige e inyecta adaptadores
+src/ui/              Componentes, hooks y tema
+src/app/             Pantallas (Expo Router)
+```
+
+- `core/` NO importa React, React Native, Expo, Supabase ni nada de `infrastructure/`, `ui/`, `config/` o `app/`.
+- `app/` y `ui/` NO importan `infrastructure/`: usan casos de uso de `@/core/application` y `container` de `@/config/container`.
+- Estas reglas las comprueba ESLint: si `npm run lint` falla, la tarea no está terminada.
+- Módulo nuevo: entidad (`domain/`) → puerto (`ports/`) → casos de uso (`application/`) → adaptador memoria → adaptador real → registrar en `container.ts` → pantalla.
+
+## Reparto por PCs: qué puede tocar cada uno
+
+| PC   | Agente              | Puede modificar                                                                                                  |
+| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| PC 1 | Claude Code + Codex | Todo. Dueño de `core/`, `config/`, `infrastructure/` (salvo `memory/`), `.github/`, configuración y dependencias |
+| PC 2 | OpenCode            | `src/app/`, `src/ui/hooks/`                                                                                      |
+| PC 3 | OpenCode            | `src/ui/components/`, `src/ui/theme/`, `src/infrastructure/memory/`                                              |
+| PC 4 | OpenCode            | Panel web, `e2e/`, diseño                                                                                        |
+
+Si una tarea de PC 2-4 necesita cambiar un puerto, caso de uso, `container.ts`, `package.json` o la configuración: NO lo cambies. Descríbelo en la PR para que lo haga PC 1.
+
+## Normas
+
+- Todo el código, nombres de dominio y comentarios en español; TypeScript estricto, sin `any`.
+- Rama por tarea `feature/pcN-descripcion`; nunca commits directos a `main`.
+- Antes de dar algo por terminado: `npm run lint`, `npm run typecheck` y `npm run format:check`.
+- Nunca subas `.env.local` ni claves.
+
+---
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data
