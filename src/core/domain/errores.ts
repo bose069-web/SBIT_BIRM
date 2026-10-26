@@ -4,3 +4,17 @@ export class CredencialesInvalidasError extends Error {
     this.name = 'CredencialesInvalidasError';
   }
 }
+
+export class RegistroInvalidoError extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'RegistroInvalidoError';
+  }
+}
+
+export class SinPermisoError extends Error {
+  constructor(accion: string) {
+    super(`No tienes permiso para ${accion}`);
+    this.name = 'SinPermisoError';
+  }
+}
