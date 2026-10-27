@@ -12,6 +12,13 @@ export class RegistroInvalidoError extends Error {
   }
 }
 
+export class ValoracionInvalidaError extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'ValoracionInvalidaError';
+  }
+}
+
 export class SinPermisoError extends Error {
   constructor(accion: string) {
     super(`No tienes permiso para ${accion}`);

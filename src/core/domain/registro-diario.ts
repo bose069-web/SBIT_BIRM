@@ -2,9 +2,6 @@ import type { Dossier } from './dossier';
 import { estaEnPeriodo } from './dossier';
 import { RegistroInvalidoError } from './errores';
 
-export const ESTADOS_REGISTRO = ['pendiente', 'validado', 'rechazado'] as const;
-export type EstadoRegistro = (typeof ESTADOS_REGISTRO)[number];
-
 export const TIPOS_DIA = ['trabajo', 'ausencia', 'festivo'] as const;
 export type TipoDia = (typeof TIPOS_DIA)[number];
 
@@ -23,11 +20,12 @@ export interface RegistroDiario {
   tipo: TipoDia;
   horas: HorasActividad[];
   observaciones: string | null;
-  estado: EstadoRegistro;
-  comentarioTutor: string | null;
 }
 
-/** Lo que envía el alumno al guardar un día; el estado y la validación los pone el sistema. */
+/**
+ * Lo que envía el alumno al guardar un día. No se valida día a día:
+ * la empresa valora el mes entero (ver valoracion.ts) y eso lo cierra.
+ */
 export type BorradorRegistro = Pick<
   RegistroDiario,
   'dossierId' | 'fecha' | 'tipo' | 'horas' | 'observaciones'
@@ -35,10 +33,6 @@ export type BorradorRegistro = Pick<
 
 export function totalHoras(registro: Pick<RegistroDiario, 'horas'>): number {
   return registro.horas.reduce((suma, h) => suma + h.horas, 0);
-}
-
-export function esEditable(registro: RegistroDiario): boolean {
-  return registro.estado !== 'validado';
 }
 
 /** Reglas de un día: dentro del periodo, actividades del dossier y horas coherentes con el tipo. */
@@ -79,24 +73,15 @@ export function comprobarBorrador(borrador: BorradorRegistro, dossier: Dossier):
 
 export interface ResumenHoras {
   realizadas: number;
-  validadas: number;
-  pendientes: number;
   totales: number;
-  porcentajeValidado: number;
+  porcentaje: number;
 }
 
 export function resumirHoras(dossier: Dossier, registros: RegistroDiario[]): ResumenHoras {
-  let validadas = 0;
-  let pendientes = 0;
-  for (const r of registros) {
-    if (r.estado === 'validado') validadas += totalHoras(r);
-    else if (r.estado === 'pendiente') pendientes += totalHoras(r);
-  }
+  const realizadas = registros.reduce((suma, r) => suma + totalHoras(r), 0);
   return {
-    realizadas: validadas + pendientes,
-    validadas,
-    pendientes,
+    realizadas,
     totales: dossier.horasTotales,
-    porcentajeValidado: Math.min(100, Math.round((validadas / dossier.horasTotales) * 100)),
+    porcentaje: Math.min(100, Math.round((realizadas / dossier.horasTotales) * 100)),
   };
 }

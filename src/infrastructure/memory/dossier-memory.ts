@@ -6,6 +6,7 @@ export const DOSSIER_DEMO: Dossier = {
   id: 'dossier-demo',
   alumnoId: '1',
   tutorId: '2',
+  tutorEmpresaId: '3',
   ciclo: 'DAM',
   empresa: 'Empresa Demo SL',
   centro: 'Institut Demo',

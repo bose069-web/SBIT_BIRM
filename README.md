@@ -7,8 +7,16 @@ Documentación, plan de trabajo y decisiones: vault de Obsidian → https://gith
 ## Stack
 
 - **App:** React Native + Expo (TypeScript, Expo Router)
-- **Backend:** intercambiable gracias a la arquitectura hexagonal. Ahora: memoria (datos de prueba). Candidato: Supabase (pendiente de confirmar).
+- **Backend:** Supabase (esquema en `supabase/migrations/`). Intercambiable gracias a la arquitectura hexagonal; sin configurar, la app usa un backend en memoria con datos de prueba.
 - **Web (panel de administración y página):** Next.js en Vercel (pendiente)
+
+## Roles
+
+Funciona como el SBIT:
+
+- **alumno**: apunta cada día lo que ha hecho y las horas por actividad.
+- **empresa** (tutor de la empresa): valora cada mes el trabajo del alumno (positiva, mejorable o negativa). Un mes valorado queda cerrado y el alumno ya no puede cambiarlo.
+- **profe** (tutor del centro y administrador): lo ve y lo gestiona todo, sigue las valoraciones mensuales y pone la valoración final (apto / no apto).
 
 ## Puesta en marcha
 
@@ -51,7 +59,7 @@ Reglas (las comprueba ESLint):
 ### Elegir backend
 
 En `.env.local`, `EXPO_PUBLIC_BACKEND=memory` (por defecto) o `EXPO_PUBLIC_BACKEND=supabase`.
-Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `profe@kampus.test`, `admin@kampus.test`; contraseña `kampus`).
+Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `empresa@kampus.test`, `profe@kampus.test`; contraseña `kampus`). Son los mismos que crea `supabase/seed.sql`.
 
 ### Añadir una funcionalidad nueva (ej. notas)
 

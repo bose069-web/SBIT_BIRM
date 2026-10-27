@@ -7,6 +7,7 @@ interface FilaDossier {
   id: string;
   alumno_id: string;
   tutor_id: string | null;
+  tutor_empresa_id: string | null;
   ciclo: string;
   fecha_inicio: string;
   fecha_fin: string;
@@ -17,7 +18,7 @@ interface FilaDossier {
 }
 
 const COLUMNAS =
-  'id, alumno_id, tutor_id, ciclo, fecha_inicio, fecha_fin, horas_totales, ' +
+  'id, alumno_id, tutor_id, tutor_empresa_id, ciclo, fecha_inicio, fecha_fin, horas_totales, ' +
   'empresas(nombre), centros(nombre), actividades_formativas(id, descripcion, orden)';
 
 function aDossier(f: FilaDossier): Dossier {
@@ -25,6 +26,7 @@ function aDossier(f: FilaDossier): Dossier {
     id: f.id,
     alumnoId: f.alumno_id,
     tutorId: f.tutor_id,
+    tutorEmpresaId: f.tutor_empresa_id,
     ciclo: f.ciclo,
     empresa: f.empresas?.nombre ?? null,
     centro: f.centros?.nombre ?? null,

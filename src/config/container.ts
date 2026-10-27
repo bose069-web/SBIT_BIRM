@@ -1,18 +1,22 @@
 import type { AuthPort } from '@/core/ports/auth-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
+import type { ValoracionPort } from '@/core/ports/valoracion-port';
 import { AuthMemory } from '@/infrastructure/memory/auth-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
+import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
 import { AuthSupabase } from '@/infrastructure/supabase/auth-supabase';
 import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
+import { ValoracionSupabase } from '@/infrastructure/supabase/valoracion-supabase';
 
 interface Container {
   auth: AuthPort;
   dossiers: DossierPort;
   registros: RegistroDiarioPort;
+  valoraciones: ValoracionPort;
 }
 
 /**
@@ -32,6 +36,7 @@ function crearContainer(): Container {
         auth: new AuthSupabase(cliente),
         dossiers: new DossierSupabase(cliente),
         registros: new RegistroDiarioSupabase(cliente),
+        valoraciones: new ValoracionSupabase(cliente),
       };
     }
     console.warn(
@@ -39,10 +44,12 @@ function crearContainer(): Container {
     );
   }
 
+  const auth = new AuthMemory();
   return {
-    auth: new AuthMemory(),
+    auth,
     dossiers: new DossierMemory(),
     registros: new RegistroDiarioMemory(),
+    valoraciones: new ValoracionMemory(auth),
   };
 }
 
