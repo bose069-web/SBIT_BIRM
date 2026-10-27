@@ -15,7 +15,7 @@ describe('fechas', () => {
     expect(fechaCorta('2026-10-27')).toBe('27 oct 2026');
     expect(nombreMes('2026-09')).toBe('septiembre 2026');
     expect(formatoHoras(6)).toBe('6 h');
-    expect(formatoHoras(5.5)).toBe('5.5 h');
-    expect(formatoHoras(7.25)).toBe('7.25 h');
+    expect(formatoHoras(5.5)).toBe('5,5 h');
+    expect(formatoHoras(7.25)).toBe('7,25 h');
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
@@ -10,8 +10,8 @@ import {
 import { obtenerSeguimiento } from '@/core/application/valoracion';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
-import { totalHoras, type RegistroDiario, type TipoDia } from '@/core/domain/registro-diario';
-import { mesCerrado } from '@/core/domain/valoracion';
+import type { RegistroDiario, TipoDia } from '@/core/domain/registro-diario';
+import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -22,18 +22,12 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
-import { useTheme } from '@/ui/hooks/use-theme';
-import { Radius, Spacing } from '@/ui/theme/theme';
-import {
-  fechaCorta,
-  formatoHoras,
-  hoyISO,
-  limitesMes,
-  nombreMes,
-  sumarDias,
-} from '@/ui/utils/fechas';
+import { Spacing } from '@/ui/theme/theme';
+import { fechaCorta, formatoHoras, hoyISO, limitesMes, sumarDias } from '@/ui/utils/fechas';
 
+import { CalendarioMes } from './calendario-mes';
 import { Cargando, estilosComunes } from './comun';
 
 const TIPOS: { valor: TipoDia; texto: string }[] = [
@@ -43,10 +37,9 @@ const TIPOS: { valor: TipoDia; texto: string }[] = [
 ];
 
 /** El alumno apunta lo que ha hecho un día y las horas por actividad. */
-export function VistaRegistroDia() {
+export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const usuario = useUsuario();
-  const theme = useTheme();
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useState(fechaInicial ?? hoyISO());
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -60,6 +53,7 @@ export function VistaRegistroDia() {
     ]);
     return { dossier, dias, seguimiento };
   }, [desde, hasta]);
+  useRecargarAlVolver(recargar);
 
   const existente = datos?.dias.find((d) => d.fecha === fecha) ?? null;
   const cerrado = datos
@@ -166,30 +160,18 @@ export function VistaRegistroDia() {
         onBorrar={borrar}
       />
 
-      <Tarjeta titulo={`Días de ${nombreMes(fecha.slice(0, 7))}`}>
-        {datos.dias.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Aún no has apuntado ningún día este mes.
-          </ThemedText>
-        ) : (
-          datos.dias.map((d) => (
-            <Pressable
-              key={d.id}
-              accessibilityRole="button"
-              onPress={() => setFecha(d.fecha)}
-              style={[
-                styles.dia,
-                { borderColor: d.fecha === fecha ? theme.primary : theme.border },
-              ]}>
-              <ThemedText type="smallBold">{fechaCorta(d.fecha)}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {d.tipo === 'trabajo'
-                  ? formatoHoras(totalHoras(d))
-                  : TIPOS.find((t) => t.valor === d.tipo)?.texto}
-              </ThemedText>
-            </Pressable>
-          ))
-        )}
+      <Tarjeta titulo="Calendario">
+        <CalendarioMes
+          mes={mesDe(fecha)}
+          // Al cambiar de mes se elige su primer día (o hoy, si es el mes actual).
+          onCambiarMes={(m) => setFecha(m === mesDe(hoyISO()) ? hoyISO() : `${m}-01`)}
+          dias={datos.dias}
+          periodo={dossier}
+          hoy={hoyISO()}
+          cerrado={cerrado}
+          seleccionada={fecha}
+          onElegir={setFecha}
+        />
       </Tarjeta>
     </Pantalla>
   );
@@ -198,13 +180,6 @@ export function VistaRegistroDia() {
 const styles = StyleSheet.create({
   navFecha: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   centro: { flex: 1, alignItems: 'center', gap: Spacing.one },
-  dia: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: Radius.control,
-    padding: Spacing.two,
-  },
 });
 
 interface ValoresDia {
