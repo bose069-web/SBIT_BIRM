@@ -12,26 +12,70 @@ import type { ValoracionPort } from '../ports/valoracion-port';
 
 // Datos y dobles de prueba en TypeScript puro: los tests del núcleo no dependen de ningún adaptador.
 
-export const alumno: Usuario = { id: 'a1', nombre: 'Ana', email: 'ana@kampus.test', rol: 'alumno' };
+export const alumno: Usuario = {
+  id: 'a1',
+  nombre: 'Ana',
+  email: 'ana@kampus.test',
+  rol: 'alumno',
+  centroId: 'c1',
+};
 export const otroAlumno: Usuario = {
   id: 'a2',
   nombre: 'Leo',
   email: 'leo@kampus.test',
   rol: 'alumno',
+  centroId: 'c1',
 };
 export const empresa: Usuario = {
   id: 'e1',
   nombre: 'Eva',
   email: 'eva@kampus.test',
   rol: 'empresa',
+  centroId: null,
 };
 export const otraEmpresa: Usuario = {
   id: 'e2',
   nombre: 'Max',
   email: 'max@kampus.test',
   rol: 'empresa',
+  centroId: null,
 };
-export const profe: Usuario = { id: 'p1', nombre: 'Pau', email: 'pau@kampus.test', rol: 'profe' };
+export const profe: Usuario = {
+  id: 'p1',
+  nombre: 'Pau',
+  email: 'pau@kampus.test',
+  rol: 'profe',
+  centroId: 'c1',
+};
+
+export const otroProfe: Usuario = {
+  id: 'p2',
+  nombre: 'Rut',
+  email: 'rut@kampus.test',
+  rol: 'profe',
+  centroId: 'c1',
+};
+export const instituto: Usuario = {
+  id: 'i1',
+  nombre: 'Institut',
+  email: 'institut@kampus.test',
+  rol: 'instituto',
+  centroId: 'c1',
+};
+export const otroInstituto: Usuario = {
+  id: 'i2',
+  nombre: 'Altre Institut',
+  email: 'altre@kampus.test',
+  rol: 'instituto',
+  centroId: 'c2',
+};
+export const generalitat: Usuario = {
+  id: 'g1',
+  nombre: 'Generalitat',
+  email: 'gene@kampus.test',
+  rol: 'generalitat',
+  centroId: null,
+};
 
 export function crearDossier(cambios: Partial<Dossier> = {}): Dossier {
   return {

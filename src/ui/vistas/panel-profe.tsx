@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { listarDossiers, obtenerResumenHoras } from '@/core/application/dossier';
 import { obtenerSeguimiento, ponerValoracionFinal } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
+import { gestionaDossier, type Rol } from '@/core/domain/usuario';
 import { RESULTADOS_FINALES, type ResultadoFinal } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
@@ -22,11 +23,21 @@ import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 import { Cargando, ListaValoraciones, TEXTO_RESULTADO } from './comun';
 
-/** El profe sigue a todos los alumnos y pone la valoración final. */
+const SUBTITULO: Partial<Record<Rol, string>> = {
+  profe: 'Tus alumnos: horas, valoraciones de la empresa y valoración final',
+  instituto: 'Todos los alumnos de tu centro',
+  generalitat: 'Todos los institutos (solo lectura)',
+};
+
+/**
+ * Seguimiento de varios dossiers. La base de datos decide cuáles ve cada uno: el profe, los de
+ * sus alumnos; el instituto, los de su centro; la generalitat, todos.
+ */
 export function PanelProfe() {
+  const { rol } = useUsuario();
   const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
   return (
-    <Pantalla titulo="Seguimiento" subtitulo="Horas, valoraciones de la empresa y valoración final">
+    <Pantalla titulo="Seguimiento" subtitulo={SUBTITULO[rol]}>
       {error ? <Mensaje tipo="error" texto={error} /> : null}
       {cargando && !datos ? <Cargando /> : null}
       {datos?.length === 0 ? (
@@ -105,21 +116,25 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
             final={datos.seguimiento.final}
           />
 
-          <Selector
-            etiqueta={datos.seguimiento.final ? 'Cambiar valoración final' : 'Valoración final'}
-            opciones={RESULTADOS_FINALES.map((r) => ({ valor: r, texto: TEXTO_RESULTADO[r] }))}
-            valor={resultado}
-            onCambio={setResultado}
-          />
-          <Campo
-            etiqueta="Comentario"
-            multiline
-            value={comentario}
-            onChangeText={setComentario}
-            ayuda="Obligatorio si no es apto. Cierra todos los meses del alumno."
-          />
-          {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-          <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
+          {gestionaDossier(usuario, dossier) ? (
+            <>
+              <Selector
+                etiqueta={datos.seguimiento.final ? 'Cambiar valoración final' : 'Valoración final'}
+                opciones={RESULTADOS_FINALES.map((r) => ({ valor: r, texto: TEXTO_RESULTADO[r] }))}
+                valor={resultado}
+                onCambio={setResultado}
+              />
+              <Campo
+                etiqueta="Comentario"
+                multiline
+                value={comentario}
+                onChangeText={setComentario}
+                ayuda="Obligatorio si no es apto. Cierra todos los meses del alumno."
+              />
+              {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+              <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
+            </>
+          ) : null}
         </>
       )}
     </Tarjeta>

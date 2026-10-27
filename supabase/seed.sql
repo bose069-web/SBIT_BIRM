@@ -1,4 +1,4 @@
--- Datos de prueba para `supabase db reset` en local. Contraseña de los tres: kampus
+-- Datos de prueba para `supabase db reset` en local. Contraseña de todos: kampus
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token,
   email_change, email_change_token_new)
@@ -11,7 +11,18 @@ values
    '{"nombre":"Profe Demo"}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', '33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated',
    'empresa@kampus.test', crypt('kampus', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}',
-   '{"nombre":"Tutor Empresa Demo"}', now(), now(), '', '', '', '');
+   '{"nombre":"Tutor Empresa Demo"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '44444444-4444-4444-4444-444444444444', 'authenticated', 'authenticated',
+   'instituto@kampus.test', crypt('kampus', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}',
+   '{"nombre":"Institut Demo (dirección)"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '55555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated',
+   'generalitat@kampus.test', crypt('kampus', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}',
+   '{"nombre":"Generalitat Demo"}', now(), now(), '', '', '', '');
+
+-- Identidad de email de cada usuario (GoTrue la necesita para entrar con contraseña).
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), id, id::text, 'email', jsonb_build_object('sub', id::text, 'email', email), now(), now(), now()
+from auth.users where email like '%@kampus.test';
 
 insert into public.centros (id, nombre, codigo) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Institut Demo', '08000000');
@@ -20,11 +31,16 @@ insert into public.empresas (id, nombre, cif) values
 insert into public.convenios (centro_id, empresa_id, firmado_en) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', '2026-06-30');
 
--- Alumno y profe son del centro; el tutor de empresa trabaja en la empresa.
-update public.perfiles set centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
-where id = '11111111-1111-1111-1111-111111111111';
+-- Instituto, profe y alumno son del centro (el alumno asignado al profe); el tutor de empresa
+-- trabaja en la empresa; la generalitat no pertenece a ninguno.
+update public.perfiles set rol = 'generalitat' where id = '55555555-5555-5555-5555-555555555555';
+update public.perfiles set rol = 'instituto', centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+where id = '44444444-4444-4444-4444-444444444444';
 update public.perfiles set rol = 'profe', centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
 where id = '22222222-2222-2222-2222-222222222222';
+update public.perfiles set centro_id = 'aaaaaaaa-0000-0000-0000-000000000001',
+  profe_id = '22222222-2222-2222-2222-222222222222'
+where id = '11111111-1111-1111-1111-111111111111';
 update public.perfiles set rol = 'empresa', empresa_id = 'bbbbbbbb-0000-0000-0000-000000000001'
 where id = '33333333-3333-3333-3333-333333333333';
 

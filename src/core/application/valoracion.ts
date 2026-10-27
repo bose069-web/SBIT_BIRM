@@ -1,6 +1,6 @@
 import type { Dossier } from '../domain/dossier';
 import { SinPermisoError, ValoracionInvalidaError } from '../domain/errores';
-import type { Usuario } from '../domain/usuario';
+import { gestionaDossier, type Usuario } from '../domain/usuario';
 import {
   comprobarValoracionFinal,
   comprobarValoracionMensual,
@@ -16,7 +16,8 @@ import type { ValoracionPort } from '../ports/valoracion-port';
 
 function puedeValorarMes(usuario: Usuario, dossier: Dossier): boolean {
   return (
-    usuario.rol === 'profe' || (usuario.rol === 'empresa' && usuario.id === dossier.tutorEmpresaId)
+    gestionaDossier(usuario, dossier) ||
+    (usuario.rol === 'empresa' && usuario.id === dossier.tutorEmpresaId)
   );
 }
 
@@ -30,7 +31,7 @@ export async function valorarMes(
 ): Promise<ValoracionMensual> {
   if (!puedeValorarMes(usuario, dossier)) throw new SinPermisoError('valorar este dossier');
   comprobarValoracionMensual(borrador, dossier, hoy);
-  if (usuario.rol !== 'profe' && (await valoraciones.obtenerFinal(dossier.id))) {
+  if (!gestionaDossier(usuario, dossier) && (await valoraciones.obtenerFinal(dossier.id))) {
     throw new ValoracionInvalidaError('El profe ya ha puesto la valoración final');
   }
   return valoraciones.guardarMensual({
@@ -39,14 +40,14 @@ export async function valorarMes(
   });
 }
 
-/** El profe pone la valoración final (apto / no apto). */
+/** El profe del alumno o su instituto ponen la valoración final (apto / no apto). */
 export function ponerValoracionFinal(
   valoraciones: ValoracionPort,
   usuario: Usuario,
   dossier: Dossier,
   borrador: BorradorValoracionFinal,
 ): Promise<ValoracionFinal> {
-  if (usuario.rol !== 'profe') throw new SinPermisoError('poner la valoración final');
+  if (!gestionaDossier(usuario, dossier)) throw new SinPermisoError('poner la valoración final');
   comprobarValoracionFinal(borrador, dossier);
   return valoraciones.guardarFinal({
     ...borrador,

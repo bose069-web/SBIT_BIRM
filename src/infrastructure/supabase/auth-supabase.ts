@@ -13,15 +13,16 @@ export class AuthSupabase implements AuthPort {
   private async aUsuario(user: User): Promise<Usuario> {
     const { data } = await this.cliente
       .from('perfiles')
-      .select('nombre, rol')
+      .select('nombre, rol, centro_id')
       .eq('id', user.id)
-      .maybeSingle<{ nombre: string; rol: unknown }>();
+      .maybeSingle<{ nombre: string; rol: unknown; centro_id: string | null }>();
     return {
       id: user.id,
       email: user.email ?? '',
       nombre: data?.nombre ?? user.email ?? '',
       // Sin perfil o con un rol desconocido nunca hay más permisos: se trata como alumno.
       rol: esRol(data?.rol) ? data.rol : 'alumno',
+      centroId: data?.centro_id ?? null,
     };
   }
 
