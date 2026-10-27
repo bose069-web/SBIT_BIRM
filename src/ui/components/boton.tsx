@@ -10,9 +10,19 @@ interface Props {
   variante?: 'primario' | 'secundario' | 'peligro';
   cargando?: boolean;
   desactivado?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
-export function Boton({ texto, onPress, variante = 'primario', cargando, desactivado }: Props) {
+export function Boton({
+  texto,
+  onPress,
+  variante = 'primario',
+  cargando,
+  desactivado,
+  accessibilityLabel,
+  accessibilityHint,
+}: Props) {
   const theme = useTheme();
   const primario = variante === 'primario';
   const color = primario ? theme.onPrimary : variante === 'peligro' ? theme.danger : theme.text;
@@ -20,6 +30,8 @@ export function Boton({ texto, onPress, variante = 'primario', cargando, desacti
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? texto}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!inactivo, busy: !!cargando }}
       disabled={inactivo}
       onPress={onPress}

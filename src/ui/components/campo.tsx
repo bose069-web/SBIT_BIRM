@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/ui/components/themed-text';
@@ -11,16 +12,21 @@ interface Props extends TextInputProps {
 
 export function Campo({ etiqueta, ayuda, style, multiline, ...props }: Props) {
   const theme = useTheme();
+  const idEtiqueta = `campo-${useId().replace(/:/g, '')}`;
   return (
     <View style={styles.contenedor}>
-      <ThemedText type="smallBold">{etiqueta}</ThemedText>
+      <ThemedText nativeID={idEtiqueta} type="smallBold">
+        {etiqueta}
+      </ThemedText>
       <TextInput
         accessibilityLabel={etiqueta}
+        accessibilityLabelledBy={idEtiqueta}
+        accessibilityHint={ayuda}
         placeholderTextColor={theme.textSecondary}
         multiline={multiline}
         style={[
           styles.input,
-          { color: theme.text, borderColor: theme.border, backgroundColor: theme.surface },
+          { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.surface },
           multiline && styles.multilinea,
           style,
         ]}

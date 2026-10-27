@@ -24,7 +24,11 @@ export function Tarjeta({ titulo, accion, children, style }: Props) {
       {titulo || accion ? (
         <View style={styles.cabecera}>
           {titulo ? (
-            <ThemedText type="smallBold" themeColor="textSecondary" style={styles.titulo}>
+            <ThemedText
+              accessibilityRole="header"
+              type="smallBold"
+              themeColor="textSecondary"
+              style={styles.titulo}>
               {titulo.toUpperCase()}
             </ThemedText>
           ) : null}

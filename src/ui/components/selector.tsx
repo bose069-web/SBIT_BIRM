@@ -22,13 +22,14 @@ export function Selector<T extends string>({ etiqueta, opciones, valor, onCambio
   return (
     <View style={styles.contenedor}>
       {etiqueta ? <ThemedText type="smallBold">{etiqueta}</ThemedText> : null}
-      <View accessibilityRole="radiogroup" style={styles.fila}>
+      <View accessibilityRole="radiogroup" accessibilityLabel={etiqueta} style={styles.fila}>
         {opciones.map((o) => {
           const activa = o.valor === valor;
           return (
             <Pressable
               key={o.valor}
               accessibilityRole="radio"
+              accessibilityLabel={o.texto}
               accessibilityState={{ checked: activa }}
               onPress={() => onCambio(o.valor)}
               style={[
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
   contenedor: { gap: Spacing.one },
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   opcion: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: Spacing.three,
     borderRadius: Radius.pill,
     borderWidth: 1,

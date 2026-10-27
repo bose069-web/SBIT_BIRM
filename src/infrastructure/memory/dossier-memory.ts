@@ -1,36 +1,28 @@
 import type { Dossier } from '@/core/domain/dossier';
+import type { Usuario } from '@/core/domain/usuario';
 import type { DossierPort } from '@/core/ports/dossier-port';
 
-// Mínimo para que la app funcione sin Supabase. PC 3 puede ampliarlo con datos de prueba realistas.
-export const DOSSIER_DEMO: Dossier = {
-  id: 'dossier-demo',
-  alumnoId: '1',
-  alumnoNombre: 'Alumno Demo',
-  tutorId: '2',
-  tutorNombre: 'Profe Demo',
-  tutorEmpresaId: '3',
-  tutorEmpresaNombre: 'Tutor Empresa Demo',
-  ciclo: 'DAM',
-  empresa: 'Empresa Demo SL',
-  centro: 'Institut Demo',
-  fechaInicio: '2026-09-15',
-  fechaFin: '2027-03-15',
-  horasTotales: 400,
-  actividades: [
-    { id: 'act-1', descripcion: 'Desarrollo de interfaces', orden: 1 },
-    { id: 'act-2', descripcion: 'Acceso a datos', orden: 2 },
-    { id: 'act-3', descripcion: 'Pruebas y documentación', orden: 3 },
-  ],
-};
+import { sesionMemory } from './auth-memory';
+import { DOSSIERS_DEMO } from './datos-demo';
+
+/** Como RLS en Supabase: cada usuario solo ve los dossiers que le corresponden. */
+function esVisible(dossier: Dossier, usuario: Usuario | null): boolean {
+  if (!usuario) return false;
+  if (usuario.rol === 'profe') return true;
+  if (usuario.rol === 'empresa') return dossier.tutorEmpresaId === usuario.id;
+  return dossier.alumnoId === usuario.id;
+}
 
 export class DossierMemory implements DossierPort {
-  constructor(private readonly dossiers: Dossier[] = [DOSSIER_DEMO]) {}
+  constructor(private readonly dossiers: Dossier[] = DOSSIERS_DEMO) {}
 
   async listar() {
-    return this.dossiers;
+    const usuario = sesionMemory();
+    return this.dossiers.filter((dossier) => esVisible(dossier, usuario));
   }
 
   async obtener(id: string) {
-    return this.dossiers.find((d) => d.id === id) ?? null;
+    const dossier = this.dossiers.find((d) => d.id === id) ?? null;
+    return dossier && esVisible(dossier, sesionMemory()) ? dossier : null;
   }
 }

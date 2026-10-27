@@ -7,18 +7,7 @@ import type {
 import type { AuthPort } from '@/core/ports/auth-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
 
-// Ejemplo: la empresa ya ha valorado septiembre del dossier de prueba.
-const VALORACIONES_DEMO: ValoracionMensual[] = [
-  {
-    id: 'valoracion-demo',
-    dossierId: 'dossier-demo',
-    mes: '2026-09',
-    valoracion: 'positiva',
-    comentario: 'Buen inicio, se adapta rápido al equipo.',
-    valoradaPor: '3',
-    valoradaEn: '2026-10-01T09:00:00.000Z',
-  },
-];
+import { VALORACIONES_DEMO } from './datos-demo';
 
 export class ValoracionMemory implements ValoracionPort {
   private mensuales = [...VALORACIONES_DEMO];
