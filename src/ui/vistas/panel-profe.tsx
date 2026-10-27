@@ -16,21 +16,37 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
-import { Cargando, ListaValoraciones, TEXTO_RESULTADO } from './comun';
+import {
+  Cargando,
+  ErrorCarga,
+  EsqueletoPanel,
+  EstadoVacio,
+  ListaValoraciones,
+  TEXTO_RESULTADO,
+} from './comun';
 
 /** El profe sigue a todos los alumnos y pone la valoración final. */
 export function PanelProfe() {
-  const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => listarDossiers(container.dossiers),
+    [],
+  );
+  useRecargarAlVolver(recargar);
   return (
     <Pantalla titulo="Seguimiento" subtitulo="Horas, valoraciones de la empresa y valoración final">
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
-      {cargando && !datos ? <Cargando /> : null}
+      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+      {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
-        <ThemedText themeColor="textSecondary">No hay dossiers todavía.</ThemedText>
+        <EstadoVacio
+          titulo="Todavía no hay alumnos con dossier"
+          texto="Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final."
+          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+        />
       ) : null}
       {datos?.map((d) => (
         <SeguimientoDossier key={d.id} dossier={d} />
@@ -42,7 +58,7 @@ export function PanelProfe() {
 function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const { datos, recargar } = useDatos(async () => {
+  const { datos, error, recargar } = useDatos(async () => {
     const [resumen, seguimiento] = await Promise.all([
       obtenerResumenHoras(dossier, container.registros),
       obtenerSeguimiento(container.valoraciones, dossier, hoy),
@@ -81,8 +97,10 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
       <ThemedText type="small" themeColor="textSecondary">
         Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
       </ThemedText>
-      {!datos ? (
-        <Cargando />
+      {!datos && error ? (
+        <ErrorCarga texto={error} onReintentar={recargar} />
+      ) : !datos ? (
+        <Cargando texto="Cargando horas y valoraciones…" />
       ) : (
         <>
           <View style={styles.horas}>

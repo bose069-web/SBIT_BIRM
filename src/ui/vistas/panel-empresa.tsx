@@ -19,20 +19,37 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
-import { Cargando, ListaValoraciones, TEXTO_VALORACION, estilosComunes } from './comun';
+import {
+  Cargando,
+  ErrorCarga,
+  EsqueletoPanel,
+  EstadoVacio,
+  ListaValoraciones,
+  TEXTO_VALORACION,
+  estilosComunes,
+} from './comun';
 
 /** El tutor de empresa valora cada mes a sus alumnos. */
 export function PanelEmpresa() {
-  const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => listarDossiers(container.dossiers),
+    [],
+  );
+  useRecargarAlVolver(recargar);
   return (
     <Pantalla titulo="Mis alumnos en prácticas" subtitulo="Valora cada mes el trabajo del alumno">
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
-      {cargando && !datos ? <Cargando /> : null}
+      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+      {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
-        <ThemedText themeColor="textSecondary">No tienes alumnos asignados.</ThemedText>
+        <EstadoVacio
+          titulo="No tienes alumnos asignados"
+          texto="Cuando el centro te ponga como tutor de empresa de un alumno, aparecerá aquí para que valores cada mes su trabajo."
+          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+        />
       ) : null}
       {datos?.map((d) => (
         <ValorarDossier key={d.id} dossier={d} />
@@ -44,7 +61,7 @@ export function PanelEmpresa() {
 function ValorarDossier({ dossier }: { dossier: Dossier }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const { datos, recargar } = useDatos(
+  const { datos, error, recargar } = useDatos(
     () => obtenerSeguimiento(container.valoraciones, dossier, hoy),
     [dossier.id, hoy],
   );
@@ -94,16 +111,24 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
       <ThemedText type="small" themeColor="textSecondary">
         Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
       </ThemedText>
+      {error && !datos ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+      {!datos && !error ? <Cargando texto="Cargando valoraciones…" /> : null}
       {datos && datos.sinValorar.length > 0 ? (
         <Chip
           texto={`Pendiente de valorar: ${datos.sinValorar.map(nombreMes).join(', ')}`}
           color="estadoPendiente"
         />
+      ) : datos && meses.length > 0 && !datos.final ? (
+        <Chip texto="Todos los meses acabados están valorados" color="estadoValidado" />
       ) : null}
-
-      {datos?.final ? (
+      {!datos ? null : datos.final ? (
         <ThemedText type="small" themeColor="textSecondary">
           El profe ya ha puesto la valoración final: ya no se pueden cambiar los meses.
+        </ThemedText>
+      ) : meses.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Las prácticas empiezan el {fechaCorta(dossier.fechaInicio)}. Podrás valorar cuando empiece
+          el primer mes.
         </ThemedText>
       ) : (
         <>
@@ -131,10 +156,14 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
         </>
       )}
 
-      <ThemedText type="smallBold" style={estilosComunes.capital}>
-        Historial
-      </ThemedText>
-      {datos ? <ListaValoraciones mensuales={datos.mensuales} final={datos.final} /> : <Cargando />}
+      {datos ? (
+        <>
+          <ThemedText type="smallBold" style={estilosComunes.capital}>
+            Historial
+          </ThemedText>
+          <ListaValoraciones mensuales={datos.mensuales} final={datos.final} />
+        </>
+      ) : null}
     </Tarjeta>
   );
 }
