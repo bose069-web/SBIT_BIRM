@@ -10,7 +10,9 @@ import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/ui/components/animated-icon';
 import AppTabs from '@/ui/components/app-tabs';
+import { SesionProvider, useSesion } from '@/ui/hooks/use-sesion';
 import { Colors } from '@/ui/theme/theme';
+import { VistaLogin } from '@/ui/vistas/login';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,8 +42,18 @@ export default function TabLayout() {
 
   return (
     <ThemeProvider value={temaNavegacion(colorScheme === 'dark' ? 'dark' : 'light')}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <SesionProvider>
+        <AnimatedSplashOverlay />
+        <Contenido />
+      </SesionProvider>
     </ThemeProvider>
   );
+}
+
+/** Sin sesión se ve el login; con sesión, las pestañas de su rol. */
+function Contenido() {
+  const { usuario, cargando } = useSesion();
+  if (cargando) return null;
+  if (!usuario) return <VistaLogin />;
+  return <AppTabs rol={usuario.rol} />;
 }

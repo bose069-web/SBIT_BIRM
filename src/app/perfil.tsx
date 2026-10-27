@@ -1,47 +1,33 @@
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { container } from '@/config/container';
+import { Boton } from '@/ui/components/boton';
+import { Pantalla } from '@/ui/components/pantalla';
+import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
-import { ThemedView } from '@/ui/components/themed-view';
-import { useUsuarioActual } from '@/ui/hooks/use-usuario-actual';
-import { BottomTabInset, MaxContentWidth, Spacing, TopTabInset } from '@/ui/theme/theme';
+import { useSesion, useUsuario } from '@/ui/hooks/use-sesion';
+
+const NOMBRE_ROL = {
+  alumno: 'Alumno',
+  empresa: 'Tutor de empresa',
+  profe: 'Tutor del centro',
+} as const;
 
 export default function PerfilScreen() {
-  const { usuario, cargando } = useUsuarioActual();
+  const usuario = useUsuario();
+  const { salir } = useSesion();
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="subtitle">Perfil</ThemedText>
-        {cargando ? (
-          <ThemedText themeColor="textSecondary">Cargando…</ThemedText>
-        ) : usuario ? (
-          <>
-            <ThemedText>{usuario.nombre}</ThemedText>
-            <ThemedText themeColor="textSecondary">{usuario.email}</ThemedText>
-            <ThemedText themeColor="textSecondary">Rol: {usuario.rol}</ThemedText>
-          </>
-        ) : (
-          <ThemedText themeColor="textSecondary">No has iniciado sesión.</ThemedText>
-        )}
-      </SafeAreaView>
-    </ThemedView>
+    <Pantalla titulo="Perfil">
+      <Tarjeta>
+        <ThemedText type="subtitle">{usuario.nombre}</ThemedText>
+        <ThemedText themeColor="textSecondary">{usuario.email}</ThemedText>
+        <ThemedText type="smallBold">{NOMBRE_ROL[usuario.rol]}</ThemedText>
+      </Tarjeta>
+      <Tarjeta titulo="App">
+        <ThemedText type="small" themeColor="textSecondary">
+          Datos: {container.auth.nombre}
+        </ThemedText>
+      </Tarjeta>
+      <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
+    </Pantalla>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    // En el contenedor y no en SafeAreaView, que sobrescribe su paddingTop con el inset del sistema.
-    paddingTop: TopTabInset + Spacing.five,
-  },
-  safeArea: {
-    flex: 1,
-    maxWidth: MaxContentWidth,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.three,
-    gap: Spacing.three,
-  },
-});

@@ -44,7 +44,8 @@ function crearContainer(): Container {
     );
   }
 
-  const auth = new AuthMemory();
+  // Sin sesión al arrancar, para que se vea el login.
+  const auth = new AuthMemory(null);
   return {
     auth,
     dossiers: new DossierMemory(),

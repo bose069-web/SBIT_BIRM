@@ -8,13 +8,15 @@ import {
 } from 'expo-router/ui';
 import { Pressable, View, StyleSheet } from 'react-native';
 
+import type { Rol } from '@/core/domain/usuario';
+
 import { useTheme } from '@/ui/hooks/use-theme';
 import { MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
-export default function AppTabs() {
+export default function AppTabs({ rol }: { rol: Rol }) {
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -23,6 +25,14 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Inicio</TabButton>
           </TabTrigger>
+          {/* La ruta existe para todos (si no, no se puede navegar a ella); solo el alumno ve la pestaña. */}
+          {rol === 'alumno' ? (
+            <TabTrigger name="registro" href="/registro" asChild>
+              <TabButton>Registrar día</TabButton>
+            </TabTrigger>
+          ) : (
+            <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
+          )}
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>
           </TabTrigger>
