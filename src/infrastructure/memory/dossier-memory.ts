@@ -5,8 +5,11 @@ import type { DossierPort } from '@/core/ports/dossier-port';
 export const DOSSIER_DEMO: Dossier = {
   id: 'dossier-demo',
   alumnoId: '1',
+  alumnoNombre: 'Alumno Demo',
   tutorId: '2',
+  tutorNombre: 'Profe Demo',
   tutorEmpresaId: '3',
+  tutorEmpresaNombre: 'Tutor Empresa Demo',
   ciclo: 'DAM',
   empresa: 'Empresa Demo SL',
   centro: 'Institut Demo',

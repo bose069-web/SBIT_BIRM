@@ -8,10 +8,13 @@ export interface ActividadFormativa {
 export interface Dossier {
   id: string;
   alumnoId: string;
+  alumnoNombre: string;
   /** Profe tutor del centro. */
   tutorId: string | null;
+  tutorNombre: string | null;
   /** Tutor de la empresa: es quien valora cada mes. */
   tutorEmpresaId: string | null;
+  tutorEmpresaNombre: string | null;
   ciclo: string;
   empresa: string | null;
   centro: string | null;
