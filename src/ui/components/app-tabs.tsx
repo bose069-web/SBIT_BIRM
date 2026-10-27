@@ -29,6 +29,14 @@ export default function AppTabs({ rol }: { rol: Rol }) {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="centro" hidden={rol !== 'instituto'}>
+        <NativeTabs.Trigger.Label>Centro</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

@@ -33,6 +33,13 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           ) : (
             <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
           )}
+          {rol === 'instituto' ? (
+            <TabTrigger name="centro" href="/centro" asChild>
+              <TabButton>Centro</TabButton>
+            </TabTrigger>
+          ) : (
+            <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
+          )}
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>
           </TabTrigger>
