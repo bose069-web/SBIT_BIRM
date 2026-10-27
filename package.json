@@ -39,6 +39,7 @@
     "jest": "~30.5.2",
     "jest-expo": "~58.0.12",
     "prettier": "^3.9.10",
+    "supabase": "^2.122.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -50,7 +51,14 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest"
+    "test": "jest",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:nueva": "supabase migration new",
+    "db:estado": "supabase migration list",
+    "db:subir": "supabase db push",
+    "db:backup": "node scripts/backup-db.mjs"
   },
   "private": true,
   "jest": {

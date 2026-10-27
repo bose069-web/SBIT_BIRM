@@ -19,3 +19,16 @@ jobs:
       - run: npm run typecheck
       - run: npm test -- --ci
       - run: npm run format:check
+
+  # Levanta una base vacía y aplica TODAS las migraciones y el seed desde cero.
+  # Si alguien edita una migración ya aplicada o escribe SQL que no funciona, falla aquí y no en producción.
+  migraciones:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - run: supabase db start
+      - run: supabase db lint --level error

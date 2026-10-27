@@ -28,6 +28,17 @@ src/app/             Pantallas (Expo Router)
 
 Si una tarea de PC 2-4 necesita cambiar un puerto, caso de uso, `container.ts`, `package.json` o la configuración: NO lo cambies. Descríbelo en la PR para que lo haga PC 1.
 
+## Base de datos (Supabase)
+
+La base se define SOLO con los archivos de `supabase/migrations/`. Nada de SQL a mano en el panel de Supabase.
+
+- Cambio en la base = migración nueva: `npm run db:nueva nombre_corto` crea `supabase/migrations/<fecha>_nombre_corto.sql`.
+- NUNCA edites una migración que ya está en `main`: ya se aplicó en producción. Si algo está mal, otra migración que lo corrija.
+- Probar en local (Docker): `npm run db:start` la primera vez y `npm run db:reset` para recrear la base con todas las migraciones y `supabase/seed.sql`.
+- Las migraciones solo las escribe PC 1. PC 2-4 describen en la PR el cambio que necesitan.
+- El CI aplica todas las migraciones desde cero en cada PR; al fusionar en `main`, `desplegar-db.yml` las sube a Supabase.
+- Copia de seguridad: `npm run db:backup` (queda en `backups/`, que nunca se sube).
+
 ## Normas
 
 - Todo el código, nombres de dominio y comentarios en español; TypeScript estricto, sin `any`.

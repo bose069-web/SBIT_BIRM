@@ -43,3 +43,6 @@ example
 /android
 .env
 .claude/
+
+# Copias de la base: datos personales, nunca al repo
+backups/
