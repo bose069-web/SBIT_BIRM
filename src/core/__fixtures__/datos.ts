@@ -32,6 +32,13 @@ export const otraEmpresa: Usuario = {
   rol: 'empresa',
 };
 export const profe: Usuario = { id: 'p1', nombre: 'Pau', email: 'pau@kampus.test', rol: 'profe' };
+export const otroProfe: Usuario = {
+  id: 'p2',
+  nombre: 'Rut',
+  email: 'rut@kampus.test',
+  rol: 'profe',
+};
+export const admin: Usuario = { id: 'x1', nombre: 'Xavi', email: 'xavi@kampus.test', rol: 'admin' };
 
 export function crearDossier(cambios: Partial<Dossier> = {}): Dossier {
   return {

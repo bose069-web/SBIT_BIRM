@@ -2,10 +2,12 @@ import { obtenerSeguimiento, ponerValoracionFinal, valorarMes } from '../applica
 import { SinPermisoError, ValoracionInvalidaError } from '../domain/errores';
 import { mesCerrado, mesDe, mesesDelDossier, mesesSinValorar } from '../domain/valoracion';
 import {
+  admin,
   alumno,
   crearDossier,
   empresa,
   otraEmpresa,
+  otroProfe,
   profe,
   ValoracionesFalsas,
 } from '../__fixtures__/datos';
@@ -67,13 +69,14 @@ describe('valorarMes', () => {
     expect(v.comentario).toBeNull();
   });
 
-  it('no valoran el alumno ni otra empresa; el profe sí', async () => {
-    for (const usuario of [alumno, otraEmpresa]) {
+  it('no valoran el alumno, otra empresa ni el profe de otro alumno; su profe y el admin sí', async () => {
+    for (const usuario of [alumno, otraEmpresa, otroProfe]) {
       await expect(valorarMes(valoraciones, usuario, dossier, borrador, HOY)).rejects.toThrow(
         SinPermisoError,
       );
     }
     await expect(valorarMes(valoraciones, profe, dossier, borrador, HOY)).resolves.toBeDefined();
+    await expect(valorarMes(valoraciones, admin, dossier, borrador, HOY)).resolves.toBeDefined();
   });
 
   it.each([
@@ -101,13 +104,18 @@ describe('valorarMes', () => {
 });
 
 describe('valoración final y seguimiento', () => {
-  it('solo el profe la pone, y "no apto" necesita motivo', async () => {
+  it('solo la ponen su profe o el admin, y "no apto" necesita motivo', async () => {
     const valoraciones = new ValoracionesFalsas();
     const dossier = crearDossier();
     const apto = { dossierId: 'd1', resultado: 'apto' as const, comentario: null };
+    for (const usuario of [empresa, otroProfe]) {
+      await expect(async () =>
+        ponerValoracionFinal(valoraciones, usuario, dossier, apto),
+      ).rejects.toThrow(SinPermisoError);
+    }
     await expect(async () =>
-      ponerValoracionFinal(valoraciones, empresa, dossier, apto),
-    ).rejects.toThrow(SinPermisoError);
+      ponerValoracionFinal(valoraciones, admin, dossier, apto),
+    ).resolves.toMatchObject({ resultado: 'apto' });
     await expect(async () =>
       ponerValoracionFinal(valoraciones, profe, dossier, { ...apto, resultado: 'no_apto' }),
     ).rejects.toThrow('no es apto');

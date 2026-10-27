@@ -14,6 +14,7 @@ const CUENTAS_DEMO = [
   { rol: 'Alumno', email: 'alumno@kampus.test' },
   { rol: 'Empresa', email: 'empresa@kampus.test' },
   { rol: 'Profe', email: 'profe@kampus.test' },
+  { rol: 'Admin', email: 'admin@kampus.test' },
 ];
 
 export function VistaLogin() {

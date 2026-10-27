@@ -16,7 +16,10 @@ Funciona como el SBIT:
 
 - **alumno**: apunta cada día lo que ha hecho y las horas por actividad.
 - **empresa** (tutor de la empresa): valora cada mes el trabajo del alumno (positiva, mejorable o negativa). Un mes valorado queda cerrado y el alumno ya no puede cambiarlo.
-- **profe** (tutor del centro y administrador): lo ve y lo gestiona todo, sigue las valoraciones mensuales y pone la valoración final (apto / no apto).
+- **profe** (tutor del centro): solo ve a los alumnos que le asigna el admin. Les crea el dossier, les pone empresa y tutor de empresa (puede dar de alta empresas nuevas y convertir una cuenta nueva en tutor de empresa), sigue las valoraciones mensuales y pone la valoración final (apto / no apto).
+- **admin**: lo ve y lo puede hacer todo. Asigna cada alumno a su profe; si le cambia de profe, sus dossiers pasan al nuevo.
+
+Toda cuenta nueva empieza como alumno; los roles los cambia el admin (o el profe, solo de cuenta nueva a tutor de empresa).
 
 ## Puesta en marcha
 
@@ -59,7 +62,7 @@ Reglas (las comprueba ESLint):
 ### Elegir backend
 
 En `.env.local`, `EXPO_PUBLIC_BACKEND=memory` (por defecto) o `EXPO_PUBLIC_BACKEND=supabase`.
-Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `empresa@kampus.test`, `profe@kampus.test`; contraseña `kampus`). Son los mismos que crea `supabase/seed.sql`.
+Con `memory` hay usuarios de prueba (`alumno@kampus.test`, `empresa@kampus.test`, `profe@kampus.test`, `admin@kampus.test`; contraseña `kampus`). Son los mismos que crea `supabase/seed.sql`.
 
 ### Añadir una funcionalidad nueva (ej. notas)
 
@@ -87,7 +90,7 @@ Con Docker Desktop abierto:
 docker compose up --build
 ```
 
-Abre http://localhost:8080. Por defecto usa el backend en memoria (`alumno@kampus.test`, `profe@kampus.test` o `admin@kampus.test`, contraseña `kampus`).
+Abre http://localhost:8080. Por defecto usa el backend en memoria (`alumno@kampus.test`, `empresa@kampus.test`, `profe@kampus.test` o `admin@kampus.test`, contraseña `kampus`).
 
 Para conectarlo a Supabase, crea un `.env` junto a `docker-compose.yml` (no se sube a git) con `EXPO_PUBLIC_BACKEND=supabase`, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_KEY` (solo la clave publishable), y vuelve a construir.
 

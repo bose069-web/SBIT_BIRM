@@ -9,6 +9,7 @@ const NOMBRE_ROL = {
   alumno: 'Alumno',
   empresa: 'Tutor de empresa',
   profe: 'Tutor del centro',
+  admin: 'Administración',
 } as const;
 
 export default function PerfilScreen() {
