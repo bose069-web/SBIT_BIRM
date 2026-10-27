@@ -42,6 +42,8 @@ interface Props {
   cerrado: boolean;
   seleccionada?: string;
   onElegir: (fecha: string) => void;
+  /** Lo que hay apuntado cada día (eventos y fechas límite de tareas), por `AAAA-MM-DD`. */
+  agenda?: Map<string, string[]>;
 }
 
 /** Calendario de un mes con el estado de cada día del alumno. */
@@ -54,6 +56,7 @@ export function CalendarioMes({
   cerrado,
   seleccionada,
   onElegir,
+  agenda,
 }: Props) {
   const theme = useTheme();
   const porFecha = new Map(dias.map((d) => [d.fecha, d]));
@@ -106,11 +109,12 @@ export function CalendarioMes({
                 : info.corto;
             const elegida = fecha === seleccionada;
             const esHoy = fecha === hoy;
+            const delDia = agenda?.get(fecha) ?? [];
             return (
               <Pressable
                 key={fecha}
                 accessibilityRole="button"
-                accessibilityLabel={`${fechaCorta(fecha)}: ${info.texto}${corto && estado === 'trabajo' ? `, ${corto}` : ''}`}
+                accessibilityLabel={`${fechaCorta(fecha)}: ${info.texto}${corto && estado === 'trabajo' ? `, ${corto}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
                 accessibilityState={{ disabled: estado === 'fuera', selected: elegida }}
                 disabled={estado === 'fuera'}
                 onPress={() => onElegir(fecha)}
@@ -127,6 +131,9 @@ export function CalendarioMes({
                     opacity: estado === 'fuera' ? 0.35 : 1,
                   },
                 ]}>
+                {delDia.length ? (
+                  <View style={[styles.marcaAgenda, { borderColor: theme.text }]} />
+                ) : null}
                 <ThemedText
                   type={esHoy ? 'smallBold' : 'small'}
                   themeColor={estado === 'libre' || estado === 'futuro' ? 'textSecondary' : 'text'}>
@@ -152,6 +159,12 @@ export function CalendarioMes({
         {LEYENDA.map((e) => (
           <Chip key={e} texto={ESTADOS[e].texto} color={ESTADOS[e].color ?? undefined} />
         ))}
+        {agenda ? (
+          <View style={styles.leyendaAgenda}>
+            <View style={[styles.marcaLeyenda, { borderColor: theme.text }]} />
+            <ThemedText type="small">Evento o entrega</ThemedText>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -174,5 +187,17 @@ const styles = StyleSheet.create({
   },
   estado: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 14 },
   punto: { width: 6, height: 6, borderRadius: 3 },
+  leyendaAgenda: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  marcaLeyenda: { width: 8, height: 8, borderWidth: 1.5, transform: [{ rotate: '45deg' }] },
+  // Rombo hueco arriba a la derecha: ese día hay un evento o vence una tarea.
+  marcaAgenda: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 6,
+    height: 6,
+    borderWidth: 1.5,
+    transform: [{ rotate: '45deg' }],
+  },
   corto: { fontSize: 10, lineHeight: 14, fontFamily: FontFamily.medium },
 });

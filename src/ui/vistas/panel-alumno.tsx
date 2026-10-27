@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual, obtenerResumenHoras } from '@/core/application/dossier';
+import { agendaDelMes, listarEventosMes } from '@/core/application/calendario';
 import { listarRegistros } from '@/core/application/registro-diario';
+import { listarTareas } from '@/core/application/tareas';
 import { obtenerSeguimiento, type Seguimiento } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
@@ -21,7 +23,9 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, limitesMes, nombreMes } from '@/ui/utils/fechas';
 
+import { ProximasFechas } from './agenda';
 import { CalendarioMes } from './calendario-mes';
+import { TareasDossier } from './tareas';
 import {
   ErrorCarga,
   EsqueletoPanel,
@@ -88,6 +92,14 @@ export function PanelAlumno() {
             <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
           </Tarjeta>
 
+          <Tarjeta titulo="Tareas">
+            <TareasDossier dossier={datos.dossier} />
+          </Tarjeta>
+
+          <Tarjeta titulo="Próximas fechas">
+            <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
+          </Tarjeta>
+
           <Tarjeta titulo="Mis prácticas">
             <ThemedText type="smallBold">
               {datos.dossier.ciclo} · {datos.dossier.empresa ?? 'Sin empresa'}
@@ -133,13 +145,27 @@ function CalendarioAlumno({
   });
   const [desde, hasta] = limitesMes(`${mes}-01`);
   const {
-    datos: dias,
+    datos: mesDatos,
     error,
     recargar,
-  } = useDatos(
-    () => listarRegistros(container.registros, dossier.id, desde, hasta),
-    [dossier.id, desde, hasta],
-  );
+  } = useDatos(async () => {
+    const [registros, eventos, tareas] = await Promise.all([
+      listarRegistros(container.registros, dossier.id, desde, hasta),
+      listarEventosMes(container.eventos, mes),
+      listarTareas(container.tareas, dossier.id),
+    ]);
+    // Qué hay cada día: eventos generales y del dossier, y tareas pendientes que vencen.
+    const agenda = new Map<string, string[]>();
+    const delDossier = eventos.filter((e) => e.dossierId === null || e.dossierId === dossier.id);
+    const pendientes = tareas.filter((t) => !t.completada);
+    for (const [fecha, dia] of agendaDelMes(mes, delDossier, pendientes)) {
+      agenda.set(fecha, [
+        ...dia.eventos.map((e) => e.titulo),
+        ...dia.tareas.map((t) => `Entrega: ${t.titulo}`),
+      ]);
+    }
+    return { registros, agenda };
+  }, [dossier.id, desde, hasta, mes]);
   useRecargarAlVolver(recargar);
 
   return (
@@ -148,7 +174,8 @@ function CalendarioAlumno({
       <CalendarioMes
         mes={mes}
         onCambiarMes={setMes}
-        dias={dias ?? []}
+        dias={mesDatos?.registros ?? []}
+        agenda={mesDatos?.agenda}
         periodo={dossier}
         hoy={hoy}
         cerrado={mesCerrado(`${mes}-01`, seguimiento.mensuales, seguimiento.final)}

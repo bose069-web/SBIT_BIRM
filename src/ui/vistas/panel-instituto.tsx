@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { listarDossiers } from '@/core/application/dossier';
 import {
   asignarProfe,
   darDeAltaEmpresa,
@@ -26,15 +27,30 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 
+import { NuevoEvento, ProximasFechas } from './agenda';
 import { Cargando, estilosComunes } from './comun';
 
 type Aviso = { tipo: 'error' | 'ok'; texto: string } | null;
 const SIN_PROFE = 'sin-profe';
 
-/** El instituto gestiona su centro: a qué profe va cada alumno, cuentas nuevas y convenios. */
+/**
+ * El instituto gestiona su centro: a qué profe va cada alumno, cuentas nuevas y convenios.
+ * La generalitat elige primero qué instituto quiere gestionar.
+ */
 export function PanelInstituto() {
   const usuario = useUsuario();
-  const centroId = usuario.centroId;
+  const esGeneralitat = usuario.rol === 'generalitat';
+  const [elegido, setElegido] = useState<string | null>(null);
+  // La generalitat ve todos los dossiers: de ahí salen los institutos que tienen alumnos.
+  const { datos: institutos } = useDatos(async () => {
+    if (!esGeneralitat) return [];
+    const dossiers = await listarDossiers(container.dossiers);
+    const porId = new Map(dossiers.map((d) => [d.centroId, d.centro ?? 'Centro sin nombre']));
+    return [...porId]
+      .map(([id, nombre]) => ({ valor: id, texto: nombre }))
+      .sort((a, b) => a.texto.localeCompare(b.texto, 'es'));
+  }, [esGeneralitat]);
+  const centroId = esGeneralitat ? (elegido ?? institutos?.[0]?.valor ?? null) : usuario.centroId;
   const [aviso, setAviso] = useState<Aviso>(null);
   const { datos, error, cargando, recargar } = useDatos(
     async () => (centroId ? obtenerPanelCentro(container.centros, usuario, centroId) : null),
@@ -53,16 +69,56 @@ export function PanelInstituto() {
     }
   }
 
+  const selectorInstituto =
+    esGeneralitat && institutos && institutos.length > 0 ? (
+      <Tarjeta titulo="Instituto">
+        <Selector
+          opciones={institutos}
+          valor={centroId}
+          onCambio={(id) => {
+            setAviso(null);
+            setElegido(id);
+          }}
+        />
+      </Tarjeta>
+    ) : null;
+
+  const fechasGenerales = (
+    <Tarjeta titulo="Fechas para todos">
+      <ThemedText type="small" themeColor="textSecondary">
+        Festivos, entregas o reuniones generales: los ven todos los alumnos en su calendario.
+      </ThemedText>
+      <ProximasFechas hoy={hoyISO()} />
+      <NuevoEvento />
+    </Tarjeta>
+  );
+
   if (!centroId) {
     return (
-      <Pantalla titulo="Centro">
-        <Mensaje tipo="error" texto="Tu cuenta no está asociada a ningún centro." />
+      <Pantalla titulo={esGeneralitat ? 'Institutos' : 'Centro'}>
+        {esGeneralitat ? (
+          institutos ? (
+            <ThemedText themeColor="textSecondary">
+              Todavía no hay institutos con alumnos en prácticas.
+            </ThemedText>
+          ) : (
+            <Cargando />
+          )
+        ) : (
+          <Mensaje tipo="error" texto="Tu cuenta no está asociada a ningún centro." />
+        )}
+        {esGeneralitat ? fechasGenerales : null}
       </Pantalla>
     );
   }
 
   return (
-    <Pantalla titulo={datos?.centro.nombre ?? 'Centro'} subtitulo="Alumnos, profes y convenios">
+    <Pantalla
+      titulo={datos?.centro.nombre ?? 'Centro'}
+      subtitulo={
+        esGeneralitat ? 'Gestión del instituto como Generalitat' : 'Alumnos, profes y convenios'
+      }>
+      {selectorInstituto}
       {error ? <Mensaje tipo="error" texto={error} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       {cargando && !datos ? <Cargando /> : null}
@@ -71,6 +127,7 @@ export function PanelInstituto() {
           <TarjetaAlumnos datos={datos} hacer={hacer} />
           <TarjetaCuentasNuevas datos={datos} hacer={hacer} />
           <TarjetaConvenios datos={datos} hacer={hacer} />
+          {fechasGenerales}
         </>
       ) : null}
     </Pantalla>

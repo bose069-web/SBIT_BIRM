@@ -5,6 +5,7 @@ import { PanelInstituto } from '@/ui/vistas/panel-instituto';
 
 export default function CentroScreen() {
   const { rol } = useUsuario();
-  if (rol !== 'instituto') return <Redirect href="/" />;
+  // El instituto gestiona el suyo; la generalitat, el que elija.
+  if (rol !== 'instituto' && rol !== 'generalitat') return <Redirect href="/" />;
   return <PanelInstituto />;
 }

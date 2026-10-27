@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -22,6 +23,8 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
+import { NuevoEvento } from './agenda';
+import { TareasDossier } from './tareas';
 import {
   CabeceraAlumno,
   Cargando,
@@ -45,6 +48,7 @@ const SUBTITULO: Partial<Record<Rol, string>> = {
  */
 export function PanelProfe() {
   const { rol } = useUsuario();
+  const administra = rol === 'instituto' || rol === 'generalitat';
   const { datos, error, cargando, recargar } = useDatos(
     () => listarDossiers(container.dossiers),
     [],
@@ -52,6 +56,13 @@ export function PanelProfe() {
   useRecargarAlVolver(recargar);
   return (
     <Pantalla titulo="Seguimiento" subtitulo={SUBTITULO[rol]}>
+      {administra ? (
+        <Boton
+          texto={rol === 'generalitat' ? 'Gestionar institutos' : 'Gestionar el centro'}
+          variante="secundario"
+          onPress={() => router.push('/centro')}
+        />
+      ) : null}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
@@ -80,6 +91,7 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   const [comentario, setComentario] = useState('');
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [verTareas, setVerTareas] = useState(false);
 
   async function guardar() {
     if (!resultado) {
@@ -156,6 +168,19 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
               />
               {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
               <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
+            </>
+          ) : null}
+
+          {/* Plegado para que la lista de alumnos no sea eterna. */}
+          <Boton
+            texto={verTareas ? 'Ocultar tareas y fechas' : 'Tareas y fechas'}
+            variante="secundario"
+            onPress={() => setVerTareas((v) => !v)}
+          />
+          {verTareas ? (
+            <>
+              <TareasDossier dossier={dossier} />
+              {gestionaDossier(usuario, dossier) ? <NuevoEvento dossier={dossier} /> : null}
             </>
           ) : null}
         </>
