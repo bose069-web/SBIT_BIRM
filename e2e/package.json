@@ -1,0 +1,12 @@
+{
+  "name": "kampus-e2e",
+  "private": true,
+  "description": "Tests E2E de la web de Kampus (Playwright). Paquete aparte para no tocar el package.json raíz.",
+  "scripts": {
+    "test": "playwright test",
+    "start:app": "cd .. && npx expo start --web --port 8081 --clear"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
