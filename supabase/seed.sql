@@ -13,13 +13,20 @@ values
    'empresa@kampus.test', crypt('kampus', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}',
    '{"nombre":"Tutor Empresa Demo"}', now(), now(), '', '', '', '');
 
-update public.perfiles set rol = 'profe' where id = '22222222-2222-2222-2222-222222222222';
-update public.perfiles set rol = 'empresa' where id = '33333333-3333-3333-3333-333333333333';
-
 insert into public.centros (id, nombre, codigo) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Institut Demo', '08000000');
 insert into public.empresas (id, nombre, cif) values
   ('bbbbbbbb-0000-0000-0000-000000000001', 'Empresa Demo SL', 'B00000000');
+insert into public.convenios (centro_id, empresa_id, firmado_en) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', '2026-06-30');
+
+-- Alumno y profe son del centro; el tutor de empresa trabaja en la empresa.
+update public.perfiles set centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+where id = '11111111-1111-1111-1111-111111111111';
+update public.perfiles set rol = 'profe', centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+where id = '22222222-2222-2222-2222-222222222222';
+update public.perfiles set rol = 'empresa', empresa_id = 'bbbbbbbb-0000-0000-0000-000000000001'
+where id = '33333333-3333-3333-3333-333333333333';
 
 insert into public.dossiers (id, alumno_id, tutor_id, tutor_empresa_id, centro_id, empresa_id, ciclo,
   fecha_inicio, fecha_fin, horas_totales)

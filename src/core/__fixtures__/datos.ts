@@ -43,6 +43,8 @@ export function crearDossier(cambios: Partial<Dossier> = {}): Dossier {
     tutorEmpresaId: empresa.id,
     tutorEmpresaNombre: empresa.nombre,
     ciclo: 'DAM',
+    centroId: 'c1',
+    empresaId: 'emp1',
     empresa: 'Empresa SL',
     centro: 'Institut',
     fechaInicio: '2026-09-15',
