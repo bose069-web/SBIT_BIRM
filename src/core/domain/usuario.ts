@@ -1,6 +1,6 @@
 /**
  * Roles del modelo entidad-relación del equipo:
- * - generalitat: ve todos los institutos (solo lectura) y da de alta institutos.
+ * - generalitat: superadmin; gestiona todos los institutos y resuelve incidencias a gran escala.
  * - instituto: administra su centro; asigna cada alumno a su profe y crea los dossiers.
  * - profe: tutor del centro; gestiona solo a los alumnos que le asigna su instituto.
  * - empresa: tutor de empresa; valora cada mes a sus alumnos.
@@ -23,13 +23,14 @@ export interface Usuario {
   centroId: string | null;
 }
 
-/** Gestionan un dossier su profe tutor y el instituto de su centro. */
+/** Gestionan un dossier su profe tutor, el instituto de su centro y la generalitat. */
 export function gestionaDossier(
   usuario: Usuario,
   dossier: { tutorId: string | null; centroId: string },
 ): boolean {
   if (usuario.rol === 'profe') return usuario.id === dossier.tutorId;
   if (usuario.rol === 'instituto') return usuario.centroId === dossier.centroId;
+  if (usuario.rol === 'generalitat') return true;
   return false;
 }
 

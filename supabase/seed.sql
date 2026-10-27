@@ -19,10 +19,6 @@ values
    'generalitat@kampus.test', crypt('kampus', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}',
    '{"nombre":"Generalitat Demo"}', now(), now(), '', '', '', '');
 
--- Identidad de email de cada usuario (GoTrue la necesita para entrar con contraseña).
-insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
-select gen_random_uuid(), id, id::text, 'email', jsonb_build_object('sub', id::text, 'email', email), now(), now(), now()
-from auth.users where email like '%@kampus.test';
 
 insert into public.centros (id, nombre, codigo) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Institut Demo', '08000000');

@@ -71,8 +71,8 @@ describe('valorarMes', () => {
     expect(v.comentario).toBeNull();
   });
 
-  it('valoran su empresa, su profe y su instituto; nadie más', async () => {
-    for (const usuario of [alumno, otraEmpresa, otroProfe, otroInstituto, generalitat]) {
+  it('valoran su empresa, su profe, su instituto y la generalitat; nadie más', async () => {
+    for (const usuario of [alumno, otraEmpresa, otroProfe, otroInstituto]) {
       await expect(valorarMes(valoraciones, usuario, dossier, borrador, HOY)).rejects.toThrow(
         SinPermisoError,
       );
@@ -80,6 +80,9 @@ describe('valorarMes', () => {
     await expect(valorarMes(valoraciones, profe, dossier, borrador, HOY)).resolves.toBeDefined();
     await expect(
       valorarMes(valoraciones, instituto, dossier, borrador, HOY),
+    ).resolves.toBeDefined();
+    await expect(
+      valorarMes(valoraciones, generalitat, dossier, borrador, HOY),
     ).resolves.toBeDefined();
   });
 
@@ -108,15 +111,18 @@ describe('valorarMes', () => {
 });
 
 describe('valoración final y seguimiento', () => {
-  it('solo la ponen su profe o su instituto, y "no apto" necesita motivo', async () => {
+  it('solo la ponen su profe, su instituto o la generalitat; "no apto" necesita motivo', async () => {
     const valoraciones = new ValoracionesFalsas();
     const dossier = crearDossier();
     const apto = { dossierId: 'd1', resultado: 'apto' as const, comentario: null };
-    for (const usuario of [empresa, otroProfe, otroInstituto, generalitat]) {
+    for (const usuario of [empresa, otroProfe, otroInstituto]) {
       await expect(async () =>
         ponerValoracionFinal(valoraciones, usuario, dossier, apto),
       ).rejects.toThrow(SinPermisoError);
     }
+    await expect(async () =>
+      ponerValoracionFinal(valoraciones, generalitat, dossier, apto),
+    ).resolves.toMatchObject({ resultado: 'apto' });
     await expect(async () =>
       ponerValoracionFinal(valoraciones, instituto, dossier, apto),
     ).resolves.toMatchObject({ resultado: 'apto' });

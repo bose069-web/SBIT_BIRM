@@ -15,13 +15,6 @@ values
    '{"provider":"email","providers":["email"]}', '{"nombre":"Generalitat Demo"}', now(), now(), '', '', '', '')
 on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
-select gen_random_uuid(), u.id, u.id::text, 'email', jsonb_build_object('sub', u.id::text, 'email', u.email),
-  now(), now(), now()
-from auth.users u
-where u.id in ('44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555')
-  and not exists (select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email');
-
 update public.perfiles set rol = 'generalitat' where id = '55555555-5555-5555-5555-555555555555';
 update public.perfiles set rol = 'instituto', centro_id = 'aaaaaaaa-0000-0000-0000-000000000001'
 where id = '44444444-4444-4444-4444-444444444444';

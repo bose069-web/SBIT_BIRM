@@ -26,7 +26,7 @@ import { Cargando, ListaValoraciones, TEXTO_RESULTADO } from './comun';
 const SUBTITULO: Partial<Record<Rol, string>> = {
   profe: 'Tus alumnos: horas, valoraciones de la empresa y valoración final',
   instituto: 'Todos los alumnos de tu centro',
-  generalitat: 'Todos los institutos (solo lectura)',
+  generalitat: 'Todos los institutos',
 };
 
 /**
