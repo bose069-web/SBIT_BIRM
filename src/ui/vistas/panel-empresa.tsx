@@ -26,10 +26,18 @@ import { Cargando, ListaValoraciones, TEXTO_VALORACION, estilosComunes } from '.
 
 /** El tutor de empresa valora cada mes a sus alumnos. */
 export function PanelEmpresa() {
-  const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => listarDossiers(container.dossiers),
+    [],
+  );
   return (
     <Pantalla titulo="Mis alumnos en prácticas" subtitulo="Valora cada mes el trabajo del alumno">
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
+      {error ? (
+        <>
+          <Mensaje tipo="error" texto={error} />
+          <Boton texto="Reintentar" onPress={recargar} />
+        </>
+      ) : null}
       {cargando && !datos ? <Cargando /> : null}
       {datos?.length === 0 ? (
         <ThemedText themeColor="textSecondary">No tienes alumnos asignados.</ThemedText>
@@ -44,7 +52,7 @@ export function PanelEmpresa() {
 function ValorarDossier({ dossier }: { dossier: Dossier }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const { datos, recargar } = useDatos(
+  const { datos, error, cargando, recargar } = useDatos(
     () => obtenerSeguimiento(container.valoraciones, dossier, hoy),
     [dossier.id, hoy],
   );
@@ -90,7 +98,10 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
   }
 
   return (
-    <Tarjeta titulo={`${dossier.ciclo} · ${dossier.centro ?? ''}`}>
+    <Tarjeta titulo={dossier.alumnoNombre}>
+      <ThemedText type="smallBold">
+        {dossier.ciclo} · {dossier.centro ?? 'Sin centro'}
+      </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
       </ThemedText>
@@ -101,7 +112,14 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
         />
       ) : null}
 
-      {datos?.final ? (
+      {error ? (
+        <>
+          <Mensaje tipo="error" texto={error} />
+          <Boton texto="Reintentar" onPress={recargar} />
+        </>
+      ) : cargando ? (
+        <Cargando />
+      ) : datos?.final ? (
         <ThemedText type="small" themeColor="textSecondary">
           El profe ya ha puesto la valoración final: ya no se pueden cambiar los meses.
         </ThemedText>
@@ -134,7 +152,7 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
       <ThemedText type="smallBold" style={estilosComunes.capital}>
         Historial
       </ThemedText>
-      {datos ? <ListaValoraciones mensuales={datos.mensuales} final={datos.final} /> : <Cargando />}
+      {datos ? <ListaValoraciones mensuales={datos.mensuales} final={datos.final} /> : null}
     </Tarjeta>
   );
 }

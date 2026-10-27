@@ -71,7 +71,10 @@ export function VistaRegistroDia() {
     return (
       <Pantalla titulo="Registrar día">
         {error ? (
-          <Mensaje tipo="error" texto={error} />
+          <>
+            <Mensaje tipo="error" texto={error} />
+            <Boton texto="Reintentar" onPress={recargar} />
+          </>
         ) : cargando ? (
           <Cargando />
         ) : (
@@ -128,7 +131,7 @@ export function VistaRegistroDia() {
     }
   }
 
-  const bloqueado = cerrado || fueraDePeriodo;
+  const bloqueado = cerrado || fueraDePeriodo || cargando || error !== null;
 
   return (
     <Pantalla titulo="Registrar día" subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}>

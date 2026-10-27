@@ -24,10 +24,18 @@ import { Cargando, ListaValoraciones, TEXTO_RESULTADO } from './comun';
 
 /** El profe sigue a todos los alumnos y pone la valoración final. */
 export function PanelProfe() {
-  const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => listarDossiers(container.dossiers),
+    [],
+  );
   return (
     <Pantalla titulo="Seguimiento" subtitulo="Horas, valoraciones de la empresa y valoración final">
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
+      {error ? (
+        <>
+          <Mensaje tipo="error" texto={error} />
+          <Boton texto="Reintentar" onPress={recargar} />
+        </>
+      ) : null}
       {cargando && !datos ? <Cargando /> : null}
       {datos?.length === 0 ? (
         <ThemedText themeColor="textSecondary">No hay dossiers todavía.</ThemedText>
@@ -42,7 +50,7 @@ export function PanelProfe() {
 function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const { datos, recargar } = useDatos(async () => {
+  const { datos, error, recargar } = useDatos(async () => {
     const [resumen, seguimiento] = await Promise.all([
       obtenerResumenHoras(dossier, container.registros),
       obtenerSeguimiento(container.valoraciones, dossier, hoy),
@@ -77,11 +85,19 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   }
 
   return (
-    <Tarjeta titulo={`${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`}>
+    <Tarjeta titulo={dossier.alumnoNombre}>
+      <ThemedText type="smallBold">
+        {dossier.ciclo} · {dossier.empresa ?? 'Sin empresa'}
+      </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
       </ThemedText>
-      {!datos ? (
+      {error ? (
+        <>
+          <Mensaje tipo="error" texto={error} />
+          <Boton texto="Reintentar" onPress={recargar} />
+        </>
+      ) : !datos ? (
         <Cargando />
       ) : (
         <>
