@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
@@ -10,8 +17,8 @@ import {
 import { obtenerSeguimiento } from '@/core/application/valoracion';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
-import { totalHoras, type RegistroDiario, type TipoDia } from '@/core/domain/registro-diario';
-import { mesCerrado } from '@/core/domain/valoracion';
+import { MAX_HORAS_DIA, type RegistroDiario, type TipoDia } from '@/core/domain/registro-diario';
+import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -22,19 +29,14 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
-import { useTheme } from '@/ui/hooks/use-theme';
-import { Radius, Spacing } from '@/ui/theme/theme';
-import {
-  fechaCorta,
-  formatoHoras,
-  hoyISO,
-  limitesMes,
-  nombreMes,
-  sumarDias,
-} from '@/ui/utils/fechas';
+import { Spacing } from '@/ui/theme/theme';
+import { fechaCorta, formatoHoras, hoyISO, limitesMes, sumarDias } from '@/ui/utils/fechas';
+import { filtrarHoras, leerHoras } from '@/ui/utils/horas';
 
-import { Cargando, estilosComunes } from './comun';
+import { CalendarioMes } from './calendario-mes';
+import { Cargando } from './comun';
 
 const TIPOS: { valor: TipoDia; texto: string }[] = [
   { valor: 'trabajo', texto: 'Trabajo' },
@@ -43,10 +45,10 @@ const TIPOS: { valor: TipoDia; texto: string }[] = [
 ];
 
 /** El alumno apunta lo que ha hecho un día y las horas por actividad. */
-export function VistaRegistroDia() {
+export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const usuario = useUsuario();
-  const theme = useTheme();
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useState(fechaInicial ?? hoyISO());
+  const [verCalendario, setVerCalendario] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -60,6 +62,7 @@ export function VistaRegistroDia() {
     ]);
     return { dossier, dias, seguimiento };
   }, [desde, hasta]);
+  useRecargarAlVolver(recargar);
 
   const existente = datos?.dias.find((d) => d.fecha === fecha) ?? null;
   const cerrado = datos
@@ -84,21 +87,22 @@ export function VistaRegistroDia() {
   }
   const { dossier } = datos;
 
+  function irA(nueva: string) {
+    Keyboard.dismiss();
+    setAviso(null);
+    setFecha(nueva);
+  }
+
   async function guardar({ tipo, horas, observaciones }: ValoresDia) {
+    Keyboard.dismiss();
     setAviso(null);
     setGuardando(true);
     try {
-      const lista =
-        tipo === 'trabajo'
-          ? Object.entries(horas)
-              .filter(([, v]) => v.trim() !== '')
-              .map(([actividadId, v]) => ({ actividadId, horas: Number(v.replace(',', '.')) }))
-          : [];
       await guardarRegistro(container.registros, container.valoraciones, usuario, dossier, {
         dossierId: dossier.id,
         fecha,
         tipo,
-        horas: lista,
+        horas: tipo === 'trabajo' ? horas : [],
         observaciones,
       });
       setAviso({ tipo: 'ok', texto: `Guardado el ${fechaCorta(fecha)}` });
@@ -112,6 +116,7 @@ export function VistaRegistroDia() {
 
   async function borrar() {
     if (!existente) return;
+    Keyboard.dismiss();
     setAviso(null);
     try {
       await eliminarRegistro(
@@ -131,85 +136,93 @@ export function VistaRegistroDia() {
   const bloqueado = cerrado || fueraDePeriodo;
 
   return (
-    <Pantalla titulo="Registrar día" subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}>
-      <Tarjeta>
-        <View style={styles.navFecha}>
-          <Boton texto="‹" variante="secundario" onPress={() => setFecha(sumarDias(fecha, -1))} />
-          <View style={styles.centro}>
-            <ThemedText type="subtitle">{fechaCorta(fecha)}</ThemedText>
-            {fueraDePeriodo ? (
-              <Chip texto="Fuera del periodo de prácticas" color="estadoFestivo" />
-            ) : cerrado ? (
-              <Chip texto="Mes valorado: no se puede cambiar" color="estadoFestivo" />
-            ) : existente ? (
-              <Chip texto="Apuntado" color="estadoValidado" />
-            ) : (
-              <Chip texto="Sin apuntar" color="estadoPendiente" />
-            )}
+    // En iOS el teclado tapa el final del formulario si no se aparta el contenido.
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Pantalla titulo="Registrar día" subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}>
+        <Tarjeta>
+          <View style={styles.navFecha}>
+            <Boton texto="‹" variante="secundario" onPress={() => irA(sumarDias(fecha, -1))} />
+            <View style={styles.centro}>
+              <ThemedText type="subtitle">{fechaCorta(fecha)}</ThemedText>
+              {fueraDePeriodo ? (
+                <Chip texto="Fuera del periodo de prácticas" color="estadoFestivo" />
+              ) : cerrado ? (
+                <Chip texto="Mes valorado: no se puede cambiar" color="estadoFestivo" />
+              ) : existente ? (
+                <Chip texto="Apuntado" color="estadoValidado" />
+              ) : (
+                <Chip texto="Sin apuntar" color="estadoPendiente" />
+              )}
+            </View>
+            <Boton texto="›" variante="secundario" onPress={() => irA(sumarDias(fecha, 1))} />
           </View>
-          <Boton texto="›" variante="secundario" onPress={() => setFecha(sumarDias(fecha, 1))} />
-        </View>
-        {fecha !== hoyISO() ? (
-          <Boton texto="Ir a hoy" variante="secundario" onPress={() => setFecha(hoyISO())} />
-        ) : null}
-      </Tarjeta>
+          <View style={styles.acciones}>
+            <View style={styles.flex}>
+              <Boton
+                texto={verCalendario ? 'Ocultar calendario' : 'Calendario'}
+                variante="secundario"
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setVerCalendario((v) => !v);
+                }}
+              />
+            </View>
+            {fecha !== hoyISO() ? (
+              <View style={styles.flex}>
+                <Boton texto="Hoy" variante="secundario" onPress={() => irA(hoyISO())} />
+              </View>
+            ) : null}
+          </View>
+          {/* Arriba y plegable: al elegir un día se cierra y el formulario queda a la vista. */}
+          {verCalendario ? (
+            <CalendarioMes
+              mes={mesDe(fecha)}
+              // Al cambiar de mes se elige su primer día (o hoy, si es el mes actual).
+              onCambiarMes={(m) => irA(m === mesDe(hoyISO()) ? hoyISO() : `${m}-01`)}
+              dias={datos.dias}
+              periodo={dossier}
+              hoy={hoyISO()}
+              cerrado={cerrado}
+              seleccionada={fecha}
+              onElegir={(f) => {
+                irA(f);
+                setVerCalendario(false);
+              }}
+            />
+          ) : null}
+        </Tarjeta>
 
-      <FormularioDia
-        // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
-        key={`${fecha}-${JSON.stringify(existente)}`}
-        actividades={dossier.actividades}
-        existente={existente}
-        bloqueado={bloqueado}
-        guardando={guardando}
-        aviso={aviso}
-        onGuardar={guardar}
-        onBorrar={borrar}
-      />
-
-      <Tarjeta titulo={`Días de ${nombreMes(fecha.slice(0, 7))}`}>
-        {datos.dias.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Aún no has apuntado ningún día este mes.
-          </ThemedText>
-        ) : (
-          datos.dias.map((d) => (
-            <Pressable
-              key={d.id}
-              accessibilityRole="button"
-              onPress={() => setFecha(d.fecha)}
-              style={[
-                styles.dia,
-                { borderColor: d.fecha === fecha ? theme.primary : theme.border },
-              ]}>
-              <ThemedText type="smallBold">{fechaCorta(d.fecha)}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {d.tipo === 'trabajo'
-                  ? formatoHoras(totalHoras(d))
-                  : TIPOS.find((t) => t.valor === d.tipo)?.texto}
-              </ThemedText>
-            </Pressable>
-          ))
-        )}
-      </Tarjeta>
-    </Pantalla>
+        <FormularioDia
+          // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
+          key={`${fecha}-${JSON.stringify(existente)}`}
+          actividades={dossier.actividades}
+          existente={existente}
+          bloqueado={bloqueado}
+          guardando={guardando}
+          aviso={aviso}
+          onGuardar={guardar}
+          onBorrar={borrar}
+        />
+      </Pantalla>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   navFecha: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   centro: { flex: 1, alignItems: 'center', gap: Spacing.one },
-  dia: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: Radius.control,
-    padding: Spacing.two,
-  },
+  acciones: { flexDirection: 'row', gap: Spacing.two },
+  botones: { gap: Spacing.two },
+  campo: { gap: Spacing.one },
+  total: { flexDirection: 'row', justifyContent: 'space-between' },
 });
 
 interface ValoresDia {
   tipo: TipoDia;
-  horas: Record<string, string>;
+  horas: { actividadId: string; horas: number }[];
   observaciones: string;
 }
 
@@ -234,51 +247,109 @@ function FormularioDia({
 }: PropsFormulario) {
   const [tipo, setTipo] = useState<TipoDia>(existente?.tipo ?? 'trabajo');
   const [horas, setHoras] = useState<Record<string, string>>(() =>
-    Object.fromEntries((existente?.horas ?? []).map((h) => [h.actividadId, String(h.horas)])),
+    Object.fromEntries(
+      (existente?.horas ?? []).map((h) => [h.actividadId, String(h.horas).replace('.', ',')]),
+    ),
   );
   const [observaciones, setObservaciones] = useState(existente?.observaciones ?? '');
-  const total = Object.values(horas).reduce((s, v) => s + (Number(v.replace(',', '.')) || 0), 0);
+
+  // Se comprueba mientras se escribe, sin esperar a pulsar Guardar.
+  const leidas = actividades.map((a) => ({ id: a.id, lectura: leerHoras(horas[a.id] ?? '') }));
+  const total = leidas.reduce(
+    (s, { lectura }) => s + (lectura.tipo === 'ok' ? lectura.horas : 0),
+    0,
+  );
+  const hayErrores = leidas.some(({ lectura }) => lectura.tipo === 'error');
+  const sinHoras = tipo === 'trabajo' && total === 0;
+  const pasado = total > MAX_HORAS_DIA;
+  const puedeGuardar = !bloqueado && (tipo !== 'trabajo' || (!hayErrores && !sinHoras && !pasado));
+
+  function enviar() {
+    onGuardar({
+      tipo,
+      observaciones,
+      horas: leidas.flatMap(({ id, lectura }) =>
+        lectura.tipo === 'ok' ? [{ actividadId: id, horas: lectura.horas }] : [],
+      ),
+    });
+  }
 
   return (
-    <Tarjeta titulo="Qué has hecho">
-      <Selector opciones={TIPOS} valor={tipo} onCambio={setTipo} />
-      {tipo === 'trabajo'
-        ? actividades.map((a) => (
-            <Campo
-              key={a.id}
-              etiqueta={a.descripcion}
-              placeholder="0"
-              keyboardType="decimal-pad"
-              editable={!bloqueado}
-              value={horas[a.id] ?? ''}
-              onChangeText={(v) => setHoras((h) => ({ ...h, [a.id]: v }))}
-              ayuda="Horas, en tramos de 15 min (p. ej. 1,5)"
-            />
-          ))
-        : null}
-      <Campo
-        etiqueta="Observaciones"
-        multiline
-        editable={!bloqueado}
-        value={observaciones}
-        onChangeText={setObservaciones}
-        placeholder="Opcional"
-      />
-      {tipo === 'trabajo' ? (
-        <ThemedText type="smallBold">Total del día: {formatoHoras(total)}</ThemedText>
-      ) : null}
-      {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-      <View style={estilosComunes.fila}>
-        <Boton
-          texto={existente ? 'Guardar cambios' : 'Guardar día'}
-          onPress={() => onGuardar({ tipo, horas, observaciones })}
-          cargando={guardando}
-          desactivado={bloqueado}
+    // Tocar fuera de un campo cierra el teclado (el numérico de iOS no tiene botón para cerrarlo).
+    <Pressable accessible={false} onPress={Keyboard.dismiss}>
+      <Tarjeta titulo="Qué has hecho">
+        <Selector
+          opciones={TIPOS}
+          valor={tipo}
+          onCambio={(t) => {
+            Keyboard.dismiss();
+            if (!bloqueado) setTipo(t);
+          }}
         />
-        {existente && !bloqueado ? (
-          <Boton texto="Borrar día" variante="peligro" onPress={onBorrar} />
+        {tipo === 'trabajo' ? (
+          <>
+            <ThemedText type="small" themeColor="textSecondary">
+              Horas por actividad, en tramos de 15 min (p. ej. 1,5). Deja en blanco las que no hayas
+              hecho.
+            </ThemedText>
+            {actividades.map((a, i) => {
+              const lectura = leidas[i].lectura;
+              return (
+                <View key={a.id} style={styles.campo}>
+                  <Campo
+                    etiqueta={a.descripcion}
+                    placeholder="0"
+                    keyboardType="decimal-pad"
+                    returnKeyType="done"
+                    editable={!bloqueado}
+                    value={horas[a.id] ?? ''}
+                    onChangeText={(v) => setHoras((h) => ({ ...h, [a.id]: filtrarHoras(v) }))}
+                  />
+                  {lectura.tipo === 'error' ? (
+                    <ThemedText type="small" themeColor="danger">
+                      {lectura.motivo}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              );
+            })}
+          </>
         ) : null}
-      </View>
-    </Tarjeta>
+        <Campo
+          etiqueta="Observaciones"
+          multiline
+          editable={!bloqueado}
+          value={observaciones}
+          onChangeText={setObservaciones}
+          placeholder="Opcional"
+        />
+        {tipo === 'trabajo' ? (
+          <View style={styles.total}>
+            <ThemedText type="smallBold">Total del día</ThemedText>
+            <ThemedText type="smallBold" themeColor={pasado ? 'danger' : 'text'}>
+              {formatoHoras(total)}
+              {pasado ? ` · máximo ${MAX_HORAS_DIA} h` : ''}
+            </ThemedText>
+          </View>
+        ) : null}
+        {sinHoras && !bloqueado ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Apunta las horas de al menos una actividad para guardar.
+          </ThemedText>
+        ) : null}
+        {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+        <View style={styles.botones}>
+          <Boton
+            texto={existente ? 'Guardar cambios' : 'Guardar día'}
+            onPress={enviar}
+            cargando={guardando}
+            desactivado={!puedeGuardar}
+          />
+          {existente && !bloqueado ? (
+            <Boton texto="Borrar día" variante="peligro" onPress={onBorrar} />
+          ) : null}
+        </View>
+      </Tarjeta>
+    </Pressable>
   );
 }

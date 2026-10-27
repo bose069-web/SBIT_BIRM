@@ -45,6 +45,8 @@ export function limitesMes(fecha: string): [string, string] {
   return [`${a}-${mm}-01`, `${a}-${mm}-${ultimo}`];
 }
 
+/** Horas con coma decimal, como se escriben en el formulario: `7,5 h`. */
 export function formatoHoras(horas: number): string {
-  return `${Number.isInteger(horas) ? horas : horas.toFixed(2).replace(/0$/, '')} h`;
+  const texto = Number.isInteger(horas) ? String(horas) : horas.toFixed(2).replace(/0$/, '');
+  return `${texto.replace('.', ',')} h`;
 }
