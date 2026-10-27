@@ -22,7 +22,13 @@ import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, limitesMes, nombreMes } from '@/ui/utils/fechas';
 
 import { CalendarioMes } from './calendario-mes';
-import { Cargando, ListaValoraciones, estilosComunes } from './comun';
+import {
+  ErrorCarga,
+  EsqueletoPanel,
+  EstadoVacio,
+  ListaValoraciones,
+  estilosComunes,
+} from './comun';
 
 export function PanelAlumno() {
   const usuario = useUsuario();
@@ -40,14 +46,14 @@ export function PanelAlumno() {
 
   return (
     <Pantalla titulo={`Hola, ${usuario.nombre.split(' ')[0]}`} subtitulo={fechaCorta(hoy)}>
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
-      {cargando && !datos ? <Cargando /> : null}
+      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+      {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
-        <Tarjeta>
-          <ThemedText themeColor="textSecondary">
-            Todavía no tienes un dossier de prácticas asignado.
-          </ThemedText>
-        </Tarjeta>
+        <EstadoVacio
+          titulo="Todavía no tienes prácticas asignadas"
+          texto="Cuando tu tutor del centro cree tu dossier de prácticas, aquí verás tus horas, el calendario y las valoraciones de la empresa."
+          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+        />
       ) : null}
       {datos ? (
         <>
@@ -89,6 +95,10 @@ export function PanelAlumno() {
             <ThemedText type="small" themeColor="textSecondary">
               {datos.dossier.centro ?? 'Sin centro'} · del {fechaCorta(datos.dossier.fechaInicio)}{' '}
               al {fechaCorta(datos.dossier.fechaFin)}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
+              {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
             </ThemedText>
           </Tarjeta>
 

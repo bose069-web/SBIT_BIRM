@@ -17,11 +17,21 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
-import { Cargando, ListaValoraciones, TEXTO_RESULTADO } from './comun';
+import {
+  CabeceraAlumno,
+  Cargando,
+  ErrorCarga,
+  EsqueletoPanel,
+  EstadoVacio,
+  ListaValoraciones,
+  TEXTO_RESULTADO,
+  porAlumno,
+} from './comun';
 
 const SUBTITULO: Partial<Record<Rol, string>> = {
   profe: 'Tus alumnos: horas, valoraciones de la empresa y valoración final',
@@ -35,17 +45,23 @@ const SUBTITULO: Partial<Record<Rol, string>> = {
  */
 export function PanelProfe() {
   const { rol } = useUsuario();
-  const { datos, error, cargando } = useDatos(() => listarDossiers(container.dossiers), []);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => listarDossiers(container.dossiers),
+    [],
+  );
+  useRecargarAlVolver(recargar);
   return (
     <Pantalla titulo="Seguimiento" subtitulo={SUBTITULO[rol]}>
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
-      {cargando && !datos ? <Cargando /> : null}
+      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+      {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
-        <ThemedText themeColor="textSecondary">No hay dossiers todavía.</ThemedText>
+        <EstadoVacio
+          titulo="Todavía no hay alumnos con dossier"
+          texto="Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final."
+          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+        />
       ) : null}
-      {datos?.map((d) => (
-        <SeguimientoDossier key={d.id} dossier={d} />
-      ))}
+      {datos ? porAlumno(datos).map((d) => <SeguimientoDossier key={d.id} dossier={d} />) : null}
     </Pantalla>
   );
 }
@@ -53,7 +69,7 @@ export function PanelProfe() {
 function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const { datos, recargar } = useDatos(async () => {
+  const { datos, error, recargar } = useDatos(async () => {
     const [resumen, seguimiento] = await Promise.all([
       obtenerResumenHoras(dossier, container.registros),
       obtenerSeguimiento(container.valoraciones, dossier, hoy),
@@ -88,12 +104,19 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   }
 
   return (
-    <Tarjeta titulo={`${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`}>
-      <ThemedText type="small" themeColor="textSecondary">
-        Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
-      </ThemedText>
-      {!datos ? (
-        <Cargando />
+    <Tarjeta>
+      <CabeceraAlumno
+        nombre={dossier.alumnoNombre}
+        detalle={[
+          `${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`,
+          `Tutor de empresa: ${dossier.tutorEmpresaNombre ?? 'sin asignar'}`,
+          `Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`,
+        ]}
+      />
+      {!datos && error ? (
+        <ErrorCarga texto={error} onReintentar={recargar} />
+      ) : !datos ? (
+        <Cargando texto="Cargando horas y valoraciones…" />
       ) : (
         <>
           <View style={styles.horas}>
