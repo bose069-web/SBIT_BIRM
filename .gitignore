@@ -46,3 +46,6 @@ example
 
 # Copias de la base: datos personales, nunca al repo
 backups/
+
+# Estado local de la CLI de Supabase (proyecto enlazado)
+supabase/.temp/
