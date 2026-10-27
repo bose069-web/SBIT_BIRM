@@ -24,6 +24,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 import {
+  CabeceraAlumno,
   Cargando,
   ErrorCarga,
   EsqueletoPanel,
@@ -31,6 +32,7 @@ import {
   ListaValoraciones,
   TEXTO_VALORACION,
   estilosComunes,
+  porAlumno,
 } from './comun';
 
 /** El tutor de empresa valora cada mes a sus alumnos. */
@@ -51,9 +53,7 @@ export function PanelEmpresa() {
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
-      {datos?.map((d) => (
-        <ValorarDossier key={d.id} dossier={d} />
-      ))}
+      {datos ? porAlumno(datos).map((d) => <ValorarDossier key={d.id} dossier={d} />) : null}
     </Pantalla>
   );
 }
@@ -107,10 +107,15 @@ function ValorarDossier({ dossier }: { dossier: Dossier }) {
   }
 
   return (
-    <Tarjeta titulo={`${dossier.ciclo} · ${dossier.centro ?? ''}`}>
-      <ThemedText type="small" themeColor="textSecondary">
-        Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
-      </ThemedText>
+    <Tarjeta>
+      <CabeceraAlumno
+        nombre={dossier.alumnoNombre}
+        detalle={[
+          [dossier.ciclo, dossier.centro].filter(Boolean).join(' · '),
+          `Tutor del centro: ${dossier.tutorNombre ?? 'sin asignar'}`,
+          `Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`,
+        ]}
+      />
       {error && !datos ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {!datos && !error ? <Cargando texto="Cargando valoraciones…" /> : null}
       {datos && datos.sinValorar.length > 0 ? (

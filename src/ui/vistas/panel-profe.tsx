@@ -22,12 +22,14 @@ import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 import {
+  CabeceraAlumno,
   Cargando,
   ErrorCarga,
   EsqueletoPanel,
   EstadoVacio,
   ListaValoraciones,
   TEXTO_RESULTADO,
+  porAlumno,
 } from './comun';
 
 /** El profe sigue a todos los alumnos y pone la valoración final. */
@@ -48,9 +50,7 @@ export function PanelProfe() {
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
-      {datos?.map((d) => (
-        <SeguimientoDossier key={d.id} dossier={d} />
-      ))}
+      {datos ? porAlumno(datos).map((d) => <SeguimientoDossier key={d.id} dossier={d} />) : null}
     </Pantalla>
   );
 }
@@ -93,10 +93,15 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   }
 
   return (
-    <Tarjeta titulo={`${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`}>
-      <ThemedText type="small" themeColor="textSecondary">
-        Del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
-      </ThemedText>
+    <Tarjeta>
+      <CabeceraAlumno
+        nombre={dossier.alumnoNombre}
+        detalle={[
+          `${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`,
+          `Tutor de empresa: ${dossier.tutorEmpresaNombre ?? 'sin asignar'}`,
+          `Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`,
+        ]}
+      />
       {!datos && error ? (
         <ErrorCarga texto={error} onReintentar={recargar} />
       ) : !datos ? (

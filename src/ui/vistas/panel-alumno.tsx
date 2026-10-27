@@ -96,6 +96,10 @@ export function PanelAlumno() {
               {datos.dossier.centro ?? 'Sin centro'} · del {fechaCorta(datos.dossier.fechaInicio)}{' '}
               al {fechaCorta(datos.dossier.fechaFin)}
             </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
+              {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
+            </ThemedText>
           </Tarjeta>
 
           <Tarjeta titulo="Valoraciones de la empresa">

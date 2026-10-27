@@ -74,6 +74,25 @@ export function ListaValoraciones({
   );
 }
 
+/** Lista de dossiers ordenada por el nombre del alumno, para encontrar a cada uno rápido. */
+export function porAlumno<T extends { alumnoNombre: string }>(dossiers: T[]): T[] {
+  return [...dossiers].sort((a, b) => a.alumnoNombre.localeCompare(b.alumnoNombre, 'es'));
+}
+
+/** Cabecera de la tarjeta de un alumno: su nombre y debajo los datos de las prácticas. */
+export function CabeceraAlumno({ nombre, detalle }: { nombre: string; detalle: string[] }) {
+  return (
+    <View style={styles.cabeceraAlumno}>
+      <ThemedText type="subtitle">{nombre}</ThemedText>
+      {detalle.map((linea) => (
+        <ThemedText key={linea} type="small" themeColor="textSecondary">
+          {linea}
+        </ThemedText>
+      ))}
+    </View>
+  );
+}
+
 /** Carga dentro de una tarjeta o de una parte de la pantalla. */
 export function Cargando({ texto = 'Cargando…' }: { texto?: string }) {
   const theme = useTheme();
@@ -167,6 +186,7 @@ export const estilosComunes = StyleSheet.create({
 
 const styles = StyleSheet.create({
   cargando: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  cabeceraAlumno: { gap: Spacing.half },
   esqueleto: { gap: Spacing.three },
   tarjetaEsqueleto: {
     borderWidth: 1,
