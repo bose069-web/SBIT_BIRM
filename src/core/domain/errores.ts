@@ -25,3 +25,10 @@ export class SinPermisoError extends Error {
     this.name = 'SinPermisoError';
   }
 }
+
+export class DatosInvalidosError extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'DatosInvalidosError';
+  }
+}

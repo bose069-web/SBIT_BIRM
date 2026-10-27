@@ -1,4 +1,5 @@
 import type { Dossier } from '../domain/dossier';
+import type { BorradorEvento, Evento } from '../domain/evento';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
 import type {
@@ -7,7 +8,10 @@ import type {
   ValoracionFinal,
   ValoracionMensual,
 } from '../domain/valoracion';
+import type { BorradorTarea, Tarea } from '../domain/tarea';
+import type { EventoPort } from '../ports/evento-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
+import type { TareaPort } from '../ports/tarea-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
 
 // Datos y dobles de prueba en TypeScript puro: los tests del núcleo no dependen de ningún adaptador.
@@ -150,5 +154,41 @@ export class ValoracionesFalsas implements ValoracionPort {
   async guardarFinal(b: BorradorValoracionFinal) {
     this.final = { ...b, valoradaPor: 'x', valoradaEn: '' };
     return this.final;
+  }
+}
+
+export class TareasFalsas implements TareaPort {
+  tareas: Tarea[] = [];
+  async listar(dossierId: string) {
+    return this.tareas.filter((t) => t.dossierId === dossierId);
+  }
+  async crear(b: BorradorTarea) {
+    const t: Tarea = { ...b, id: `t${this.tareas.length + 1}`, completada: false, creadaPor: 'x' };
+    this.tareas.push(t);
+    return t;
+  }
+  async marcar(id: string, completada: boolean) {
+    const t = this.tareas.find((x) => x.id === id);
+    if (!t) throw new Error('No existe');
+    t.completada = completada;
+    return t;
+  }
+  async borrar(id: string) {
+    this.tareas = this.tareas.filter((t) => t.id !== id);
+  }
+}
+
+export class EventosFalsos implements EventoPort {
+  eventos: Evento[] = [];
+  async listar(desde: string, hasta: string) {
+    return this.eventos.filter((e) => e.fecha >= desde && e.fecha <= hasta);
+  }
+  async crear(b: BorradorEvento) {
+    const e: Evento = { ...b, id: `e${this.eventos.length + 1}` };
+    this.eventos.push(e);
+    return e;
+  }
+  async borrar(id: string) {
+    this.eventos = this.eventos.filter((e) => e.id !== id);
   }
 }
