@@ -8,7 +8,7 @@ App móvil del TEAM BIRM. Documentación y plan: vault de Obsidian https://githu
 src/core/            Núcleo, TypeScript puro: domain/ (entidades), ports/ (interfaces), application/ (casos de uso)
 src/infrastructure/  Adaptadores que implementan los puertos (memory/, supabase/…)
 src/config/          container.ts: único sitio que elige e inyecta adaptadores
-src/ui/              Componentes, hooks y tema
+src/ui/              Componentes, hooks, tema y vistas (pantallas completas que usan las rutas)
 src/app/             Pantallas (Expo Router)
 ```
 
@@ -22,7 +22,7 @@ src/app/             Pantallas (Expo Router)
 | PC   | Agente              | Puede modificar                                                                                                  |
 | ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | PC 1 | Claude Code + Codex | Todo. Dueño de `core/`, `config/`, `infrastructure/` (salvo `memory/`), `.github/`, configuración y dependencias |
-| PC 2 | OpenCode            | `src/app/`, `src/ui/hooks/`                                                                                      |
+| PC 2 | OpenCode            | `src/app/`, `src/ui/hooks/`, `src/ui/vistas/`, `src/ui/utils/`                                                   |
 | PC 3 | OpenCode            | `src/ui/components/`, `src/ui/theme/`, `src/infrastructure/memory/`                                              |
 | PC 4 | OpenCode            | Panel web, `e2e/`, diseño                                                                                        |
 
