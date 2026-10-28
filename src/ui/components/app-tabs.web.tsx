@@ -33,7 +33,8 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           ) : (
             <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
           )}
-          {rol === 'instituto' ? (
+          {/* El instituto gestiona el suyo y la generalitat, el que elija: los dos ven la pestaña. */}
+          {rol === 'instituto' || rol === 'generalitat' ? (
             <TabTrigger name="centro" href="/centro" asChild>
               <TabButton>Centro</TabButton>
             </TabTrigger>

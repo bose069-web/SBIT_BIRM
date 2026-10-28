@@ -29,7 +29,8 @@ export default function AppTabs({ rol }: { rol: Rol }) {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="centro" hidden={rol !== 'instituto'}>
+      {/* El instituto gestiona el suyo y la generalitat, el que elija: los dos ven la pestaña. */}
+      <NativeTabs.Trigger name="centro" hidden={rol !== 'instituto' && rol !== 'generalitat'}>
         <NativeTabs.Trigger.Label>Centro</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/explore.png')}
