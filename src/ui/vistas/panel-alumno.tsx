@@ -198,9 +198,7 @@ function DatosProgreso({ progreso }: { progreso: Progreso }) {
         </Pressable>
       </View>
       {finEstimado ? (
-        <ThemedText
-          type="small"
-          style={{ color: aTiempo ? theme.estadoValidado : theme.estadoPendiente }}>
+        <ThemedText type="small">
           {quedan === 0
             ? 'Horas completadas'
             : `A este ritmo terminas el ${fechaCorta(finEstimado)}${aTiempo ? ', a tiempo' : ', después del fin previsto'}`}
