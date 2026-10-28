@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { useAnimar } from '@/ui/hooks/use-animar';
 import { Movimiento } from '@/ui/theme/theme';
 
 /**
- * Entrada suave (sube un poco y aparece). `orden` escalona varias seguidas. Con "reducir
+ * Entrada suave (sube un poco y aparece). `orden` escalona varias seguidas. En la web o con "reducir
  * movimiento" activado en el sistema, aparece sin animar.
  */
 export function Aparecer({
@@ -17,12 +18,12 @@ export function Aparecer({
   orden?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const reducir = useReducedMotion();
+  const animar = useAnimar();
   return (
     <Animated.View
       style={style}
       entering={
-        reducir ? undefined : FadeInDown.duration(Movimiento.entrada).delay(Math.min(orden, 6) * 50)
+        !animar ? undefined : FadeInDown.duration(Movimiento.entrada).delay(Math.min(orden, 6) * 50)
       }>
       {children}
     </Animated.View>

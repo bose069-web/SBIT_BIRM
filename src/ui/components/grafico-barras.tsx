@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
-import Animated, { useReducedMotion, ZoomIn } from 'react-native-reanimated';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/ui/components/themed-text';
+import { useAnimar } from '@/ui/hooks/use-animar';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 
@@ -27,7 +28,7 @@ export function GraficoBarras({
   titulo: string;
 }) {
   const theme = useTheme();
-  const reducir = useReducedMotion();
+  const animar = useAnimar();
   const maximo = Math.max(1, ...barras.map((b) => b.valor));
   const resumen = barras.map((b) => `${b.etiqueta}: ${b.texto ?? b.valor}`).join(', ');
   return (
@@ -39,7 +40,7 @@ export function GraficoBarras({
           </ThemedText>
           <View style={[styles.pista, { height: alto, backgroundColor: theme.subtle }]}>
             <Animated.View
-              entering={reducir ? undefined : ZoomIn.duration(Movimiento.entrada).delay(i * 40)}
+              entering={!animar ? undefined : ZoomIn.duration(Movimiento.entrada).delay(i * 40)}
               style={[
                 styles.relleno,
                 {

@@ -1,10 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 import { mesDe } from '@/core/domain/valoracion';
 import { Leyenda, type ElementoLeyenda } from '@/ui/components/leyenda';
 import { ThemedText } from '@/ui/components/themed-text';
+import { useAnimar } from '@/ui/hooks/use-animar';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import {
@@ -65,7 +66,7 @@ export function CalendarioMes({
   agenda,
 }: Props) {
   const theme = useTheme();
-  const reducir = useReducedMotion();
+  const animar = useAnimar();
   const porFecha = new Map(dias.map((d) => [d.fecha, d]));
   const horasMes = dias.reduce((s, d) => s + totalHoras(d), 0);
   const leyenda: ElementoLeyenda[] = EN_LEYENDA.map((e) => ({
@@ -111,7 +112,7 @@ export function CalendarioMes({
       {/* La clave hace que al cambiar de mes la rejilla entre con un fundido. */}
       <Animated.View
         key={mes}
-        entering={reducir ? undefined : FadeIn.duration(Movimiento.normal)}
+        entering={!animar ? undefined : FadeIn.duration(Movimiento.normal)}
         style={styles.rejilla}>
         {semanasDelMes(mes).map((semana, i) => (
           <View key={i} style={styles.semana}>

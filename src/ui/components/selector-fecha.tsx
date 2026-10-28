@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInUp, FadeOutUp, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 
 import { ThemedText } from '@/ui/components/themed-text';
+import { useAnimar } from '@/ui/hooks/use-animar';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 import { DIAS_SEMANA, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
@@ -20,7 +21,7 @@ interface Props {
 /** Campo de fecha que despliega un calendario del mes al tocarlo, en vez de escribir la fecha. */
 export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
   const theme = useTheme();
-  const reducir = useReducedMotion();
+  const animar = useAnimar();
   const hoy = hoyISO();
   const [abierto, setAbierto] = useState(false);
   const [mes, setMes] = useState((valor || hoy).slice(0, 7));
@@ -56,8 +57,8 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
 
       {abierto ? (
         <Animated.View
-          entering={reducir ? undefined : FadeInUp.duration(Movimiento.normal)}
-          exiting={reducir ? undefined : FadeOutUp.duration(Movimiento.rapido)}
+          entering={!animar ? undefined : FadeInUp.duration(Movimiento.normal)}
+          exiting={!animar ? undefined : FadeOutUp.duration(Movimiento.rapido)}
           style={[
             styles.desplegable,
             { borderColor: theme.border, backgroundColor: theme.surface },
