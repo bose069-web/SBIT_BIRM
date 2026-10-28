@@ -15,6 +15,7 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { sumarMeses } from '@/ui/utils/calendario';
+import { leerFecha } from '@/ui/utils/fecha-escrita';
 import { fechaCorta } from '@/ui/utils/fechas';
 
 import { Cargando, ErrorCarga } from './comun';
@@ -84,25 +85,29 @@ export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: st
  */
 export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado?: () => void }) {
   const usuario = useUsuario();
+  const [abierto, setAbierto] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [fecha, setFecha] = useState('');
   const [tipo, setTipo] = useState<TipoEvento>(dossier ? 'entrega' : 'evento');
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const leida = leerFecha(fecha);
 
   async function enviar() {
+    if (leida.tipo !== 'ok') return;
     setAviso(null);
     setEnviando(true);
     try {
       await crearEvento(
         container.eventos,
         usuario,
-        { dossierId: dossier?.id ?? null, titulo, fecha: fecha.trim(), tipo },
+        { dossierId: dossier?.id ?? null, titulo, fecha: leida.fecha, tipo },
         dossier,
       );
-      setAviso({ tipo: 'ok', texto: `Añadido el ${fechaCorta(fecha.trim())}` });
+      setAviso({ tipo: 'ok', texto: `Añadido el ${fechaCorta(leida.fecha)}` });
       setTitulo('');
       setFecha('');
+      setAbierto(false);
       onCreado?.();
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
@@ -111,21 +116,43 @@ export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado
     }
   }
 
+  // Plegado detrás de un botón para que la tarjeta no se haga eterna en el móvil.
+  if (!abierto) {
+    return (
+      <View style={styles.lista}>
+        {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+        <Boton
+          texto={dossier ? '+ Añadir una fecha' : '+ Fecha para todos'}
+          variante="secundario"
+          onPress={() => {
+            setAviso(null);
+            setAbierto(true);
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.lista}>
       <Campo
         etiqueta={dossier ? 'Nueva fecha para este alumno' : 'Nueva fecha para todos'}
-        placeholder="Título (p. ej. Entrega de la memoria)"
+        placeholder="Entrega de la memoria"
         value={titulo}
         onChangeText={setTitulo}
       />
       <Campo
         etiqueta="Día"
-        placeholder="AAAA-MM-DD"
+        placeholder="31/10/2026"
         value={fecha}
         onChangeText={setFecha}
         autoCapitalize="none"
       />
+      {leida.tipo === 'error' ? (
+        <ThemedText type="small" themeColor="danger">
+          {leida.motivo}
+        </ThemedText>
+      ) : null}
       <Selector
         etiqueta="Tipo"
         opciones={TIPOS_EVENTO.map((t) => ({ valor: t, texto: TEXTO_TIPO_EVENTO[t] }))}
@@ -135,11 +162,11 @@ export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       <Boton
         texto="Añadir al calendario"
-        variante="secundario"
         onPress={enviar}
         cargando={enviando}
-        desactivado={!titulo.trim() || !fecha.trim()}
+        desactivado={!titulo.trim() || leida.tipo !== 'ok'}
       />
+      <Boton texto="Cancelar" variante="secundario" onPress={() => setAbierto(false)} />
     </View>
   );
 }
