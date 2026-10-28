@@ -17,7 +17,12 @@ export function Pantalla({ titulo, subtitulo, children }: Props) {
   const theme = useTheme();
   return (
     <SafeAreaView edges={['top']} style={[styles.fondo, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        // Los campos de los formularios se pueden tocar con el teclado abierto y, al arrastrar,
+        // el teclado se cierra en vez de quedarse tapando el contenido.
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag">
         <View style={styles.contenido}>
           <View style={styles.cabecera}>
             <ThemedText accessibilityRole="header" type="title">
