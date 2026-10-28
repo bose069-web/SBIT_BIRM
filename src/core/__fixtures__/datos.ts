@@ -18,6 +18,13 @@ import type { TareaPort } from '../ports/tarea-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
 
 // Datos y dobles de prueba en TypeScript puro: los tests del núcleo no dependen de ningún adaptador.
+import type {
+  BorradorIncidencia,
+  CambiosIncidencia,
+  Incidencia,
+  MensajeIncidencia,
+} from '../domain/incidencia';
+import type { IncidenciaPort } from '../ports/incidencia-port';
 
 export const alumno: Usuario = {
   id: 'a1',
@@ -291,5 +298,75 @@ export class DossiersFalsos implements DossierPort {
   }
   async borrar(id: string) {
     this.dossiers = this.dossiers.filter((d) => d.id !== id);
+  }
+}
+
+export function crearIncidencia(cambios: Partial<Incidencia> = {}): Incidencia {
+  return {
+    id: 'inc1',
+    centroId: 'c1',
+    dossierId: 'd1',
+    tutorId: profe.id,
+    creadaPor: alumno.id,
+    creadaPorNombre: alumno.nombre,
+    titulo: 'La empresa no me deja registrar',
+    descripcion: 'Detalle',
+    categoria: 'empresa',
+    prioridad: 'media',
+    estado: 'abierta',
+    escalada: false,
+    respuesta: null,
+    atendidaPor: null,
+    creadaEn: '2026-10-20T10:00:00.000Z',
+    resueltaEn: null,
+    ...cambios,
+  };
+}
+
+export class IncidenciasFalsas implements IncidenciaPort {
+  incidencias: Incidencia[] = [];
+  cambios: CambiosIncidencia[] = [];
+  async listar() {
+    return this.incidencias;
+  }
+  async abrir(b: BorradorIncidencia) {
+    const i = crearIncidencia({ ...b, id: `inc${this.incidencias.length + 1}` });
+    this.incidencias.push(i);
+    return i;
+  }
+  async corregir(id: string, titulo: string, descripcion: string) {
+    return this.cambiar(id, { titulo, descripcion });
+  }
+  async atender(id: string, cambios: CambiosIncidencia) {
+    this.cambios.push(cambios);
+    const definidos = Object.fromEntries(
+      Object.entries(cambios).filter(([, v]) => v !== undefined),
+    );
+    return this.cambiar(id, definidos);
+  }
+  async borrar(id: string) {
+    this.incidencias = this.incidencias.filter((i) => i.id !== id);
+  }
+  mensajes: MensajeIncidencia[] = [];
+  async listarMensajes(incidenciaId: string) {
+    return this.mensajes.filter((m) => m.incidenciaId === incidenciaId);
+  }
+  async enviarMensaje(incidenciaId: string, texto: string) {
+    const m: MensajeIncidencia = {
+      id: `m${this.mensajes.length + 1}`,
+      incidenciaId,
+      autorId: 'x',
+      autorNombre: null,
+      texto,
+      creadoEn: '',
+    };
+    this.mensajes.push(m);
+    return m;
+  }
+  private cambiar(id: string, cambios: Partial<Incidencia>) {
+    const i = this.incidencias.find((x) => x.id === id);
+    if (!i) throw new Error('No existe');
+    Object.assign(i, cambios);
+    return i;
   }
 }
