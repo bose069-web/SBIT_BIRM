@@ -10,6 +10,7 @@ import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
+import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
@@ -229,12 +230,11 @@ function NuevaTarea({
         value={descripcion}
         onChangeText={setDescripcion}
       />
-      <Campo
+      <SelectorFecha
         etiqueta="Fecha límite (opcional)"
-        placeholder="31/10/2026"
-        value={fecha}
-        onChangeText={setFecha}
-        autoCapitalize="none"
+        valor={fecha}
+        onCambio={setFecha}
+        opcional
       />
       {leida.tipo === 'error' ? (
         <ThemedText type="small" themeColor="danger">
