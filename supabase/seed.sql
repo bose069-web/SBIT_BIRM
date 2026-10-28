@@ -64,3 +64,15 @@ insert into public.horas_actividad (registro_id, actividad_id, dossier_id, horas
 insert into public.valoraciones_mensuales (dossier_id, mes, valoracion, comentario, valorada_por) values
   ('cccccccc-0000-0000-0000-000000000001', '2026-09-01', 'positiva', 'Buen inicio, se adapta rápido al equipo.',
    '33333333-3333-3333-3333-333333333333');
+
+-- Chat del dossier de ejemplo (autor_id lo fija el trigger: se simula cada sesión).
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+insert into public.mensajes_chat (dossier_id, texto) values
+  ('cccccccc-0000-0000-0000-000000000001', 'Hola, ¿la memoria de octubre se entrega en PDF?');
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+insert into public.mensajes_chat (dossier_id, texto) values
+  ('cccccccc-0000-0000-0000-000000000001', 'Sí, en PDF y antes del día 31.');
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+insert into public.mensajes_chat (dossier_id, texto) values
+  ('cccccccc-0000-0000-0000-000000000001', 'Por mi parte las horas de octubre están revisadas.');
+select set_config('request.jwt.claim.sub', '', false);
