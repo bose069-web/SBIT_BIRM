@@ -6,6 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
+import type { ReactNode } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 
 import type { Rol } from '@/core/domain/usuario';
@@ -16,6 +17,41 @@ import { MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
+type NombreIcono = 'inicio' | 'registrar' | 'centro' | 'perfil';
+
+// Mismo trazo de 24 para los cuatro iconos: coherentes entre sí y con los del móvil
+// (casa, cuaderno con lápiz, edificio y persona).
+const TRAZOS: Record<NombreIcono, ReactNode> = {
+  inicio: (
+    <>
+      <path d="M4 10.8 12 4l8 6.8" />
+      <path d="M6.2 9.6V20h11.6V9.6" />
+      <path d="M10.2 20v-5.2h3.6V20" />
+    </>
+  ),
+  registrar: (
+    <>
+      <path d="M14.5 4H6.8A1.8 1.8 0 0 0 5 5.8v12.4A1.8 1.8 0 0 0 6.8 20h10.4a1.8 1.8 0 0 0 1.8-1.8V8.5z" />
+      <path d="M14.5 4v4.5H19" />
+      <path d="M12 11.5v5M9.5 14h5" />
+    </>
+  ),
+  centro: (
+    <>
+      <path d="M4.5 20V7.8L12 4l7.5 3.8V20" />
+      <path d="M3 20h18" />
+      <path d="M9 10.5h1.2M13.8 10.5H15M9 14h1.2M13.8 14H15" />
+      <path d="M10.5 20v-3.2h3V20" />
+    </>
+  ),
+  perfil: (
+    <>
+      <circle cx="12" cy="8.5" r="3.6" />
+      <path d="M5.4 20c0-3.4 2.9-5.6 6.6-5.6s6.6 2.2 6.6 5.6" />
+    </>
+  ),
+};
+
 export default function AppTabs({ rol }: { rol: Rol }) {
   return (
     <Tabs>
@@ -23,25 +59,25 @@ export default function AppTabs({ rol }: { rol: Rol }) {
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Inicio</TabButton>
+            <TabButton icono="inicio">Inicio</TabButton>
           </TabTrigger>
           {/* La ruta existe para todos (si no, no se puede navegar a ella); solo el alumno ve la pestaña. */}
           {rol === 'alumno' ? (
             <TabTrigger name="registro" href="/registro" asChild>
-              <TabButton>Registrar día</TabButton>
+              <TabButton icono="registrar">Registrar día</TabButton>
             </TabTrigger>
           ) : (
             <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
           )}
           {rol === 'instituto' ? (
             <TabTrigger name="centro" href="/centro" asChild>
-              <TabButton>Centro</TabButton>
+              <TabButton icono="centro">Centro</TabButton>
             </TabTrigger>
           ) : (
             <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           )}
           <TabTrigger name="perfil" href="/perfil" asChild>
-            <TabButton>Perfil</TabButton>
+            <TabButton icono="perfil">Perfil</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -49,18 +85,51 @@ export default function AppTabs({ rol }: { rol: Rol }) {
   );
 }
 
+/** Icono decorativo: la etiqueta de la pestaña es el nombre accesible. */
+function IconoPestana({ nombre, color }: { nombre: NombreIcono; color: string }) {
+  return (
+    <svg
+      aria-hidden
+      focusable="false"
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'block', flexShrink: 0 }}>
+      {TRAZOS[nombre]}
+    </svg>
+  );
+}
+
 // `ref` se descarta: el tipo de expo-router/ui no encaja con el de Pressable en RN 0.88 y la navegación va por onPress.
-export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
+export function TabButton({
+  children,
+  isFocused,
+  icono,
+  ref: _ref,
+  ...props
+}: TabTriggerSlotProps & { icono?: NombreIcono }) {
+  const theme = useTheme();
   return (
     <Pressable
       {...props}
       accessibilityRole="tab"
       accessibilityState={{ selected: !!isFocused }}
+      accessibilityLabel={typeof children === 'string' ? children : undefined}
       style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView type={isFocused ? 'subtle' : 'surface'} style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-          {children}
-        </ThemedText>
+        <View style={styles.contenido}>
+          {icono ? (
+            <IconoPestana nombre={icono} color={isFocused ? theme.text : theme.textSecondary} />
+          ) : null}
+          <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+            {children}
+          </ThemedText>
+        </View>
       </ThemedView>
     </Pressable>
   );
@@ -115,5 +184,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
     justifyContent: 'center',
+  },
+  contenido: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
 });
