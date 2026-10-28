@@ -75,8 +75,14 @@ export function PanelAlumno() {
           izquierda={
             <>
               <Tarjeta titulo="Horas de prácticas">
-                <MiniCalendario hoy={hoy} />
-                <View style={[styles.quesito, styles.separado, { borderTopColor: theme.border }]}>
+                {/* En la web el quesito y sus datos van arriba; en el móvil, el calendario primero. */}
+                {ancho ? null : <MiniCalendario hoy={hoy} />}
+                <View
+                  style={[
+                    styles.quesito,
+                    !ancho && styles.separado,
+                    { borderTopColor: theme.border },
+                  ]}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
                     etiqueta="Horas de prácticas completadas"
@@ -95,6 +101,11 @@ export function PanelAlumno() {
                   {/* En la web sobra sitio junto al quesito: lo que falta y si se llega a tiempo. */}
                   {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
                 </View>
+                {ancho ? (
+                  <View style={[styles.separado, { borderTopColor: theme.border }]}>
+                    <MiniCalendario hoy={hoy} />
+                  </View>
+                ) : null}
               </Tarjeta>
               <Tarjeta titulo="Este mes">
                 <View style={estilosComunes.fila}>
