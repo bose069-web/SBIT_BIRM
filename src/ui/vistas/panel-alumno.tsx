@@ -53,6 +53,11 @@ export function PanelAlumno() {
   const { width } = useWindowDimensions();
   // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
   const ancho = Platform.OS === 'web' && width >= 1000;
+  const calendario = (
+    <Tarjeta titulo="Calendario">
+      <MiniCalendario hoy={hoy} />
+    </Tarjeta>
+  );
 
   return (
     <Pantalla
@@ -73,10 +78,10 @@ export function PanelAlumno() {
           ancho={ancho}
           izquierda={
             <>
+              {/* En la web las horas van primero; en el móvil, el calendario. */}
+              {ancho ? null : calendario}
               <Tarjeta titulo="Horas de prácticas">
-                {/* En la web el quesito y sus datos van arriba; en el móvil, el calendario primero. */}
-                {ancho ? null : <MiniCalendario hoy={hoy} />}
-                <View style={[styles.quesito, !ancho && styles.separado]}>
+                <View style={styles.quesito}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
                     etiqueta="Horas de prácticas completadas"
@@ -95,12 +100,8 @@ export function PanelAlumno() {
                   {/* En la web sobra sitio junto al quesito: lo que falta y si se llega a tiempo. */}
                   {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
                 </View>
-                {ancho ? (
-                  <View style={styles.separado}>
-                    <MiniCalendario hoy={hoy} />
-                  </View>
-                ) : null}
               </Tarjeta>
+              {ancho ? calendario : null}
               <Tarjeta titulo="Este mes">
                 <View style={estilosComunes.fila}>
                   <ThemedText type="smallBold" style={estilosComunes.capital}>
@@ -242,5 +243,4 @@ const styles = StyleSheet.create({
   flex: { flex: 1, gap: Spacing.one },
   datos: { flex: 1.6, gap: Spacing.two, paddingLeft: Spacing.four },
   cifras: { flexDirection: 'row', gap: Spacing.three },
-  separado: { paddingTop: Spacing.two },
 });
