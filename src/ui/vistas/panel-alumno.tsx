@@ -112,6 +112,11 @@ export function PanelAlumno() {
               Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
               {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
             </ThemedText>
+            <Boton
+              texto="Ver la ficha completa"
+              variante="secundario"
+              onPress={() => router.push({ pathname: '/', params: { dossier: datos.dossier.id } })}
+            />
           </Tarjeta>
 
           <Tarjeta titulo="Valoraciones de la empresa">

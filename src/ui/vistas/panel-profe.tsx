@@ -118,6 +118,7 @@ function SeguimientoDossier({ dossier }: { dossier: Dossier }) {
   return (
     <Tarjeta>
       <CabeceraAlumno
+        onAbrir={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
         nombre={dossier.alumnoNombre}
         detalle={[
           `${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`,
