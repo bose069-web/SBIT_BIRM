@@ -5,10 +5,11 @@ import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'reac
 import { listarDossiers } from '@/core/application/dossier';
 import { obtenerBandeja } from '@/core/application/incidencias';
 import { listarRegistros } from '@/core/application/registro-diario';
-import { crearTarea } from '@/core/application/tareas';
+import { crearTarea, listarTareas } from '@/core/application/tareas';
+import { obtenerSeguimiento } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
 import type { Incidencia } from '@/core/domain/incidencia';
-import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
+import { totalHoras } from '@/core/domain/registro-diario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Chip } from '@/ui/components/chip';
@@ -22,12 +23,15 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import {
+  agruparPorAlumno,
   alumnosSinApuntar,
   DIAS_PARA_AVISAR,
   textoToque,
+  toquePendiente,
   type AlumnoSinApuntar,
+  type DiasDeAlumno,
 } from '@/ui/utils/avisos-profe';
-import { fechaCorta, formatoHoras, hoyISO, sumarDias } from '@/ui/utils/fechas';
+import { fechaCorta, formatoHoras, hoyISO, nombreMes, sumarDias } from '@/ui/utils/fechas';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio, porAlumno } from './comun';
 import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
@@ -37,9 +41,11 @@ const DIAS_ATRAS = 45;
 /** Días recientes que se enseñan en "Horas por validar". */
 const DIAS_RECIENTES = 7;
 
-interface DiaApuntado {
-  dossier: Dossier;
-  registro: RegistroDiario;
+interface FaltaValorar {
+  dossierId: string;
+  nombre: string;
+  empresa: string | null;
+  meses: string[];
 }
 
 /**
@@ -59,13 +65,18 @@ export function PanelProfe() {
     const registros = await Promise.all(
       dossiers.map((d) => listarRegistros(container.registros, d.id, desde, hoy)),
     );
-    const recientes: DiaApuntado[] = dossiers
-      .flatMap((dossier, i) => registros[i].map((registro) => ({ dossier, registro })))
-      .filter(
-        ({ registro }) =>
-          registro.tipo === 'trabajo' && registro.fecha >= sumarDias(hoy, -DIAS_RECIENTES),
-      )
-      .sort((a, b) => b.registro.fecha.localeCompare(a.registro.fecha));
+    const recientes = agruparPorAlumno(
+      dossiers.flatMap((d, i) =>
+        registros[i]
+          .filter((r) => r.tipo === 'trabajo' && r.fecha >= sumarDias(hoy, -DIAS_RECIENTES))
+          .map((r) => ({
+            dossierId: d.id,
+            nombre: d.alumnoNombre,
+            fecha: r.fecha,
+            horas: totalHoras(r),
+          })),
+      ),
+    );
     const sinApuntar = alumnosSinApuntar(
       dossiers.map((d, i) => ({
         dossierId: d.id,
@@ -76,10 +87,29 @@ export function PanelProfe() {
       })),
       hoy,
     );
+    // Toque ya dado y aún sin cumplir, para no repetirlo; y meses que la empresa no ha valorado.
+    const [tareas, seguimientos] = await Promise.all([
+      Promise.all(sinApuntar.map((a) => listarTareas(container.tareas, a.dossierId))),
+      Promise.all(dossiers.map((d) => obtenerSeguimiento(container.valoraciones, d, hoy))),
+    ]);
+    const toques: Record<string, string | null> = Object.fromEntries(
+      sinApuntar.map((a, i) => [a.dossierId, toquePendiente(tareas[i])]),
+    );
+    const faltaValorar: FaltaValorar[] = dossiers
+      .map((d, i) => ({
+        dossierId: d.id,
+        nombre: d.alumnoNombre,
+        empresa: d.empresa,
+        meses: seguimientos[i].sinValorar,
+      }))
+      .filter((f) => f.meses.length > 0);
     const inbox = [...bandeja.deMisAlumnos, ...bandeja.mias]
       .sort((a, b) => b.creadaEn.localeCompare(a.creadaEn))
       .slice(0, 5);
-    return { dossiers, recientes, sinApuntar, inbox };
+    const pendientesInbox = [...bandeja.deMisAlumnos, ...bandeja.mias].filter(
+      (i) => i.estado !== 'resuelta',
+    ).length;
+    return { dossiers, recientes, sinApuntar, toques, faltaValorar, inbox, pendientesInbox };
   }, [hoy, usuario.id]);
   useRecargarAlVolver(recargar);
   const { width } = useWindowDimensions();
@@ -101,20 +131,40 @@ export function PanelProfe() {
         />
       ) : null}
       {datos && datos.dossiers.length > 0 ? (
-        <Columnas
-          ancho={ancho}
-          izquierda={
-            <>
-              <HorasPorValidar dias={datos.recientes} />
-              <SinApuntar
-                alumnos={datos.sinApuntar}
-                dossiers={datos.dossiers}
-                onCambio={recargar}
-              />
-            </>
-          }
-          derecha={<InboxRecientes incidencias={datos.inbox} />}
-        />
+        <>
+          <Cifras
+            elementos={[
+              {
+                valor: datos.recientes.reduce((t, a) => t + a.dias, 0),
+                texto: 'días por validar',
+              },
+              { valor: datos.sinApuntar.length, texto: 'sin apuntar horas', aviso: true },
+              { valor: datos.pendientesInbox, texto: 'mensajes abiertos' },
+            ]}
+          />
+          <Columnas
+            ancho={ancho}
+            izquierda={
+              <>
+                <HorasPorValidar alumnos={datos.recientes} />
+                <SinApuntar
+                  alumnos={datos.sinApuntar}
+                  toques={datos.toques}
+                  dossiers={datos.dossiers}
+                  onCambio={recargar}
+                />
+              </>
+            }
+            derecha={
+              <>
+                <InboxRecientes incidencias={datos.inbox} />
+                {datos.faltaValorar.length > 0 ? (
+                  <FaltaValorarEmpresa alumnos={datos.faltaValorar} />
+                ) : null}
+              </>
+            }
+          />
+        </>
       ) : null}
     </Pantalla>
   );
@@ -123,16 +173,18 @@ export function PanelProfe() {
 /** Alumnos que llevan días sin apuntar horas, con un botón para encargarles que se pongan al día. */
 function SinApuntar({
   alumnos,
+  toques,
   dossiers,
   onCambio,
 }: {
   alumnos: AlumnoSinApuntar[];
+  /** Día del toque que cada alumno aún no ha cumplido (por dossier). */
+  toques: Record<string, string | null>;
   dossiers: Dossier[];
   onCambio: () => void;
 }) {
   const usuario = useUsuario();
   const hoy = hoyISO();
-  const [avisados, setAvisados] = useState<string[]>([]);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
 
@@ -147,7 +199,6 @@ function SinApuntar({
         ...textoToque(a),
         fechaLimite: hoy,
       });
-      setAvisados((v) => [...v, a.dossierId]);
       setAviso({ tipo: 'ok', texto: `${a.nombre} verá el aviso en sus tareas` });
       onCambio();
     } catch (e) {
@@ -165,7 +216,7 @@ function SinApuntar({
         </ThemedText>
       ) : (
         alumnos.map((a) => {
-          const avisado = avisados.includes(a.dossierId);
+          const toque = toques[a.dossierId];
           return (
             <Fila key={a.dossierId}>
               <View style={styles.flex}>
@@ -175,13 +226,19 @@ function SinApuntar({
                   {a.ultimo ? `último: ${fechaCorta(a.ultimo)}` : 'aún no ha apuntado ninguno'}
                 </ThemedText>
               </View>
-              <Boton
-                texto={avisado ? 'Avisado ✓' : 'Darle un toque'}
-                variante="secundario"
-                desactivado={avisado}
-                cargando={enviando === a.dossierId}
-                onPress={() => darToque(a)}
-              />
+              {toque !== undefined && toque !== null ? (
+                <Chip
+                  texto={toque ? `Toque el ${fechaCorta(toque)}` : 'Toque dado'}
+                  color="estadoPendiente"
+                />
+              ) : (
+                <Boton
+                  texto="Darle un toque"
+                  variante="secundario"
+                  cargando={enviando === a.dossierId}
+                  onPress={() => darToque(a)}
+                />
+              )}
             </Fila>
           );
         })
@@ -192,37 +249,83 @@ function SinApuntar({
 }
 
 /**
- * Días de trabajo apuntados en la última semana. Cuando llegue el backend de la doble
- * validación (PC 3), aquí saldrán solo los que ya validó la empresa, con el botón de validar.
+ * Días de trabajo apuntados en la última semana, por alumno. Cuando llegue el backend de la
+ * doble validación (PC 3), aquí saldrán solo los que ya validó la empresa, con un botón para
+ * validarlos todos de una vez.
  */
-function HorasPorValidar({ dias }: { dias: DiaApuntado[] }) {
+function HorasPorValidar({ alumnos }: { alumnos: DiasDeAlumno[] }) {
   return (
     <Tarjeta titulo="Horas por validar">
-      <ThemedText type="small" themeColor="textSecondary">
-        Días de trabajo apuntados en la última semana. Validarlos desde aquí llega con la doble
-        validación (primero la empresa y después tú).
-      </ThemedText>
-      {dias.length === 0 ? (
+      {alumnos.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
           Nadie ha apuntado días de trabajo esta semana.
         </ThemedText>
       ) : (
-        dias.slice(0, 8).map(({ dossier, registro }) => (
+        alumnos.map((a) => (
           <Fila
-            key={registro.id}
-            onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
-            etiqueta={`${dossier.alumnoNombre}, ${fechaCorta(registro.fecha)}: ${formatoHoras(totalHoras(registro))}. Ver ficha`}>
+            key={a.dossierId}
+            onPress={() => router.push({ pathname: '/', params: { dossier: a.dossierId } })}
+            etiqueta={`${a.nombre}: ${a.dias} días, ${formatoHoras(a.horas)}. Ver ficha`}>
             <View style={styles.flex}>
-              <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
+              <ThemedText type="smallBold">{a.nombre}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {fechaCorta(registro.fecha)}
+                {a.dias} {a.dias === 1 ? 'día' : 'días'} · último el {fechaCorta(a.ultimo)}
               </ThemedText>
             </View>
-            <ThemedText type="smallBold">{formatoHoras(totalHoras(registro))}</ThemedText>
-            <Chip texto="Pendiente" color="estadoPendiente" />
+            <ThemedText type="smallBold">{formatoHoras(a.horas)}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              ›
+            </ThemedText>
           </Fila>
         ))
       )}
+    </Tarjeta>
+  );
+}
+
+/** Alumnos con meses acabados que su empresa aún no ha valorado: el profe se lo reclama. */
+function FaltaValorarEmpresa({ alumnos }: { alumnos: FaltaValorar[] }) {
+  return (
+    <Tarjeta titulo="Falta la valoración de la empresa">
+      {alumnos.map((a) => (
+        <Fila
+          key={a.dossierId}
+          onPress={() => router.push({ pathname: '/', params: { dossier: a.dossierId } })}
+          etiqueta={`${a.nombre}: ${a.empresa ?? 'su empresa'} no ha valorado ${a.meses.map(nombreMes).join(', ')}. Ver ficha`}>
+          <View style={styles.flex}>
+            <ThemedText type="smallBold">{a.nombre}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {a.empresa ?? 'Sin empresa'} · {a.meses.map(nombreMes).join(', ')}
+            </ThemedText>
+          </View>
+        </Fila>
+      ))}
+    </Tarjeta>
+  );
+}
+
+/** Tres cifras de un vistazo: si todas están a 0, no hay nada pendiente. */
+function Cifras({ elementos }: { elementos: { valor: number; texto: string; aviso?: boolean }[] }) {
+  return (
+    <Tarjeta>
+      <View style={styles.cifras}>
+        {elementos.map((e) => (
+          <View
+            key={e.texto}
+            style={styles.cifra}
+            accessible
+            accessibilityLabel={`${e.valor} ${e.texto}`}>
+            <ThemedText
+              type="title"
+              themeColor={e.aviso && e.valor > 0 ? 'estadoPendiente' : 'text'}>
+              {e.valor}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {e.texto}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
     </Tarjeta>
   );
 }
@@ -313,6 +416,8 @@ const styles = StyleSheet.create({
   principal: { flex: 1.7, gap: Spacing.three },
   lateral: { flex: 1, gap: Spacing.three },
   flex: { flex: 1, gap: Spacing.half },
+  cifras: { flexDirection: 'row', gap: Spacing.three },
+  cifra: { flex: 1, gap: Spacing.half },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',

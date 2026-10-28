@@ -1,4 +1,11 @@
-import { alumnosSinApuntar, laborablesEntre, textoToque } from '../avisos-profe';
+import {
+  agruparPorAlumno,
+  alumnosSinApuntar,
+  laborablesEntre,
+  textoToque,
+  TITULO_TOQUE,
+  toquePendiente,
+} from '../avisos-profe';
 
 // 2026-10-28 es miércoles.
 const HOY = '2026-10-28';
@@ -80,5 +87,39 @@ describe('textoToque', () => {
     expect(
       textoToque({ dossierId: 'a', nombre: 'Ana', dias: 1, ultimo: null }).descripcion,
     ).toMatch(/^Llevas 1 día laborable sin/);
+  });
+});
+
+describe('toquePendiente', () => {
+  it('devuelve el último toque sin cumplir e ignora el resto de tareas', () => {
+    expect(
+      toquePendiente([
+        { titulo: TITULO_TOQUE, completada: false, fechaLimite: '2026-10-20' },
+        { titulo: TITULO_TOQUE, completada: false, fechaLimite: '2026-10-27' },
+        { titulo: TITULO_TOQUE, completada: true, fechaLimite: '2026-10-28' },
+        { titulo: 'Memoria', completada: false, fechaLimite: '2026-10-30' },
+      ]),
+    ).toBe('2026-10-27');
+  });
+
+  it('null si no hay toques pendientes', () => {
+    expect(toquePendiente([{ titulo: TITULO_TOQUE, completada: true, fechaLimite: null }])).toBe(
+      null,
+    );
+  });
+});
+
+describe('agruparPorAlumno', () => {
+  it('suma días y horas por alumno, con más días primero', () => {
+    expect(
+      agruparPorAlumno([
+        { dossierId: 'a', nombre: 'Ana', fecha: '2026-10-26', horas: 6 },
+        { dossierId: 'b', nombre: 'Bea', fecha: '2026-10-26', horas: 4 },
+        { dossierId: 'b', nombre: 'Bea', fecha: '2026-10-27', horas: 5 },
+      ]),
+    ).toEqual([
+      { dossierId: 'b', nombre: 'Bea', dias: 2, horas: 9, ultimo: '2026-10-27' },
+      { dossierId: 'a', nombre: 'Ana', dias: 1, horas: 6, ultimo: '2026-10-26' },
+    ]);
   });
 });

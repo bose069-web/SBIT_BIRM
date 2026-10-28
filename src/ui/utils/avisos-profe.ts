@@ -64,12 +64,61 @@ export function alumnosSinApuntar(
     .sort((a, b) => b.dias - a.dias || a.nombre.localeCompare(b.nombre, 'es'));
 }
 
+/** Título de la tarea con la que se da el toque (hasta que haya tabla de toques en el backend). */
+export const TITULO_TOQUE = 'Apunta tus horas de prácticas';
+
 /** Texto de la tarea que se le encarga al alumno al darle un toque. */
 export function textoToque(a: AlumnoSinApuntar): { titulo: string; descripcion: string } {
   return {
-    titulo: 'Apunta tus horas de prácticas',
+    titulo: TITULO_TOQUE,
     descripcion:
       `Llevas ${a.dias} ${a.dias === 1 ? 'día laborable' : 'días laborables'} sin registrar horas. ` +
       'Ponte al día en Registro y avísame si tienes algún problema.',
   };
+}
+
+/**
+ * Día del último toque que el alumno aún no ha cumplido (tarea de toque sin completar), o null.
+ * Sirve para no darle dos toques seguidos.
+ */
+export function toquePendiente(
+  tareas: { titulo: string; completada: boolean; fechaLimite: string | null }[],
+): string | null {
+  const fechas = tareas
+    .filter((t) => t.titulo === TITULO_TOQUE && !t.completada)
+    .map((t) => t.fechaLimite ?? '');
+  if (fechas.length === 0) return null;
+  return fechas.sort().at(-1) || '';
+}
+
+export interface DiasDeAlumno {
+  dossierId: string;
+  nombre: string;
+  dias: number;
+  horas: number;
+  /** Día más reciente apuntado. */
+  ultimo: string;
+}
+
+/** Días apuntados agrupados por alumno: el que tiene más días pendientes, primero. */
+export function agruparPorAlumno(
+  dias: { dossierId: string; nombre: string; fecha: string; horas: number }[],
+): DiasDeAlumno[] {
+  const grupos = new Map<string, DiasDeAlumno>();
+  for (const d of dias) {
+    const g = grupos.get(d.dossierId) ?? {
+      dossierId: d.dossierId,
+      nombre: d.nombre,
+      dias: 0,
+      horas: 0,
+      ultimo: d.fecha,
+    };
+    g.dias += 1;
+    g.horas += d.horas;
+    if (d.fecha > g.ultimo) g.ultimo = d.fecha;
+    grupos.set(d.dossierId, g);
+  }
+  return [...grupos.values()].sort(
+    (a, b) => b.dias - a.dias || a.nombre.localeCompare(b.nombre, 'es'),
+  );
 }
