@@ -17,9 +17,11 @@ export const Colors = {
     onPrimary: '#FFFFFF',
     danger: '#B91C1C',
     estadoValidado: '#15803D',
-    estadoPendiente: '#A16207',
+    // Un punto más oscuro que antes para pasar 4.5:1 también sobre `subtle`.
+    estadoPendiente: '#9D5F06',
     estadoAusencia: '#B91C1C',
-    estadoFestivo: '#71717A',
+    // Gris oscurecido para que el festivo llegue a 4.5:1 también sobre `subtle`.
+    estadoFestivo: '#6B6B75',
   },
   dark: {
     text: '#FAFAFA',
@@ -35,7 +37,8 @@ export const Colors = {
     estadoValidado: '#4ADE80',
     estadoPendiente: '#FACC15',
     estadoAusencia: '#F87171',
-    estadoFestivo: '#71717A',
+    // En oscuro el gris de antes (#71717A) se quedaba en 3.7:1 sobre `surface`.
+    estadoFestivo: '#9A9AA5',
   },
 } as const;
 
@@ -69,6 +72,9 @@ export const Spacing = {
   five: 32,
   six: 64,
 } as const;
+
+// Fondo de marca: el arranque es negro tanto en claro como en oscuro, igual que el icono.
+export const FondoMarca = '#0A0A0A';
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 // En web las pestañas son una barra flotante arriba; el contenido empieza debajo.

@@ -97,13 +97,14 @@ export function CeldaCalendario({
     </>
   );
 
+  // Los días fuera del periodo se distinguen por el fondo transparente, sin punto y con el
+  // número en gris; antes se bajaba la opacidad de la celda entera y el texto no se leía.
   const estilo = [
     styles.celda,
     {
       backgroundColor: estado === 'fuera_periodo' ? 'transparent' : theme.surface,
       borderColor: seleccionada ? theme.primary : theme.border,
       borderWidth: seleccionada ? 2 : 1,
-      opacity: estado === 'fuera_periodo' ? 0.5 : 1,
     },
     style,
   ];
