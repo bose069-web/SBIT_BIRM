@@ -7,9 +7,11 @@ import { FormularioDossier } from '@/ui/vistas/formulario-dossier';
 import { PanelAlumno } from '@/ui/vistas/panel-alumno';
 import { PanelEmpresa } from '@/ui/vistas/panel-empresa';
 import { PanelProfe } from '@/ui/vistas/panel-profe';
+import { SeguimientoProfe } from '@/ui/vistas/seguimiento-profe';
 
-// Inicio distinto según el rol: el alumno ve sus horas, la empresa valora y profe, instituto y
-// generalitat hacen el seguimiento (cada uno de los dossiers que le deja ver la base).
+// Inicio distinto según el rol: el alumno ve sus horas, la empresa valora, el profe ve lo que
+// tiene pendiente (mensajes, horas por validar y quién no apunta) e instituto y generalitat
+// hacen el seguimiento (cada uno de los dossiers que le deja ver la base).
 // Con ?nuevo=1 o ?editar=<id>, el formulario del dossier. Con ?dossier=<id> se ve la ficha de ese dossier dentro de la misma pestaña (así no hace
 // falta una ruta nueva en la barra de pestañas).
 export default function InicioScreen() {
@@ -27,6 +29,7 @@ export default function InicioScreen() {
   if (dossier)
     return <FichaDossier key={dossier} dossierId={dossier} onVolver={() => router.replace('/')} />;
   if (rol === 'empresa') return <PanelEmpresa />;
-  if (haceSeguimiento(rol)) return <PanelProfe />;
+  if (rol === 'profe') return <PanelProfe />;
+  if (haceSeguimiento(rol)) return <SeguimientoProfe />;
   return <PanelAlumno />;
 }
