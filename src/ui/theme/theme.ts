@@ -7,20 +7,21 @@ import { Platform } from 'react-native';
 // pestaña activa. El resto del color solo marca estados y siempre va con texto.
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    textSecondary: '#52525B',
-    background: '#FAFAFA',
-    surface: '#FFFFFF',
-    subtle: '#F4F4F5',
-    border: '#E4E4E7',
-    borderStrong: '#71717A',
+    // Neutros cálidos tipo marfil (como anthropic.com): fondo crema y texto casi negro.
+    text: '#141413',
+    textSecondary: '#5E5D59',
+    background: '#F5F4EE',
+    surface: '#FAF9F5',
+    subtle: '#F0EEE6',
+    border: '#E8E6DC',
+    borderStrong: '#87867F',
     // #2563EB sobre blanco: 5.2:1.
     primary: '#2563EB',
     onPrimary: '#FFFFFF',
     primarySuave: '#DBEAFE',
     // Superficies de cristal (Liquid Glass): translúcidas sobre el fondo.
-    cristal: 'rgba(255,255,255,0.72)',
-    cristalBorde: 'rgba(255,255,255,0.9)',
+    cristal: 'rgba(250,249,245,0.72)',
+    cristalBorde: 'rgba(232,230,220,0.9)',
     danger: '#B91C1C',
     // Avisos por días sin apuntar: amarillo y naranja oscurecidos para leerse sobre blanco (4.5:1).
     avisoLeve: '#A16207',
