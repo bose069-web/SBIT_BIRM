@@ -246,6 +246,9 @@ export class CentrosFalsos implements GestionCentroPort {
   async asignarProfe(id: string, profeId: string | null) {
     this.personas.find((p) => p.id === id)!.profeId = profeId;
   }
+  async asignarProfeEnBloque(alumnoIds: string[], profeId: string | null) {
+    for (const id of alumnoIds) await this.asignarProfe(id, profeId);
+  }
   async listarEmpresas() {
     return this.empresas;
   }

@@ -10,6 +10,8 @@ export interface GestionCentroPort {
   incorporarAlumno(personaId: string, centroId: string): Promise<void>;
   /** `profeId` null deja al alumno sin profe. */
   asignarProfe(alumnoId: string, profeId: string | null): Promise<void>;
+  /** El mismo reparto para varios alumnos de una vez: un solo viaje a la base. */
+  asignarProfeEnBloque(alumnoIds: string[], profeId: string | null): Promise<void>;
   listarEmpresas(): Promise<Empresa[]>;
   /** Tutores (rol empresa) que trabajan en esa empresa. */
   listarTutoresEmpresa(empresaId: string): Promise<Persona[]>;

@@ -116,6 +116,16 @@ export class GestionCentroSupabase implements GestionCentroPort {
     comprobar(error);
   }
 
+  async asignarProfeEnBloque(alumnoIds: string[], profeId: string | null) {
+    if (alumnoIds.length === 0) return;
+    const { error } = await this.cliente
+      .from('perfiles')
+      .update({ profe_id: profeId })
+      .in('id', alumnoIds)
+      .eq('rol', 'alumno');
+    comprobar(error);
+  }
+
   async listarEmpresas() {
     const { data, error } = await this.cliente
       .from('empresas')
