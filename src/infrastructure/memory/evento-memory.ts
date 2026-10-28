@@ -1,6 +1,8 @@
 import type { BorradorEvento, Evento } from '@/core/domain/evento';
 import type { EventoPort } from '@/core/ports/evento-port';
 
+import { IDS_DEMO } from './datos-demo';
+
 const EVENTOS_DEMO: Evento[] = [
   {
     id: 'evento-demo-1',
@@ -11,7 +13,7 @@ const EVENTOS_DEMO: Evento[] = [
   },
   {
     id: 'evento-demo-2',
-    dossierId: 'dossier-demo',
+    dossierId: IDS_DEMO.dossier,
     titulo: 'Visita del profe a la empresa',
     fecha: '2026-11-12',
     tipo: 'reunion',

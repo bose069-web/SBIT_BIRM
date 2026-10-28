@@ -1,24 +1,29 @@
 import type { Centro, Convenio, Empresa, Persona } from '@/core/domain/centro';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
-// Mismos IDs que auth-memory y dossier-memory: el instituto demo administra "centro-demo".
-const CENTROS: Centro[] = [{ id: 'centro-demo', nombre: 'Institut Demo' }];
+import { IDS_DEMO } from './datos-demo';
+
+// Mismos IDs que datos-demo: el instituto demo administra IDS_DEMO.centro.
+const CENTROS: Centro[] = [
+  { id: IDS_DEMO.centro, nombre: 'Institut Demo' },
+  { id: IDS_DEMO.otroCentro, nombre: 'Escola Pia Demo' },
+];
 
 const PERSONAS_DEMO: Persona[] = [
   {
-    id: '1',
+    id: IDS_DEMO.alumno,
     nombre: 'Alumno Demo',
     email: 'alumno@kampus.test',
     rol: 'alumno',
-    centroId: 'centro-demo',
-    profeId: '2',
+    centroId: IDS_DEMO.centro,
+    profeId: IDS_DEMO.profe,
   },
   {
-    id: '2',
+    id: IDS_DEMO.profe,
     nombre: 'Profe Demo',
     email: 'profe@kampus.test',
     rol: 'profe',
-    centroId: 'centro-demo',
+    centroId: IDS_DEMO.centro,
     profeId: null,
   },
   {
@@ -26,7 +31,7 @@ const PERSONAS_DEMO: Persona[] = [
     nombre: 'Laia Puig',
     email: 'laia@kampus.test',
     rol: 'profe',
-    centroId: 'centro-demo',
+    centroId: IDS_DEMO.centro,
     profeId: null,
   },
   {
@@ -34,7 +39,7 @@ const PERSONAS_DEMO: Persona[] = [
     nombre: 'Marc Soler',
     email: 'marc@kampus.test',
     rol: 'alumno',
-    centroId: 'centro-demo',
+    centroId: IDS_DEMO.centro,
     profeId: null,
   },
   {
@@ -48,15 +53,18 @@ const PERSONAS_DEMO: Persona[] = [
 ];
 
 const EMPRESAS_DEMO: Empresa[] = [
-  { id: 'empresa-demo', nombre: 'Empresa Demo SL', cif: 'B00000000' },
-  { id: 'empresa-2', nombre: 'Taller Digital SCP', cif: 'J11111111' },
+  { id: IDS_DEMO.empresaDemo, nombre: 'Empresa Demo SL', cif: 'B00000000' },
+  { id: IDS_DEMO.softcat, nombre: 'Softcat Solutions SL', cif: 'B22222222' },
+  { id: IDS_DEMO.nexo, nombre: 'Nexo Digital SL', cif: 'B33333333' },
 ];
 
 export class GestionCentroMemory implements GestionCentroPort {
   private personas = PERSONAS_DEMO.map((p) => ({ ...p }));
   private empresas = [...EMPRESAS_DEMO];
   private convenios: Omit<Convenio, 'empresaNombre'>[] = [
-    { centroId: 'centro-demo', empresaId: 'empresa-demo', firmadoEn: '2026-06-30' },
+    { centroId: IDS_DEMO.centro, empresaId: IDS_DEMO.empresaDemo, firmadoEn: '2026-06-30' },
+    { centroId: IDS_DEMO.centro, empresaId: IDS_DEMO.softcat, firmadoEn: '2026-07-15' },
+    { centroId: IDS_DEMO.otroCentro, empresaId: IDS_DEMO.nexo, firmadoEn: '2026-07-20' },
   ];
   private siguienteId = 1;
 

@@ -52,7 +52,11 @@ export default function AppTabs({ rol }: { rol: Rol }) {
 // `ref` se descarta: el tipo de expo-router/ui no encaja con el de Pressable en RN 0.88 y la navegación va por onPress.
 export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: !!isFocused }}
+      style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView type={isFocused ? 'subtle' : 'surface'} style={styles.tabButtonView}>
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
@@ -66,7 +70,7 @@ export function CustomTabList(props: TabListProps) {
   const theme = useTheme();
 
   return (
-    <View {...props} style={styles.tabListContainer}>
+    <View {...props} accessibilityRole="tablist" style={styles.tabListContainer}>
       <ThemedView type="surface" style={[styles.innerContainer, { borderColor: theme.border }]}>
         <ThemedText type="smallBold" style={styles.brandText}>
           Kampus
@@ -105,8 +109,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   tabButtonView: {
+    minHeight: 44,
+    minWidth: 44,
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
+    justifyContent: 'center',
   },
 });

@@ -20,7 +20,9 @@ export function Pantalla({ titulo, subtitulo, children }: Props) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.contenido}>
           <View style={styles.cabecera}>
-            <ThemedText type="title">{titulo}</ThemedText>
+            <ThemedText accessibilityRole="header" type="title">
+              {titulo}
+            </ThemedText>
             {subtitulo ? <ThemedText themeColor="textSecondary">{subtitulo}</ThemedText> : null}
           </View>
           {children}

@@ -1,9 +1,15 @@
 import type { BorradorRegistro, RegistroDiario } from '@/core/domain/registro-diario';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 
+import { REGISTROS_DEMO } from './datos-demo';
+
 export class RegistroDiarioMemory implements RegistroDiarioPort {
-  private registros = new Map<string, RegistroDiario>();
+  private registros: Map<string, RegistroDiario>;
   private siguienteId = 1;
+
+  constructor(registros: RegistroDiario[] = REGISTROS_DEMO) {
+    this.registros = new Map(registros.map((registro) => [registro.id, registro]));
+  }
 
   async listar(dossierId: string, desde: string, hasta: string) {
     return [...this.registros.values()]

@@ -1,26 +1,28 @@
 import type { BorradorTarea, Tarea } from '@/core/domain/tarea';
 import type { AuthPort } from '@/core/ports/auth-port';
+
+import { IDS_DEMO } from './datos-demo';
 import type { TareaPort } from '@/core/ports/tarea-port';
 
 // Ejemplo: el profe ya ha encargado dos tareas en el dossier de prueba.
 const TAREAS_DEMO: Tarea[] = [
   {
     id: 'tarea-demo-1',
-    dossierId: 'dossier-demo',
+    dossierId: IDS_DEMO.dossier,
     titulo: 'Entregar el plan de actividades firmado',
     descripcion: 'Firmado por la empresa y por ti.',
     fechaLimite: '2026-10-31',
     completada: false,
-    creadaPor: '2',
+    creadaPor: IDS_DEMO.profe,
   },
   {
     id: 'tarea-demo-2',
-    dossierId: 'dossier-demo',
+    dossierId: IDS_DEMO.dossier,
     titulo: 'Presentarte a tu tutor de empresa',
     descripcion: null,
     fechaLimite: null,
     completada: true,
-    creadaPor: '2',
+    creadaPor: IDS_DEMO.profe,
   },
 ];
 

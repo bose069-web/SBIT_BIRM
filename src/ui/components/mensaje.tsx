@@ -10,7 +10,8 @@ export function Mensaje({ texto, tipo }: { texto: string; tipo: 'error' | 'ok' }
   const color = tipo === 'error' ? theme.danger : theme.estadoValidado;
   return (
     <View
-      accessibilityLiveRegion="polite"
+      accessibilityRole={tipo === 'error' ? 'alert' : 'text'}
+      accessibilityLiveRegion={tipo === 'error' ? 'assertive' : 'polite'}
       style={[styles.caja, { borderColor: color, backgroundColor: theme.subtle }]}>
       <ThemedText type="small" style={{ color }}>
         {texto}

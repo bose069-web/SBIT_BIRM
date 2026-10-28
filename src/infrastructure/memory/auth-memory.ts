@@ -2,52 +2,20 @@ import { CredencialesInvalidasError } from '@/core/domain/errores';
 import type { Usuario } from '@/core/domain/usuario';
 import type { AuthPort } from '@/core/ports/auth-port';
 
-// Usuarios de prueba para desarrollar sin backend. Contraseña de todos: kampus
-const USUARIOS_DEMO: Usuario[] = [
-  {
-    id: '1',
-    nombre: 'Alumno Demo',
-    email: 'alumno@kampus.test',
-    rol: 'alumno',
-    centroId: 'centro-demo',
-  },
-  {
-    id: '2',
-    nombre: 'Profe Demo',
-    email: 'profe@kampus.test',
-    rol: 'profe',
-    centroId: 'centro-demo',
-  },
-  {
-    id: '3',
-    nombre: 'Tutor Empresa Demo',
-    email: 'empresa@kampus.test',
-    rol: 'empresa',
-    centroId: null,
-  },
-  {
-    id: '4',
-    nombre: 'Institut Demo (dirección)',
-    email: 'instituto@kampus.test',
-    rol: 'instituto',
-    centroId: 'centro-demo',
-  },
-  {
-    id: '5',
-    nombre: 'Generalitat Demo',
-    email: 'generalitat@kampus.test',
-    rol: 'generalitat',
-    centroId: null,
-  },
-];
-const CONTRASENA_DEMO = 'kampus';
+import { CONTRASENA_DEMO, USUARIOS_DEMO } from './datos-demo';
+
+let sesionActual: Usuario | null = null;
+
+/** La sesión compartida por los adaptadores en memoria (los de Supabase la sacan del cliente). */
+export function sesionMemory(): Usuario | null {
+  return sesionActual;
+}
 
 export class AuthMemory implements AuthPort {
   readonly nombre = 'Memoria (datos de prueba)';
-  private actual: Usuario | null;
 
   constructor(usuarioInicial: Usuario | null = USUARIOS_DEMO[0]) {
-    this.actual = usuarioInicial;
+    sesionActual = usuarioInicial;
   }
 
   async comprobarConexion() {
@@ -57,15 +25,15 @@ export class AuthMemory implements AuthPort {
   async iniciarSesion(email: string, contrasena: string) {
     const usuario = USUARIOS_DEMO.find((u) => u.email === email);
     if (!usuario || contrasena !== CONTRASENA_DEMO) throw new CredencialesInvalidasError();
-    this.actual = usuario;
+    sesionActual = usuario;
     return usuario;
   }
 
   async cerrarSesion() {
-    this.actual = null;
+    sesionActual = null;
   }
 
   async usuarioActual() {
-    return this.actual;
+    return sesionActual;
   }
 }

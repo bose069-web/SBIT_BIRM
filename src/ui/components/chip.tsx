@@ -13,8 +13,16 @@ interface Props {
 export function Chip({ texto, color = 'textSecondary' }: Props) {
   const theme = useTheme();
   return (
-    <View style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.subtle }]}>
-      <View style={[styles.punto, { backgroundColor: theme[color] }]} />
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={texto}
+      style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.subtle }]}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.punto, { backgroundColor: theme[color] }]}
+      />
       <ThemedText type="small">{texto}</ThemedText>
     </View>
   );
