@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, View, Pressable } from 'react-native';
 
 import type {
   ResultadoFinal,
@@ -80,16 +80,42 @@ export function porAlumno<T extends { alumnoNombre: string }>(dossiers: T[]): T[
 }
 
 /** Cabecera de la tarjeta de un alumno: su nombre y debajo los datos de las prácticas. */
-export function CabeceraAlumno({ nombre, detalle }: { nombre: string; detalle: string[] }) {
-  return (
-    <View style={styles.cabeceraAlumno}>
-      <ThemedText type="subtitle">{nombre}</ThemedText>
+export function CabeceraAlumno({
+  nombre,
+  detalle,
+  onAbrir,
+}: {
+  nombre: string;
+  detalle: string[];
+  /** Si se pasa, tocar la cabecera abre la ficha del dossier. */
+  onAbrir?: () => void;
+}) {
+  const contenido = (
+    <>
+      <View style={estilosComunes.fila}>
+        <ThemedText type="subtitle">{nombre}</ThemedText>
+        {onAbrir ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Ver ficha ›
+          </ThemedText>
+        ) : null}
+      </View>
       {detalle.map((linea) => (
         <ThemedText key={linea} type="small" themeColor="textSecondary">
           {linea}
         </ThemedText>
       ))}
-    </View>
+    </>
+  );
+  if (!onAbrir) return <View style={styles.cabeceraAlumno}>{contenido}</View>;
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Ver la ficha del dossier de ${nombre}`}
+      onPress={onAbrir}
+      style={({ pressed }) => [styles.cabeceraAlumno, pressed && { opacity: 0.6 }]}>
+      {contenido}
+    </Pressable>
   );
 }
 
