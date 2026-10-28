@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
+import { Aparecer } from '@/ui/components/aparecer';
+import { Cristal } from '@/ui/components/cristal';
+
 import { ThemedText } from '@/ui/components/themed-text';
-import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
 interface Props {
@@ -12,37 +14,33 @@ interface Props {
   style?: ViewStyle;
 }
 
+// Tarjeta de cristal que entra con una animación suave.
 export function Tarjeta({ titulo, accion, children, style }: Props) {
-  const theme = useTheme();
   return (
-    <View
-      style={[
-        styles.tarjeta,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-        style,
-      ]}>
-      {titulo || accion ? (
-        <View style={styles.cabecera}>
-          {titulo ? (
-            <ThemedText
-              accessibilityRole="header"
-              type="smallBold"
-              themeColor="textSecondary"
-              style={styles.titulo}>
-              {titulo.toUpperCase()}
-            </ThemedText>
-          ) : null}
-          {accion}
-        </View>
-      ) : null}
-      {children}
-    </View>
+    <Aparecer>
+      <Cristal style={[styles.tarjeta, style]}>
+        {titulo || accion ? (
+          <View style={styles.cabecera}>
+            {titulo ? (
+              <ThemedText
+                accessibilityRole="header"
+                type="smallBold"
+                themeColor="textSecondary"
+                style={styles.titulo}>
+                {titulo.toUpperCase()}
+              </ThemedText>
+            ) : null}
+            {accion}
+          </View>
+        ) : null}
+        {children}
+      </Cristal>
+    </Aparecer>
   );
 }
 
 const styles = StyleSheet.create({
   tarjeta: {
-    borderWidth: 1,
     borderRadius: Radius.card,
     padding: Spacing.three,
     gap: Spacing.three,
