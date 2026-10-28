@@ -58,6 +58,28 @@ const EMPRESAS_DEMO: Empresa[] = [
   { id: IDS_DEMO.nexo, nombre: 'Nexo Digital SL', cif: 'B33333333' },
 ];
 
+// Tutores de empresa (rol empresa) y la empresa en la que trabaja cada uno.
+const TUTORES_DEMO: (Persona & { empresaId: string })[] = [
+  {
+    id: IDS_DEMO.empresa,
+    nombre: 'Tutor Empresa Demo',
+    email: 'empresa@kampus.test',
+    rol: 'empresa',
+    centroId: null,
+    profeId: null,
+    empresaId: IDS_DEMO.empresaDemo,
+  },
+  {
+    id: IDS_DEMO.empresa2,
+    nombre: 'Núria Soler',
+    email: 'empresa2@kampus.test',
+    rol: 'empresa',
+    centroId: null,
+    profeId: null,
+    empresaId: IDS_DEMO.softcat,
+  },
+];
+
 export class GestionCentroMemory implements GestionCentroPort {
   private personas = PERSONAS_DEMO.map((p) => ({ ...p }));
   private empresas = [...EMPRESAS_DEMO];
@@ -88,6 +110,12 @@ export class GestionCentroMemory implements GestionCentroPort {
 
   async listarEmpresas() {
     return [...this.empresas];
+  }
+
+  async listarTutoresEmpresa(empresaId: string) {
+    return TUTORES_DEMO.filter((t) => t.empresaId === empresaId).map(
+      ({ empresaId: _empresa, ...persona }) => persona,
+    );
   }
 
   async crearEmpresa(nombre: string, cif: string | null) {

@@ -6,65 +6,19 @@ import {
   obtenerPanelCentro,
   quitarConvenio,
 } from '../application/centro';
-import type { Convenio, Empresa, Persona } from '../domain/centro';
 import { SinPermisoError } from '../domain/errores';
-import type { GestionCentroPort } from '../ports/gestion-centro-port';
-import { generalitat, instituto, otroInstituto, profe } from '../__fixtures__/datos';
-
-const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
-  email: `${p.id}@kampus.test`,
-  centroId: 'c1',
-  profeId: null,
-  ...p,
-});
-
-const PAU = persona({ id: 'p1', nombre: 'Pau', rol: 'profe' });
-const RUT = persona({ id: 'p9', nombre: 'Rut', rol: 'profe', centroId: 'c2' });
-const ANA = persona({ id: 'a1', nombre: 'Ana', rol: 'alumno', profeId: 'p1' });
-const BIEL = persona({ id: 'a2', nombre: 'Biel', rol: 'alumno' });
-const NUEVA = persona({ id: 'n1', nombre: 'Nora', rol: 'alumno', centroId: null });
-
-class CentrosFalsos implements GestionCentroPort {
-  personas = [PAU, ANA, BIEL, NUEVA].map((p) => ({ ...p }));
-  empresas: Empresa[] = [
-    { id: 'e1', nombre: 'Zeta SL', cif: null },
-    { id: 'e2', nombre: 'Alfa SL', cif: null },
-  ];
-  convenios: Convenio[] = [
-    { centroId: 'c1', empresaId: 'e1', empresaNombre: 'Zeta SL', firmadoEn: null },
-  ];
-  async obtenerCentro(id: string) {
-    return id === 'c1' ? { id, nombre: 'Institut' } : null;
-  }
-  async listarPersonas() {
-    return this.personas;
-  }
-  async incorporarAlumno(id: string, centroId: string) {
-    this.personas.find((p) => p.id === id)!.centroId = centroId;
-  }
-  async asignarProfe(id: string, profeId: string | null) {
-    this.personas.find((p) => p.id === id)!.profeId = profeId;
-  }
-  async listarEmpresas() {
-    return this.empresas;
-  }
-  async crearEmpresa(nombre: string, cif: string | null) {
-    const e = { id: `e${this.empresas.length + 1}`, nombre, cif };
-    this.empresas.push(e);
-    return e;
-  }
-  async listarConvenios() {
-    return this.convenios;
-  }
-  async crearConvenio(centroId: string, empresaId: string, firmadoEn: string | null) {
-    this.convenios.push({ centroId, empresaId, empresaNombre: '', firmadoEn });
-  }
-  async eliminarConvenio(centroId: string, empresaId: string) {
-    this.convenios = this.convenios.filter(
-      (c) => !(c.centroId === centroId && c.empresaId === empresaId),
-    );
-  }
-}
+import {
+  ANA,
+  BIEL,
+  CentrosFalsos,
+  generalitat,
+  instituto,
+  NUEVA,
+  otroInstituto,
+  PAU,
+  profe,
+  RUT,
+} from '../__fixtures__/datos';
 
 describe('panel del centro', () => {
   it('separa alumnos, profes y cuentas nuevas, y las empresas sin convenio', async () => {

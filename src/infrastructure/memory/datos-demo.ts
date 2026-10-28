@@ -21,6 +21,7 @@ export const IDS_DEMO = {
   alumno: ALUMNO_1,
   profe: PROFE,
   empresa: EMPRESA_1,
+  empresa2: EMPRESA_2,
   instituto: INSTITUTO,
   generalitat: GENERALITAT,
   centro: 'aaaaaaaa-0000-0000-0000-000000000001',

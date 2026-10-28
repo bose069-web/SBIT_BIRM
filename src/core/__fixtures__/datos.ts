@@ -1,4 +1,5 @@
-import type { Dossier } from '../domain/dossier';
+import type { Convenio, Empresa, Persona } from '../domain/centro';
+import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
@@ -9,7 +10,9 @@ import type {
   ValoracionMensual,
 } from '../domain/valoracion';
 import type { BorradorTarea, Tarea } from '../domain/tarea';
+import type { DossierPort } from '../ports/dossier-port';
 import type { EventoPort } from '../ports/evento-port';
+import type { GestionCentroPort } from '../ports/gestion-centro-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { TareaPort } from '../ports/tarea-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
@@ -190,5 +193,94 @@ export class EventosFalsos implements EventoPort {
   }
   async borrar(id: string) {
     this.eventos = this.eventos.filter((e) => e.id !== id);
+  }
+}
+
+export const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
+  email: `${p.id}@kampus.test`,
+  centroId: 'c1',
+  profeId: null,
+  ...p,
+});
+
+export const PAU = persona({ id: 'p1', nombre: 'Pau', rol: 'profe' });
+export const RUT = persona({ id: 'p9', nombre: 'Rut', rol: 'profe', centroId: 'c2' });
+export const ANA = persona({ id: 'a1', nombre: 'Ana', rol: 'alumno', profeId: 'p1' });
+export const BIEL = persona({ id: 'a2', nombre: 'Biel', rol: 'alumno' });
+export const NUEVA = persona({ id: 'n1', nombre: 'Nora', rol: 'alumno', centroId: null });
+
+export class CentrosFalsos implements GestionCentroPort {
+  personas = [PAU, ANA, BIEL, NUEVA].map((p) => ({ ...p }));
+  empresas: Empresa[] = [
+    { id: 'e1', nombre: 'Zeta SL', cif: null },
+    { id: 'e2', nombre: 'Alfa SL', cif: null },
+  ];
+  convenios: Convenio[] = [
+    { centroId: 'c1', empresaId: 'e1', empresaNombre: 'Zeta SL', firmadoEn: null },
+  ];
+  async obtenerCentro(id: string) {
+    return id === 'c1' ? { id, nombre: 'Institut' } : null;
+  }
+  async listarPersonas() {
+    return this.personas;
+  }
+  async incorporarAlumno(id: string, centroId: string) {
+    this.personas.find((p) => p.id === id)!.centroId = centroId;
+  }
+  async asignarProfe(id: string, profeId: string | null) {
+    this.personas.find((p) => p.id === id)!.profeId = profeId;
+  }
+  async listarEmpresas() {
+    return this.empresas;
+  }
+  tutores: (Persona & { empresaId: string })[] = [
+    { ...persona({ id: 't1', nombre: 'Teo', rol: 'empresa', centroId: null }), empresaId: 'e1' },
+  ];
+  async listarTutoresEmpresa(empresaId: string) {
+    return this.tutores.filter((t) => t.empresaId === empresaId);
+  }
+  async crearEmpresa(nombre: string, cif: string | null) {
+    const e = { id: `e${this.empresas.length + 1}`, nombre, cif };
+    this.empresas.push(e);
+    return e;
+  }
+  async listarConvenios() {
+    return this.convenios;
+  }
+  async crearConvenio(centroId: string, empresaId: string, firmadoEn: string | null) {
+    this.convenios.push({ centroId, empresaId, empresaNombre: '', firmadoEn });
+  }
+  async eliminarConvenio(centroId: string, empresaId: string) {
+    this.convenios = this.convenios.filter(
+      (c) => !(c.centroId === centroId && c.empresaId === empresaId),
+    );
+  }
+}
+
+export class DossiersFalsos implements DossierPort {
+  dossiers: Dossier[] = [];
+  guardados: BorradorDossier[] = [];
+  async listar() {
+    return this.dossiers;
+  }
+  async obtener(id: string) {
+    return this.dossiers.find((d) => d.id === id) ?? null;
+  }
+  async guardar(b: BorradorDossier) {
+    this.guardados.push(b);
+    const d = crearDossier({
+      ...b,
+      id: b.id ?? `d${this.guardados.length + 1}`,
+      actividades: b.actividades.map((a, i) => ({
+        id: a.id ?? `nueva${i}`,
+        descripcion: a.descripcion,
+        orden: i + 1,
+      })),
+    });
+    this.dossiers = [...this.dossiers.filter((x) => x.id !== d.id), d];
+    return d;
+  }
+  async borrar(id: string) {
+    this.dossiers = this.dossiers.filter((d) => d.id !== id);
   }
 }

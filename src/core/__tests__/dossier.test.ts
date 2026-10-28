@@ -1,7 +1,6 @@
 import { obtenerDossierActual } from '../application/dossier';
 import { estaEnPeriodo } from '../domain/dossier';
-import type { DossierPort } from '../ports/dossier-port';
-import { crearDossier } from '../__fixtures__/datos';
+import { crearDossier, DossiersFalsos } from '../__fixtures__/datos';
 
 describe('dossier', () => {
   it('sabe si una fecha está dentro de las prácticas (límites incluidos)', () => {
@@ -18,13 +17,11 @@ describe('dossier', () => {
       fechaFin: '2025-06-10',
     });
     const actual = crearDossier({ id: 'actual' });
-    const puerto: DossierPort = {
-      listar: async () => [antiguo, actual],
-      obtener: async () => null,
-    };
+    const puerto = new DossiersFalsos();
+    puerto.dossiers = [antiguo, actual];
     expect((await obtenerDossierActual(puerto, '2026-10-27'))?.id).toBe('actual');
     expect((await obtenerDossierActual(puerto, '2028-01-01'))?.id).toBe('actual');
-    const vacio: DossierPort = { listar: async () => [], obtener: async () => null };
+    const vacio = new DossiersFalsos();
     expect(await obtenerDossierActual(vacio, '2026-10-27')).toBeNull();
   });
 });
