@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { obtenerDossierActual, obtenerResumenHoras } from '@/core/application/dossier';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
@@ -17,6 +18,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
+import { CalendarioAlumno } from './calendario';
 import { TareasDossier } from './tareas';
 import {
   ErrorCarga,
@@ -39,9 +41,15 @@ export function PanelAlumno() {
     return { dossier, resumen, seguimiento };
   }, [hoy]);
   useRecargarAlVolver(recargar);
+  const { width } = useWindowDimensions();
+  // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
+  const ancho = Platform.OS === 'web' && width >= 1000;
 
   return (
-    <Pantalla titulo={`Hola, ${usuario.nombre.split(' ')[0]}`} subtitulo={fechaCorta(hoy)}>
+    <Pantalla
+      titulo={`Hola, ${usuario.nombre.split(' ')[0]}`}
+      subtitulo={fechaCorta(hoy)}
+      amplia={ancho}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
@@ -52,77 +60,123 @@ export function PanelAlumno() {
         />
       ) : null}
       {datos ? (
-        <>
-          <Tarjeta titulo="Horas de prácticas">
-            <View style={styles.quesito}>
-              <Quesito
-                porcentaje={datos.resumen.porcentaje}
-                etiqueta="Horas de prácticas completadas"
-              />
-              <View style={styles.flex}>
-                <View style={styles.horas}>
-                  <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
-                  <ThemedText themeColor="textSecondary">
-                    de {formatoHoras(datos.resumen.totales)}
-                  </ThemedText>
+        <Columnas
+          ancho={ancho}
+          izquierda={
+            <>
+              <Tarjeta titulo="Horas de prácticas">
+                <View style={styles.quesito}>
+                  <Quesito
+                    porcentaje={datos.resumen.porcentaje}
+                    etiqueta="Horas de prácticas completadas"
+                  />
+                  <View style={styles.flex}>
+                    <View style={styles.horas}>
+                      <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
+                      <ThemedText themeColor="textSecondary">
+                        de {formatoHoras(datos.resumen.totales)}
+                      </ThemedText>
+                    </View>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {datos.resumen.porcentaje}% completado
+                    </ThemedText>
+                  </View>
                 </View>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {datos.resumen.porcentaje}% completado
+              </Tarjeta>
+              {/* En la web ancha el calendario cabe en Inicio; en el móvil tiene su pestaña. */}
+              {ancho ? (
+                <Tarjeta titulo="Mis días">
+                  <CalendarioAlumno
+                    dossier={datos.dossier}
+                    seguimiento={datos.seguimiento}
+                    hoy={hoy}
+                  />
+                </Tarjeta>
+              ) : null}
+            </>
+          }
+          derecha={
+            <>
+              <Tarjeta titulo="Este mes">
+                <View style={estilosComunes.fila}>
+                  <ThemedText type="smallBold" style={estilosComunes.capital}>
+                    {nombreMes(mesDe(hoy))}
+                  </ThemedText>
+                  {mesCerrado(hoy, datos.seguimiento.mensuales, datos.seguimiento.final) ? (
+                    <Chip texto="Cerrado: ya valorado" color="estadoFestivo" />
+                  ) : (
+                    <Chip texto="Abierto" color="estadoValidado" />
+                  )}
+                </View>
+                <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
+              </Tarjeta>
+              <Tarjeta titulo="Tareas">
+                <TareasDossier dossier={datos.dossier} />
+              </Tarjeta>
+              <Tarjeta titulo="Mis prácticas">
+                <ThemedText type="smallBold">
+                  {datos.dossier.ciclo} · {datos.dossier.empresa ?? 'Sin empresa'}
                 </ThemedText>
-              </View>
-            </View>
-          </Tarjeta>
-
-          <Tarjeta titulo="Este mes">
-            <View style={estilosComunes.fila}>
-              <ThemedText type="smallBold" style={estilosComunes.capital}>
-                {nombreMes(mesDe(hoy))}
-              </ThemedText>
-              {mesCerrado(hoy, datos.seguimiento.mensuales, datos.seguimiento.final) ? (
-                <Chip texto="Cerrado: ya valorado" color="estadoFestivo" />
-              ) : (
-                <Chip texto="Abierto" color="estadoValidado" />
-              )}
-            </View>
-            <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
-          </Tarjeta>
-
-          <Tarjeta titulo="Tareas">
-            <TareasDossier dossier={datos.dossier} />
-          </Tarjeta>
-
-          <Tarjeta titulo="Mis prácticas">
-            <ThemedText type="smallBold">
-              {datos.dossier.ciclo} · {datos.dossier.empresa ?? 'Sin empresa'}
-            </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {datos.dossier.centro ?? 'Sin centro'} · del {fechaCorta(datos.dossier.fechaInicio)}{' '}
-              al {fechaCorta(datos.dossier.fechaFin)}
-            </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
-              {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
-            </ThemedText>
-            <Boton
-              texto="Ver la ficha completa"
-              variante="secundario"
-              onPress={() => router.push({ pathname: '/', params: { dossier: datos.dossier.id } })}
-            />
-          </Tarjeta>
-
-          <Tarjeta titulo="Valoraciones de la empresa">
-            <ListaValoraciones
-              mensuales={datos.seguimiento.mensuales}
-              final={datos.seguimiento.final}
-            />
-          </Tarjeta>
-        </>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {datos.dossier.centro ?? 'Sin centro'} · del{' '}
+                  {fechaCorta(datos.dossier.fechaInicio)} al {fechaCorta(datos.dossier.fechaFin)}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
+                  {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
+                </ThemedText>
+                <Boton
+                  texto="Ver la ficha completa"
+                  variante="secundario"
+                  onPress={() =>
+                    router.push({ pathname: '/', params: { dossier: datos.dossier.id } })
+                  }
+                />
+              </Tarjeta>
+              <Tarjeta titulo="Valoraciones de la empresa">
+                <ListaValoraciones
+                  mensuales={datos.seguimiento.mensuales}
+                  final={datos.seguimiento.final}
+                />
+              </Tarjeta>
+            </>
+          }
+        />
       ) : null}
     </Pantalla>
   );
 }
 
+/** Dos columnas en la web ancha (la principal más ancha); en el móvil, todo seguido. */
+function Columnas({
+  ancho,
+  izquierda,
+  derecha,
+}: {
+  ancho: boolean;
+  izquierda: ReactNode;
+  derecha: ReactNode;
+}) {
+  if (!ancho) {
+    return (
+      <>
+        {izquierda}
+        {derecha}
+      </>
+    );
+  }
+  return (
+    <View style={styles.columnas}>
+      <View style={styles.principal}>{izquierda}</View>
+      <View style={styles.lateral}>{derecha}</View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  principal: { flex: 1.7, gap: Spacing.three },
+  lateral: { flex: 1, gap: Spacing.three },
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
   quesito: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
   flex: { flex: 1, gap: Spacing.one },

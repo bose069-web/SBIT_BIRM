@@ -19,7 +19,7 @@ import {
   useEsquemaWeb,
 } from '@/ui/estado/preferencias-web';
 import { useTheme } from '@/ui/hooks/use-theme';
-import { MaxContentWidth, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
+import { Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 
 import { ThemedText } from './themed-text';
 
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexGrow: 1,
     gap: Spacing.two,
-    maxWidth: MaxContentWidth,
+    maxWidth: 1200,
   },
   logo: { height: ALTO_LOGO, marginRight: 'auto', overflow: 'hidden' },
   zonaPalabra: {

@@ -11,10 +11,12 @@ interface Props {
   titulo: string;
   subtitulo?: string;
   children: ReactNode;
+  /** En la web ancha la pantalla usa más anchura (paneles en columnas). */
+  amplia?: boolean;
 }
 
 /** Contenedor común de las pantallas: scroll, ancho máximo y hueco para las pestañas. */
-export function Pantalla({ titulo, subtitulo, children }: Props) {
+export function Pantalla({ titulo, subtitulo, children, amplia }: Props) {
   const theme = useTheme();
   const web = Platform.OS === 'web';
   // Cada pantalla empieza arriba: la cabecera de la web vuelve a mostrar el logotipo entero.
@@ -29,7 +31,7 @@ export function Pantalla({ titulo, subtitulo, children }: Props) {
         // el teclado se cierra en vez de quedarse tapando el contenido.
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag">
-        <View style={styles.contenido}>
+        <View style={[styles.contenido, amplia && styles.amplia]}>
           <View style={styles.cabecera}>
             <ThemedText accessibilityRole="header" type="title">
               {titulo}
@@ -52,5 +54,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
   },
   contenido: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.three },
+  amplia: { maxWidth: 1200 },
   cabecera: { gap: Spacing.one, marginBottom: Spacing.two },
 });
