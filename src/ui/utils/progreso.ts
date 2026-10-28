@@ -61,3 +61,13 @@ export function calcularProgreso(
     aTiempo: finEstimado !== null && finEstimado <= dossier.fechaFin,
   };
 }
+
+export type NivelAviso = 'ninguno' | 'leve' | 'medio' | 'grave';
+
+/** Cuanto más tiempo sin apuntar, más llamativo: 0, hasta 7, hasta 15 y más de 15 días. */
+export function nivelSinApuntar(dias: number): NivelAviso {
+  if (dias === 0) return 'ninguno';
+  if (dias <= 7) return 'leve';
+  if (dias <= 15) return 'medio';
+  return 'grave';
+}

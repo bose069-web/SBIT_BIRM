@@ -18,9 +18,14 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
-import { Spacing } from '@/ui/theme/theme';
+import { Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
-import { calcularProgreso, type Progreso } from '@/ui/utils/progreso';
+import {
+  calcularProgreso,
+  nivelSinApuntar,
+  type NivelAviso,
+  type Progreso,
+} from '@/ui/utils/progreso';
 
 import { MiniCalendario } from './mini-calendario';
 import { TareasDossier } from './tareas';
@@ -157,10 +162,19 @@ export function PanelAlumno() {
   );
 }
 
+// Sin días pendientes, el número va en el color normal del texto.
+const COLOR_AVISO: Record<NivelAviso, ThemeColor | null> = {
+  ninguno: null,
+  leve: 'avisoLeve',
+  medio: 'avisoMedio',
+  grave: 'danger',
+};
+
 function DatosProgreso({ progreso }: { progreso: Progreso }) {
   const theme = useTheme();
   const { quedan, horasSemana, sinApuntar, finEstimado, aTiempo } = progreso;
   const pendientes = sinApuntar.length;
+  const colorAviso = COLOR_AVISO[nivelSinApuntar(pendientes)];
   return (
     <View style={styles.datos}>
       <View style={styles.cifras}>
@@ -178,8 +192,8 @@ function DatosProgreso({ progreso }: { progreso: Progreso }) {
           style={({ pressed }) => [styles.flex, pressed && { opacity: 0.6 }]}>
           <Cifra
             etiqueta="Sin apuntar"
-            valor={pendientes ? `${pendientes} ${pendientes === 1 ? 'día' : 'días'} ›` : 'Al día'}
-            color={pendientes ? theme.estadoPendiente : theme.estadoValidado}
+            valor={`${pendientes} ${pendientes === 1 ? 'día' : 'días'}${pendientes ? ' ›' : ''}`}
+            color={colorAviso ? theme[colorAviso] : undefined}
           />
         </Pressable>
       </View>

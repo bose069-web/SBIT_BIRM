@@ -22,6 +22,9 @@ export const Colors = {
     cristal: 'rgba(255,255,255,0.72)',
     cristalBorde: 'rgba(255,255,255,0.9)',
     danger: '#B91C1C',
+    // Avisos por días sin apuntar: amarillo y naranja oscurecidos para leerse sobre blanco (4.5:1).
+    avisoLeve: '#A16207',
+    avisoMedio: '#C2410C',
     estadoValidado: '#15803D',
     // Un punto más oscuro que antes para pasar 4.5:1 también sobre `subtle`.
     estadoPendiente: '#9D5F06',
@@ -44,6 +47,8 @@ export const Colors = {
     cristal: 'rgba(24,24,27,0.72)',
     cristalBorde: 'rgba(255,255,255,0.08)',
     danger: '#F87171',
+    avisoLeve: '#FACC15',
+    avisoMedio: '#FB923C',
     estadoValidado: '#4ADE80',
     estadoPendiente: '#FACC15',
     estadoAusencia: '#F87171',

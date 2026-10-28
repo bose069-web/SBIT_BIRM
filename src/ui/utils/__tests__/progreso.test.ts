@@ -1,7 +1,7 @@
 import { crearDossier } from '@/core/__fixtures__/datos';
 import type { RegistroDiario } from '@/core/domain/registro-diario';
 
-import { calcularProgreso } from '../progreso';
+import { calcularProgreso, nivelSinApuntar } from '../progreso';
 
 const dia = (fecha: string, horas: number): RegistroDiario => ({
   id: fecha,
@@ -38,5 +38,16 @@ describe('calcularProgreso', () => {
     const p = calcularProgreso(dossier, [], '2026-10-07');
     expect(p.finEstimado).toBeNull();
     expect(p.aTiempo).toBe(false);
+  });
+});
+
+describe('nivelSinApuntar', () => {
+  it('sube de nivel a los 1, 8 y 16 días', () => {
+    expect(nivelSinApuntar(0)).toBe('ninguno');
+    expect(nivelSinApuntar(1)).toBe('leve');
+    expect(nivelSinApuntar(7)).toBe('leve');
+    expect(nivelSinApuntar(8)).toBe('medio');
+    expect(nivelSinApuntar(15)).toBe('medio');
+    expect(nivelSinApuntar(16)).toBe('grave');
   });
 });
