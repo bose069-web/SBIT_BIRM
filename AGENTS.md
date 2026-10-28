@@ -19,14 +19,18 @@ src/app/             Pantallas (Expo Router)
 
 ## Reparto por PCs: qué puede tocar cada uno
 
-| PC   | Agente              | Puede modificar                                                                                                  |
-| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| PC 1 | Claude Code + Codex | Todo. Dueño de `core/`, `config/`, `infrastructure/` (salvo `memory/`), `.github/`, configuración y dependencias |
-| PC 2 | OpenCode            | `src/app/`, `src/ui/hooks/`, `src/ui/vistas/`, `src/ui/utils/`                                                   |
-| PC 3 | OpenCode            | `src/ui/components/`, `src/ui/theme/`, `src/infrastructure/memory/`                                              |
-| PC 4 | OpenCode            | Panel web, `e2e/`, diseño                                                                                        |
+Reparto del sprint 4 (detalle y encargos en el vault: `01 - Planificación/Encargos sprint 4`).
 
-Si una tarea de PC 2-4 necesita cambiar un puerto, caso de uso, `container.ts`, `package.json` o la configuración: NO lo cambies. Descríbelo en la PR para que lo haga PC 1.
+| PC   | Papel            | Puede modificar                                                                                         |
+| ---- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| PC 1 | Front (Claude)   | `src/app/`, `src/ui/`, `src/config/`, `.github/`, `package.json` y configuración. Revisa y fusiona todo |
+| PC 1 | Revisión (Codex) | Revisa las PR de PC 2 y PC 3; solo arregla lo que pida PC 1                                             |
+| PC 2 | Base de datos    | `supabase/migrations/` (solo migraciones nuevas) y `supabase/seed.sql`                                  |
+| PC 3 | Backend          | `src/core/` (domain, ports, application, tests y fixtures) y `src/infrastructure/` (memory y supabase)  |
+| PC 4 | Ayudante general | Tests (`src/**/__tests__/`), `e2e/` y documentación. No cambia código de producción                     |
+
+- Cadena de trabajo: PC 2 hace la migración → PC 3 el núcleo y los adaptadores → PC 1 la pantalla. Cada uno avisa al siguiente cuando su PR está en `develop`.
+- Si una tarea necesita tocar una carpeta que no es tuya (por ejemplo registrar algo en `container.ts` o añadir una dependencia): NO lo cambies. Descríbelo en la PR para que lo haga su dueño.
 
 ## Base de datos (Supabase)
 
@@ -35,7 +39,8 @@ La base se define SOLO con los archivos de `supabase/migrations/`. Nada de SQL a
 - Cambio en la base = migración nueva: `npm run db:nueva nombre_corto` crea `supabase/migrations/<fecha>_nombre_corto.sql`.
 - NUNCA edites una migración que ya está en `main`: ya se aplicó en producción. Si algo está mal, otra migración que lo corrija.
 - Probar en local (Docker): `npm run db:start` la primera vez y `npm run db:reset` para recrear la base con todas las migraciones y `supabase/seed.sql`.
-- Las migraciones solo las escribe PC 1. PC 2-4 describen en la PR el cambio que necesitan.
+- Las migraciones las escribe PC 2. Los demás describen en la PR el cambio que necesitan.
+- Cada migración se prueba en local con cada rol (RLS) antes de abrir la PR.
 - El CI aplica todas las migraciones desde cero en cada PR; al fusionar en `main`, `desplegar-db.yml` las sube a Supabase.
 - Copia de seguridad: `npm run db:backup` (queda en `backups/`, que nunca se sube).
 
@@ -47,7 +52,7 @@ La base se define SOLO con los archivos de `supabase/migrations/`. Nada de SQL a
   - `develop` = integración. Toda rama de trabajo sale de `develop` y vuelve a `develop` por PR.
   - Ramas de trabajo `tipo/pcN-descripcion-corta`:
     - DEV: `feature/` (funcionalidad nueva) y `fix/` (corrección).
-    - OPS: `ops/` (CI, workflows, Supabase/config, scripts, dependencias). Solo PC 1.
+    - OPS: `ops/` (CI, workflows, config, scripts, dependencias). Solo PC 1.
     - QA: `test/` (tests unitarios o e2e sin cambiar funcionalidad).
     - DOCS: `docs/`.
     - `hotfix/` sale de `main` y vuelve a `main` y a `develop`. Solo PC 1.
