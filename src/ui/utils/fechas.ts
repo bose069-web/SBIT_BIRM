@@ -37,6 +37,15 @@ export function fechaCorta(fecha: string): string {
   return `${d} ${MESES[m - 1].slice(0, 3)} ${a}`;
 }
 
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/** `2026-10-27` → `martes 27 de octubre` */
+export function fechaLarga(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  const dia = DIAS[new Date(a, m - 1, d).getDay()];
+  return `${dia} ${d} de ${MESES[m - 1]}`;
+}
+
 /** Primer y último día del mes de una fecha. */
 export function limitesMes(fecha: string): [string, string] {
   const [a, m] = fecha.split('-').map(Number);

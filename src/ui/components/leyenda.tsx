@@ -8,7 +8,7 @@ export interface ElementoLeyenda {
   texto: string;
   color: ThemeColor;
   /** La forma ayuda a distinguir sin depender solo del color. */
-  forma?: 'punto' | 'cuadrado' | 'rombo';
+  forma?: 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 }
 
 /** Leyenda para calendarios y gráficos: cada marca va siempre con su texto. */
@@ -21,13 +21,10 @@ export function Leyenda({ elementos }: { elementos: ElementoLeyenda[] }) {
           <View
             style={[
               styles.marca,
-              e.forma === 'rombo'
-                ? {
-                    borderColor: theme[e.color],
-                    borderWidth: 1.5,
-                    transform: [{ rotate: '45deg' }],
-                  }
+              e.forma === 'rombo' || e.forma === 'anillo'
+                ? { borderColor: theme[e.color], borderWidth: 1.5 }
                 : { backgroundColor: theme[e.color] },
+              e.forma === 'rombo' && styles.girada,
               e.forma === 'cuadrado' || e.forma === 'rombo' ? styles.esquinas : styles.redonda,
             ]}
           />
@@ -51,4 +48,5 @@ const styles = StyleSheet.create({
   marca: { width: 9, height: 9 },
   redonda: { borderRadius: 5 },
   esquinas: { borderRadius: 2 },
+  girada: { transform: [{ rotate: '45deg' }] },
 });
