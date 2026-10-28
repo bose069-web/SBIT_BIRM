@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import { listarRegistros } from '@/core/application/registro-diario';
@@ -18,6 +18,7 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 import {
@@ -55,9 +56,8 @@ export function PanelAlumno() {
     };
   }, [hoy]);
   useRecargarAlVolver(recargar);
-  const { width } = useWindowDimensions();
   // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
-  const ancho = Platform.OS === 'web' && width >= 1000;
+  const ancho = useWebAncha();
   const calendario = (
     <Tarjeta titulo="Calendario">
       <MiniCalendario hoy={hoy} />

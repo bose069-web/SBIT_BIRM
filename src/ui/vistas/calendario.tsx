@@ -21,6 +21,7 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
+import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Spacing } from '@/ui/theme/theme';
 import { estadoDia } from '@/ui/utils/calendario';
 import { fechaLarga, formatoHoras, hoyISO, limitesMes } from '@/ui/utils/fechas';
@@ -34,9 +35,13 @@ export function VistaCalendario() {
   const { rol } = useUsuario();
   const hoy = hoyISO();
   if (rol === 'alumno') return <CalendarioDelAlumno hoy={hoy} />;
-  const ponFechas = rol === 'instituto' || rol === 'generalitat';
+  return <CalendarioGeneral hoy={hoy} ponFechas={rol === 'instituto' || rol === 'generalitat'} />;
+}
+
+function CalendarioGeneral({ hoy, ponFechas }: { hoy: string; ponFechas: boolean }) {
+  const ancho = useWebAncha();
   return (
-    <Pantalla titulo="Calendario" subtitulo="Entregas, reuniones y festivos">
+    <Pantalla titulo="Calendario" subtitulo="Entregas, reuniones y festivos" amplia={ancho}>
       <Tarjeta titulo="Próximas fechas">
         <ProximasFechas hoy={hoy} />
       </Tarjeta>
@@ -53,6 +58,7 @@ export function VistaCalendario() {
 }
 
 function CalendarioDelAlumno({ hoy }: { hoy: string }) {
+  const ancho = useWebAncha();
   const { datos, error, cargando, recargar } = useDatos(async () => {
     const dossier = await obtenerDossierActual(container.dossiers, hoy);
     if (!dossier) return null;
@@ -62,7 +68,10 @@ function CalendarioDelAlumno({ hoy }: { hoy: string }) {
   useRecargarAlVolver(recargar);
 
   return (
-    <Pantalla titulo="Calendario" subtitulo="Toca un día para ver qué hay y registrarlo">
+    <Pantalla
+      titulo="Calendario"
+      subtitulo="Toca un día para ver qué hay y registrarlo"
+      amplia={ancho}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {!cargando && !datos && !error ? (
@@ -73,14 +82,19 @@ function CalendarioDelAlumno({ hoy }: { hoy: string }) {
         />
       ) : null}
       {datos ? (
-        <>
-          <Tarjeta titulo="Mis días">
-            <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
-          </Tarjeta>
-          <Tarjeta titulo="Próximas fechas">
-            <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
-          </Tarjeta>
-        </>
+        // En la web ancha, el calendario y las próximas fechas van lado a lado.
+        <View style={ancho ? styles.columnas : styles.apilado}>
+          <View style={ancho ? styles.principal : undefined}>
+            <Tarjeta titulo="Mis días">
+              <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
+            </Tarjeta>
+          </View>
+          <View style={ancho ? styles.lateral : undefined}>
+            <Tarjeta titulo="Próximas fechas">
+              <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
+            </Tarjeta>
+          </View>
+        </View>
       ) : null}
     </Pantalla>
   );
@@ -210,5 +224,9 @@ function DiaElegido({
 }
 
 const styles = StyleSheet.create({
+  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  apilado: { gap: Spacing.three },
+  principal: { flex: 1.7 },
+  lateral: { flex: 1 },
   dia: { gap: Spacing.two },
 });
