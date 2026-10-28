@@ -64,3 +64,8 @@ insert into public.horas_actividad (registro_id, actividad_id, dossier_id, horas
 insert into public.valoraciones_mensuales (dossier_id, mes, valoracion, comentario, valorada_por) values
   ('cccccccc-0000-0000-0000-000000000001', '2026-09-01', 'positiva', 'Buen inicio, se adapta rápido al equipo.',
    '33333333-3333-3333-3333-333333333333');
+
+-- El día de septiembre ya lo ha validado la empresa; el de octubre está pendiente.
+update public.registros_diarios
+set validado_empresa_por = '33333333-3333-3333-3333-333333333333', validado_empresa_en = '2026-09-16 10:00+02'
+where id = 'eeeeeeee-0000-0000-0000-000000000001';
