@@ -24,9 +24,7 @@ export function Aparecer({
       entering={
         reducir
           ? undefined
-          : FadeInDown.duration(Movimiento.entrada)
-              .delay(Math.min(orden, 6) * 50)
-              .withInitialValues({ transform: [{ translateY: 12 }] })
+          : FadeInDown.duration(Movimiento.entrada).delay(Math.min(orden, 6) * 50)
       }>
       {children}
     </Animated.View>
