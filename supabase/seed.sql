@@ -64,3 +64,11 @@ insert into public.horas_actividad (registro_id, actividad_id, dossier_id, horas
 insert into public.valoraciones_mensuales (dossier_id, mes, valoracion, comentario, valorada_por) values
   ('cccccccc-0000-0000-0000-000000000001', '2026-09-01', 'positiva', 'Buen inicio, se adapta rápido al equipo.',
    '33333333-3333-3333-3333-333333333333');
+
+-- Clases del centro de ejemplo; el alumno de prueba va a DAM 2 A.
+insert into public.grupos (id, centro_id, ciclo, curso, letra) values
+  ('ffffffff-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'DAM', 2, 'A'),
+  ('ffffffff-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'DAM', 1, 'A'),
+  ('ffffffff-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', 'ASIX', 2, 'A');
+update public.perfiles set grupo_id = 'ffffffff-0000-0000-0000-000000000001'
+where id = '11111111-1111-1111-1111-111111111111';
