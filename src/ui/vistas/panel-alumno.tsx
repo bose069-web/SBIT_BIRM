@@ -15,10 +15,11 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
+import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
-import { CalendarioAlumno } from './calendario';
+import { MiniCalendario } from './mini-calendario';
 import { TareasDossier } from './tareas';
 import {
   ErrorCarga,
@@ -29,6 +30,7 @@ import {
 } from './comun';
 
 export function PanelAlumno() {
+  const theme = useTheme();
   const usuario = useUsuario();
   const hoy = hoyISO();
   const { datos, error, cargando, recargar } = useDatos(async () => {
@@ -65,7 +67,8 @@ export function PanelAlumno() {
           izquierda={
             <>
               <Tarjeta titulo="Horas de prácticas">
-                <View style={styles.quesito}>
+                <MiniCalendario hoy={hoy} />
+                <View style={[styles.quesito, styles.separado, { borderTopColor: theme.border }]}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
                     etiqueta="Horas de prácticas completadas"
@@ -83,20 +86,6 @@ export function PanelAlumno() {
                   </View>
                 </View>
               </Tarjeta>
-              {/* En la web ancha el calendario cabe en Inicio; en el móvil tiene su pestaña. */}
-              {ancho ? (
-                <Tarjeta titulo="Mis días">
-                  <CalendarioAlumno
-                    dossier={datos.dossier}
-                    seguimiento={datos.seguimiento}
-                    hoy={hoy}
-                  />
-                </Tarjeta>
-              ) : null}
-            </>
-          }
-          derecha={
-            <>
               <Tarjeta titulo="Este mes">
                 <View style={estilosComunes.fila}>
                   <ThemedText type="smallBold" style={estilosComunes.capital}>
@@ -110,6 +99,10 @@ export function PanelAlumno() {
                 </View>
                 <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
               </Tarjeta>
+            </>
+          }
+          derecha={
+            <>
               <Tarjeta titulo="Tareas">
                 <TareasDossier dossier={datos.dossier} />
               </Tarjeta>
@@ -180,4 +173,5 @@ const styles = StyleSheet.create({
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
   quesito: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
   flex: { flex: 1, gap: Spacing.one },
+  separado: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.three },
 });
