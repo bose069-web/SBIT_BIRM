@@ -74,7 +74,10 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     return (
       <Pantalla titulo="Registrar día">
         {error ? (
-          <Mensaje tipo="error" texto={error} />
+          <>
+            <Mensaje tipo="error" texto={error} />
+            <Boton texto="Reintentar" onPress={recargar} />
+          </>
         ) : cargando ? (
           <Cargando />
         ) : (
@@ -133,7 +136,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     }
   }
 
-  const bloqueado = cerrado || fueraDePeriodo;
+  const bloqueado = cerrado || fueraDePeriodo || cargando || error !== null;
 
   return (
     // En iOS el teclado tapa el final del formulario si no se aparta el contenido.
