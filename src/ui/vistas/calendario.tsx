@@ -82,19 +82,15 @@ function CalendarioDelAlumno({ hoy }: { hoy: string }) {
         />
       ) : null}
       {datos ? (
-        // En la web ancha, el calendario y las próximas fechas van lado a lado.
-        <View style={ancho ? styles.columnas : styles.apilado}>
-          <View style={ancho ? styles.principal : undefined}>
-            <Tarjeta titulo="Mis días">
-              <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
-            </Tarjeta>
-          </View>
-          <View style={ancho ? styles.lateral : undefined}>
-            <Tarjeta titulo="Próximas fechas">
-              <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
-            </Tarjeta>
-          </View>
-        </View>
+        // En la web el calendario ocupa todo el ancho y las próximas fechas van debajo.
+        <>
+          <Tarjeta titulo="Mis días">
+            <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
+          </Tarjeta>
+          <Tarjeta titulo="Próximas fechas">
+            <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
+          </Tarjeta>
+        </>
       ) : null}
     </Pantalla>
   );
@@ -224,9 +220,5 @@ function DiaElegido({
 }
 
 const styles = StyleSheet.create({
-  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
-  apilado: { gap: Spacing.three },
-  principal: { flex: 1.7 },
-  lateral: { flex: 1 },
   dia: { gap: Spacing.two },
 });
