@@ -33,6 +33,7 @@ const ANCHO_LOGOTIPO = Math.round((ALTO_LOGO * 1360) / 384);
 // Al recoger, se recorta el mismo logotipo y solo queda su K (llega a x = 63 de 340): así la
 // marca no cambia de tamaño ni de resolución.
 const ANCHO_MARCA = Math.ceil((ALTO_LOGO * 66) / 96);
+const ANCHO_PALABRA = ANCHO_LOGOTIPO - ANCHO_MARCA;
 
 // Propiedades solo de la web (cristal y transiciones); react-native-web las pasa tal cual al CSS.
 const cristalWeb = {
@@ -183,7 +184,8 @@ export function CustomTabList(props: TabListProps) {
           cristalWeb,
           { backgroundColor: theme.cristal, borderColor: theme.cristalBorde },
         ]}>
-        {/* Al bajar, el logotipo se recoge y solo queda la marca. */}
+        {/* Al bajar, la palabra se desliza hacia la izquierda y se esconde detrás de la K; al
+            volver arriba sale deslizándose. Son dos recortes del mismo logotipo. */}
         <Pressable
           accessibilityRole="link"
           accessibilityLabel="Kampus, ir a Inicio"
@@ -194,7 +196,22 @@ export function CustomTabList(props: TabListProps) {
             transicion('width'),
             { width: desplazado ? ANCHO_MARCA : ANCHO_LOGOTIPO },
           ]}>
-          <Image source={LOGOTIPO[esquema]} style={styles.logotipo} />
+          <View style={styles.zonaPalabra}>
+            <View
+              style={[
+                styles.palabra,
+                transicion('transform, opacity'),
+                {
+                  opacity: desplazado ? 0 : 1,
+                  transform: [{ translateX: desplazado ? -ANCHO_PALABRA : 0 }],
+                },
+              ]}>
+              <Image source={LOGOTIPO[esquema]} style={[styles.logotipo, { left: -ANCHO_MARCA }]} />
+            </View>
+          </View>
+          <View style={styles.k}>
+            <Image source={LOGOTIPO[esquema]} style={styles.logotipo} />
+          </View>
         </Pressable>
 
         {props.children}
@@ -260,6 +277,15 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
   },
   logo: { height: ALTO_LOGO, marginRight: 'auto', overflow: 'hidden' },
+  zonaPalabra: {
+    position: 'absolute',
+    left: ANCHO_MARCA,
+    width: ANCHO_PALABRA,
+    height: ALTO_LOGO,
+    overflow: 'hidden',
+  },
+  palabra: { width: ANCHO_PALABRA, height: ALTO_LOGO, overflow: 'hidden' },
+  k: { position: 'absolute', left: 0, width: ANCHO_MARCA, height: ALTO_LOGO, overflow: 'hidden' },
   logotipo: { position: 'absolute', left: 0, width: ANCHO_LOGOTIPO, height: ALTO_LOGO },
   botonEsquema: {
     width: 44,
