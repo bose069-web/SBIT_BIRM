@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 
 import { agendaDelMes, listarEventosMes } from '@/core/application/calendario';
 import { obtenerDossierActual } from '@/core/application/dossier';
@@ -8,12 +7,8 @@ import { listarRegistros } from '@/core/application/registro-diario';
 import { listarTareas } from '@/core/application/tareas';
 import { obtenerSeguimiento, type Seguimiento } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
-import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
-import { Aparecer } from '@/ui/components/aparecer';
-import { Boton } from '@/ui/components/boton';
-import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
@@ -22,13 +17,11 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Spacing } from '@/ui/theme/theme';
-import { estadoDia } from '@/ui/utils/calendario';
-import { fechaLarga, formatoHoras, hoyISO, limitesMes } from '@/ui/utils/fechas';
+import { hoyISO, limitesMes } from '@/ui/utils/fechas';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
-import { CalendarioMes, ESTADOS_DIA } from './calendario-mes';
-import { ErrorCarga, EsqueletoPanel, EstadoVacio, estilosComunes } from './comun';
+import { CalendarioMes } from './calendario-mes';
+import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
 /** Pestaña Calendario: el alumno ve su mes con lo apuntado; los demás, las fechas que les tocan. */
 export function VistaCalendario() {
@@ -113,7 +106,6 @@ export function CalendarioAlumno({
     if (actual > mesDe(dossier.fechaFin)) return mesDe(dossier.fechaFin);
     return actual;
   });
-  const [elegida, setElegida] = useState(hoy);
   const [desde, hasta] = limitesMes(`${mes}-01`);
   const {
     datos: mesDatos,
@@ -151,74 +143,8 @@ export function CalendarioAlumno({
         periodo={dossier}
         hoy={hoy}
         cerrado={cerrado}
-        seleccionada={elegida}
-        onElegir={setElegida}
+        onElegir={(fecha) => router.push({ pathname: '/registro', params: { fecha } })}
       />
-      {mesDe(elegida) === mes ? (
-        <DiaElegido
-          fecha={elegida}
-          registro={mesDatos?.registros.find((r) => r.fecha === elegida)}
-          agenda={mesDatos?.agenda.get(elegida) ?? []}
-          periodo={dossier}
-          hoy={hoy}
-          cerrado={cerrado}
-        />
-      ) : null}
     </>
   );
 }
-
-/** Qué hay el día elegido y botón para abrir su registro. */
-function DiaElegido({
-  fecha,
-  registro,
-  agenda,
-  periodo,
-  hoy,
-  cerrado,
-}: {
-  fecha: string;
-  registro?: RegistroDiario;
-  agenda: string[];
-  periodo: Dossier;
-  hoy: string;
-  cerrado: boolean;
-}) {
-  const estado = estadoDia(fecha, registro, periodo, hoy);
-  const info = ESTADOS_DIA[estado];
-  const enPeriodo = estado !== 'fuera';
-  const futuro = fecha > hoy;
-  return (
-    <Aparecer key={fecha} style={styles.dia}>
-      <View style={estilosComunes.fila}>
-        <ThemedText type="smallBold">
-          {fechaLarga(fecha).replace(/^./, (l) => l.toUpperCase())}
-        </ThemedText>
-        {info.color ? <Chip texto={info.texto} color={info.color} /> : null}
-      </View>
-      {registro && estado === 'trabajo' ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatoHoras(totalHoras(registro))} apuntadas
-        </ThemedText>
-      ) : null}
-      {agenda.map((a) => (
-        <ThemedText key={a} type="small">
-          • {a}
-        </ThemedText>
-      ))}
-      {enPeriodo && !futuro ? (
-        <Boton
-          texto={
-            cerrado ? 'Ver el registro' : registro ? 'Editar el registro' : 'Registrar este día'
-          }
-          variante={registro || cerrado ? 'secundario' : 'primario'}
-          onPress={() => router.push({ pathname: '/registro', params: { fecha } })}
-        />
-      ) : null}
-    </Aparecer>
-  );
-}
-
-const styles = StyleSheet.create({
-  dia: { gap: Spacing.two },
-});
