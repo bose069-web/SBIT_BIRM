@@ -17,10 +17,10 @@ import { MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
-type NombreIcono = 'inicio' | 'registrar' | 'centro' | 'perfil';
+type NombreIcono = 'inicio' | 'calendario' | 'chat' | 'perfil';
 
 // Mismo trazo de 24 para los cuatro iconos: coherentes entre sí y con los del móvil
-// (casa, cuaderno con lápiz, edificio y persona).
+// (casa, calendario, bocadillos y persona).
 const TRAZOS: Record<NombreIcono, ReactNode> = {
   inicio: (
     <>
@@ -29,19 +29,16 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
       <path d="M10.2 20v-5.2h3.6V20" />
     </>
   ),
-  registrar: (
+  calendario: (
     <>
-      <path d="M14.5 4H6.8A1.8 1.8 0 0 0 5 5.8v12.4A1.8 1.8 0 0 0 6.8 20h10.4a1.8 1.8 0 0 0 1.8-1.8V8.5z" />
-      <path d="M14.5 4v4.5H19" />
-      <path d="M12 11.5v5M9.5 14h5" />
+      <rect x="4" y="5.5" width="16" height="14.5" rx="2" />
+      <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
     </>
   ),
-  centro: (
+  chat: (
     <>
-      <path d="M4.5 20V7.8L12 4l7.5 3.8V20" />
-      <path d="M3 20h18" />
-      <path d="M9 10.5h1.2M13.8 10.5H15M9 14h1.2M13.8 14H15" />
-      <path d="M10.5 20v-3.2h3V20" />
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v4a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3v-3H6.5A2.5 2.5 0 0 1 4 10.5z" />
+      <path d="M18.5 9.5A1.5 1.5 0 0 1 20 11v4a1.5 1.5 0 0 1-1.5 1.5H18V19l-3-2.5h-2" />
     </>
   ),
   perfil: (
@@ -52,7 +49,7 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
   ),
 };
 
-export default function AppTabs({ rol }: { rol: Rol }) {
+export default function AppTabs(_props: { rol: Rol }) {
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -61,22 +58,16 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           <TabTrigger name="home" href="/" asChild>
             <TabButton icono="inicio">Inicio</TabButton>
           </TabTrigger>
-          {/* La ruta existe para todos (si no, no se puede navegar a ella); solo el alumno ve la pestaña. */}
-          {rol === 'alumno' ? (
-            <TabTrigger name="registro" href="/registro" asChild>
-              <TabButton icono="registrar">Registrar día</TabButton>
-            </TabTrigger>
-          ) : (
-            <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
-          )}
-          {/* El instituto gestiona el suyo y la generalitat, el que elija: los dos ven la pestaña. */}
-          {rol === 'instituto' || rol === 'generalitat' ? (
-            <TabTrigger name="centro" href="/centro" asChild>
-              <TabButton icono="centro">Centro</TabButton>
-            </TabTrigger>
-          ) : (
-            <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
-          )}
+          <TabTrigger name="calendario" href="/calendario" asChild>
+            <TabButton icono="calendario">Calendario</TabButton>
+          </TabTrigger>
+          <TabTrigger name="chat" href="/chat" asChild>
+            <TabButton icono="chat">Chat</TabButton>
+          </TabTrigger>
+          {/* Registrar y Centro siguen siendo rutas (si no, no se puede navegar a ellas), pero se
+              abren desde Inicio, no desde la barra. */}
+          <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
+          <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton icono="perfil">Perfil</TabButton>
           </TabTrigger>
