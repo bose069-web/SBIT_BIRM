@@ -1,6 +1,8 @@
 -- Incidencias: cualquiera avisa de un problema (con las prácticas, la empresa, la app...).
 -- Las atiende el instituto de su centro; si el problema le supera, la escala a la
 -- generalitat, que ve y gestiona todas (es el superadmin: problemas a gran escala).
+-- El profe tutor ve las de sus alumnos y, como todos los participantes, escribe mensajes:
+-- hace de comunicador entre alumno, empresa e instituto.
 
 create type public.categoria_incidencia as enum ('practicas', 'empresa', 'convenio', 'app', 'otra');
 create type public.prioridad_incidencia as enum ('baja', 'media', 'alta');
@@ -35,6 +37,25 @@ create index on public.incidencias (estado);
 create function public.atiende_incidencia(i public.incidencias) returns boolean
 language sql stable security definer set search_path = '' as $$
   select public.es_generalitat() or public.administra_centro(i.centro_id)
+$$;
+
+-- Participan (ven la incidencia y escriben mensajes): quien la abrió, quien la atiende y el
+-- profe tutor del dossier.
+create function public.participa_incidencia(i public.incidencias) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select i.creada_por = auth.uid()
+    or public.atiende_incidencia(i)
+    or exists (
+      select 1 from public.dossiers d where d.id = i.dossier_id and d.tutor_id = auth.uid()
+    )
+$$;
+
+create function public.participa_incidencia_id(incidencia uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce(
+    (select public.participa_incidencia(i) from public.incidencias i where i.id = incidencia),
+    false
+  )
 $$;
 
 -- Al crear: centro por el dossier o por quien la abre; nadie se salta el flujo.
@@ -72,6 +93,13 @@ begin
      is distinct from (old.id, old.centro_id, old.dossier_id, old.creada_por, old.creada_en) then
     raise exception 'No se puede cambiar el origen de una incidencia';
   end if;
+  -- Un mensaje nuevo solo toca actualizada_en: eso lo puede provocar cualquier participante.
+  if (new.titulo, new.descripcion, new.categoria, new.prioridad, new.estado, new.escalada,
+      new.respuesta, new.atendida_por, new.resuelta_en)
+     is not distinct from (old.titulo, old.descripcion, old.categoria, old.prioridad, old.estado,
+      old.escalada, old.respuesta, old.atendida_por, old.resuelta_en) then
+    return new;
+  end if;
 
   if public.atiende_incidencia(old) then
     -- Solo el instituto escala; la generalitat ya es el último nivel.
@@ -106,12 +134,16 @@ revoke execute on function public.preparar_incidencia() from authenticated;
 revoke execute on function public.proteger_incidencia() from authenticated;
 revoke execute on function public.atiende_incidencia(public.incidencias) from public, anon;
 grant execute on function public.atiende_incidencia(public.incidencias) to authenticated;
+revoke execute on function public.participa_incidencia(public.incidencias) from public, anon;
+grant execute on function public.participa_incidencia(public.incidencias) to authenticated;
+revoke execute on function public.participa_incidencia_id(uuid) from public, anon;
+grant execute on function public.participa_incidencia_id(uuid) to authenticated;
 
 alter table public.incidencias enable row level security;
 
--- Ven una incidencia quien la abrió y quien la atiende.
+-- Ven una incidencia quienes participan; cambiarla, solo quien la abrió o la atiende.
 create policy "ver incidencias" on public.incidencias for select to authenticated
-  using (creada_por = (select auth.uid()) or public.atiende_incidencia(incidencias));
+  using (public.participa_incidencia(incidencias));
 create policy "abrir incidencias" on public.incidencias for insert to authenticated
   with check (true);
 create policy "cambiar incidencias" on public.incidencias for update to authenticated
@@ -119,4 +151,39 @@ create policy "cambiar incidencias" on public.incidencias for update to authenti
   with check (creada_por = (select auth.uid()) or public.atiende_incidencia(incidencias));
 -- Borrar solo la generalitat (para spam o duplicados); el resto las resuelve.
 create policy "generalitat borra incidencias" on public.incidencias for delete to authenticated
+  using (public.es_generalitat());
+
+-- Mensajes: la conversación de la incidencia entre todos los que participan ----------------
+create table public.incidencia_mensajes (
+  id uuid primary key default gen_random_uuid(),
+  incidencia_id uuid not null references public.incidencias (id) on delete cascade,
+  autor_id uuid not null default auth.uid() references public.perfiles (id) on delete cascade,
+  texto text not null check (length(trim(texto)) between 1 and 2000),
+  creado_en timestamptz not null default now()
+);
+create index on public.incidencia_mensajes (incidencia_id, creado_en);
+create index on public.incidencia_mensajes (autor_id);
+
+-- Autor y fecha los pone la base. Escribir mueve la incidencia arriba (actualizada_en).
+create function public.preparar_mensaje_incidencia() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  new.autor_id := auth.uid();
+  new.creado_en := now();
+  update public.incidencias set actualizada_en = now() where id = new.incidencia_id;
+  return new;
+end $$;
+
+create trigger preparar_mensaje_incidencia before insert on public.incidencia_mensajes
+for each row execute function public.preparar_mensaje_incidencia();
+revoke execute on function public.preparar_mensaje_incidencia() from authenticated;
+
+alter table public.incidencia_mensajes enable row level security;
+
+create policy "ver mensajes" on public.incidencia_mensajes for select to authenticated
+  using (public.participa_incidencia_id(incidencia_id));
+create policy "escribir mensajes" on public.incidencia_mensajes for insert to authenticated
+  with check (public.participa_incidencia_id(incidencia_id));
+-- Los mensajes no se editan; la generalitat puede borrarlos (spam).
+create policy "generalitat borra mensajes" on public.incidencia_mensajes for delete to authenticated
   using (public.es_generalitat());

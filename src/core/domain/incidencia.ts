@@ -2,7 +2,8 @@ import { DatosInvalidosError } from './errores';
 import type { Usuario } from './usuario';
 
 // Cualquiera avisa de un problema. Lo atiende el instituto de su centro y, si le supera, lo
-// escala a la generalitat, que ve y gestiona todas.
+// escala a la generalitat, que ve y gestiona todas. El profe tutor del dossier la sigue y,
+// como todos los que participan, escribe mensajes: hace de comunicador.
 
 export const CATEGORIAS_INCIDENCIA = ['practicas', 'empresa', 'convenio', 'app', 'otra'] as const;
 export type CategoriaIncidencia = (typeof CATEGORIAS_INCIDENCIA)[number];
@@ -18,6 +19,8 @@ export interface Incidencia {
   /** Centro que la atiende; null = la atiende directamente la generalitat. */
   centroId: string | null;
   dossierId: string | null;
+  /** Profe tutor del dossier (si es sobre un dossier): la sigue y escribe mensajes. */
+  tutorId: string | null;
   creadaPor: string;
   creadaPorNombre: string | null;
   titulo: string;
@@ -39,6 +42,16 @@ export interface BorradorIncidencia {
   titulo: string;
   descripcion: string;
   categoria: CategoriaIncidencia;
+}
+
+export interface MensajeIncidencia {
+  id: string;
+  incidenciaId: string;
+  autorId: string;
+  autorNombre: string | null;
+  texto: string;
+  /** Fecha y hora ISO. */
+  creadoEn: string;
 }
 
 /** Lo que cambia quien la atiende. */
@@ -67,6 +80,23 @@ export function atiendeIncidencia(usuario: Usuario, i: Pick<Incidencia, 'centroI
     usuario.rol === 'generalitat' ||
     (usuario.rol === 'instituto' && i.centroId !== null && usuario.centroId === i.centroId)
   );
+}
+
+/** Participan (la ven y escriben mensajes): quien la abrió, quien la atiende y el profe tutor. */
+export function participaEnIncidencia(
+  usuario: Usuario,
+  i: Pick<Incidencia, 'centroId' | 'creadaPor' | 'tutorId'>,
+): boolean {
+  return (
+    i.creadaPor === usuario.id ||
+    atiendeIncidencia(usuario, i) ||
+    (usuario.rol === 'profe' && i.tutorId === usuario.id)
+  );
+}
+
+export function comprobarMensaje(texto: string): void {
+  if (!texto.trim()) throw new DatosInvalidosError('Escribe el mensaje');
+  if (texto.trim().length > 2000) throw new DatosInvalidosError('El mensaje es demasiado largo');
 }
 
 const PESO_PRIORIDAD: Record<PrioridadIncidencia, number> = { alta: 0, media: 1, baja: 2 };

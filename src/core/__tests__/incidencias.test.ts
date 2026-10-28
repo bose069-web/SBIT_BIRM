@@ -3,11 +3,13 @@ import {
   atenderIncidencia,
   borrarIncidencia,
   corregirIncidencia,
+  enviarMensaje,
   escalarIncidencia,
+  listarMensajes,
   obtenerBandeja,
 } from '../application/incidencias';
 import { DatosInvalidosError, SinPermisoError } from '../domain/errores';
-import { atiendeIncidencia, ordenarIncidencias } from '../domain/incidencia';
+import { atiendeIncidencia, ordenarIncidencias, participaEnIncidencia } from '../domain/incidencia';
 import {
   alumno,
   crearIncidencia,
@@ -17,6 +19,7 @@ import {
   instituto,
   otroAlumno,
   otroInstituto,
+  otroProfe,
   profe,
 } from '../__fixtures__/datos';
 
@@ -132,5 +135,42 @@ describe('bandeja y borrar', () => {
     expect(() => borrarIncidencia(port, instituto, i)).toThrow(SinPermisoError);
     await borrarIncidencia(port, generalitat, i);
     expect(port.incidencias).toEqual([]);
+  });
+});
+
+describe('el profe tutor como comunicador', () => {
+  it('participa en las de sus alumnos pero no las atiende', async () => {
+    const i = crearIncidencia();
+    expect(participaEnIncidencia(profe, i)).toBe(true);
+    expect(participaEnIncidencia(otroProfe, i)).toBe(false);
+    expect(participaEnIncidencia(empresa, i)).toBe(false);
+    expect(() =>
+      atenderIncidencia(new IncidenciasFalsas(), profe, i, { estado: 'en_curso' }),
+    ).toThrow(SinPermisoError);
+  });
+
+  it('las ve aparte en su bandeja', async () => {
+    const port = new IncidenciasFalsas();
+    port.incidencias = [crearIncidencia(), crearIncidencia({ id: '2', tutorId: otroProfe.id })];
+    const b = await obtenerBandeja(port, profe);
+    expect(b.deMisAlumnos.map((i) => i.id)).toEqual(['inc1']);
+    expect(b.porAtender).toEqual([]);
+  });
+
+  it('todos los que participan escriben; los demás no', async () => {
+    const port = new IncidenciasFalsas();
+    const i = crearIncidencia();
+    for (const u of [profe, alumno, instituto, generalitat]) {
+      await enviarMensaje(port, u, i, ` Hola de ${u.rol} `);
+    }
+    expect((await listarMensajes(port, profe, i)).map((m) => m.texto)).toEqual([
+      'Hola de profe',
+      'Hola de alumno',
+      'Hola de instituto',
+      'Hola de generalitat',
+    ]);
+    expect(() => enviarMensaje(port, empresa, i, 'hola')).toThrow(SinPermisoError);
+    expect(() => listarMensajes(port, otroProfe, i)).toThrow(SinPermisoError);
+    expect(() => enviarMensaje(port, profe, i, '  ')).toThrow(DatosInvalidosError);
   });
 });

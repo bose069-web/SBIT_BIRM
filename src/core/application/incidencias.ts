@@ -2,10 +2,13 @@ import { DatosInvalidosError, SinPermisoError } from '../domain/errores';
 import {
   atiendeIncidencia,
   comprobarIncidencia,
+  comprobarMensaje,
+  participaEnIncidencia,
   ordenarIncidencias,
   type BorradorIncidencia,
   type CambiosIncidencia,
   type Incidencia,
+  type MensajeIncidencia,
 } from '../domain/incidencia';
 import type { Usuario } from '../domain/usuario';
 import type { IncidenciaPort } from '../ports/incidencia-port';
@@ -18,6 +21,8 @@ export interface BandejaIncidencias {
   porAtender: Incidencia[];
   /** Las que he abierto yo. */
   mias: Incidencia[];
+  /** Profe: las de sus alumnos que no ha abierto él. */
+  deMisAlumnos: Incidencia[];
   /** Pendientes (abiertas o en curso) de las que atiendo. */
   pendientes: number;
 }
@@ -33,6 +38,11 @@ export async function obtenerBandeja(
   return {
     porAtender,
     mias: ordenarIncidencias(todas.filter((i) => i.creadaPor === usuario.id)),
+    deMisAlumnos: ordenarIncidencias(
+      todas.filter(
+        (i) => usuario.rol === 'profe' && i.creadaPor !== usuario.id && i.tutorId === usuario.id,
+      ),
+    ),
     pendientes: porAtender.filter((i) => i.estado !== 'resuelta').length,
   };
 }
@@ -108,4 +118,28 @@ export function borrarIncidencia(
 ): Promise<void> {
   if (usuario.rol !== 'generalitat') throw new SinPermisoError('borrar incidencias');
   return incidencias.borrar(incidencia.id);
+}
+
+export function listarMensajes(
+  incidencias: IncidenciaPort,
+  usuario: Usuario,
+  incidencia: Incidencia,
+): Promise<MensajeIncidencia[]> {
+  if (!participaEnIncidencia(usuario, incidencia))
+    throw new SinPermisoError('ver esta conversación');
+  return incidencias.listarMensajes(incidencia.id);
+}
+
+/** Cualquiera que participa escribe: alumno, profe tutor, instituto o generalitat. */
+export function enviarMensaje(
+  incidencias: IncidenciaPort,
+  usuario: Usuario,
+  incidencia: Incidencia,
+  texto: string,
+): Promise<MensajeIncidencia> {
+  if (!participaEnIncidencia(usuario, incidencia)) {
+    throw new SinPermisoError('escribir en esta incidencia');
+  }
+  comprobarMensaje(texto);
+  return incidencias.enviarMensaje(incidencia.id, texto.trim());
 }

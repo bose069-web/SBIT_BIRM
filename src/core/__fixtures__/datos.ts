@@ -1,6 +1,11 @@
 import type { Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
-import type { BorradorIncidencia, CambiosIncidencia, Incidencia } from '../domain/incidencia';
+import type {
+  BorradorIncidencia,
+  CambiosIncidencia,
+  Incidencia,
+  MensajeIncidencia,
+} from '../domain/incidencia';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
 import type {
@@ -200,6 +205,7 @@ export function crearIncidencia(cambios: Partial<Incidencia> = {}): Incidencia {
     id: 'inc1',
     centroId: 'c1',
     dossierId: 'd1',
+    tutorId: profe.id,
     creadaPor: alumno.id,
     creadaPorNombre: alumno.nombre,
     titulo: 'La empresa no me deja registrar',
@@ -239,6 +245,22 @@ export class IncidenciasFalsas implements IncidenciaPort {
   }
   async borrar(id: string) {
     this.incidencias = this.incidencias.filter((i) => i.id !== id);
+  }
+  mensajes: MensajeIncidencia[] = [];
+  async listarMensajes(incidenciaId: string) {
+    return this.mensajes.filter((m) => m.incidenciaId === incidenciaId);
+  }
+  async enviarMensaje(incidenciaId: string, texto: string) {
+    const m: MensajeIncidencia = {
+      id: `m${this.mensajes.length + 1}`,
+      incidenciaId,
+      autorId: 'x',
+      autorNombre: null,
+      texto,
+      creadoEn: '',
+    };
+    this.mensajes.push(m);
+    return m;
   }
   private cambiar(id: string, cambios: Partial<Incidencia>) {
     const i = this.incidencias.find((x) => x.id === id);
