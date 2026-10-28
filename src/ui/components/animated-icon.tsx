@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { FondoMarca } from '@/ui/theme/theme';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: FondoMarca,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
