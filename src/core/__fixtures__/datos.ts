@@ -1,5 +1,6 @@
 import type { Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
+import type { BorradorIncidencia, CambiosIncidencia, Incidencia } from '../domain/incidencia';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
 import type {
@@ -10,6 +11,7 @@ import type {
 } from '../domain/valoracion';
 import type { BorradorTarea, Tarea } from '../domain/tarea';
 import type { EventoPort } from '../ports/evento-port';
+import type { IncidenciaPort } from '../ports/incidencia-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { TareaPort } from '../ports/tarea-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
@@ -190,5 +192,58 @@ export class EventosFalsos implements EventoPort {
   }
   async borrar(id: string) {
     this.eventos = this.eventos.filter((e) => e.id !== id);
+  }
+}
+
+export function crearIncidencia(cambios: Partial<Incidencia> = {}): Incidencia {
+  return {
+    id: 'inc1',
+    centroId: 'c1',
+    dossierId: 'd1',
+    creadaPor: alumno.id,
+    creadaPorNombre: alumno.nombre,
+    titulo: 'La empresa no me deja registrar',
+    descripcion: 'Detalle',
+    categoria: 'empresa',
+    prioridad: 'media',
+    estado: 'abierta',
+    escalada: false,
+    respuesta: null,
+    atendidaPor: null,
+    creadaEn: '2026-10-20T10:00:00.000Z',
+    resueltaEn: null,
+    ...cambios,
+  };
+}
+
+export class IncidenciasFalsas implements IncidenciaPort {
+  incidencias: Incidencia[] = [];
+  cambios: CambiosIncidencia[] = [];
+  async listar() {
+    return this.incidencias;
+  }
+  async abrir(b: BorradorIncidencia) {
+    const i = crearIncidencia({ ...b, id: `inc${this.incidencias.length + 1}` });
+    this.incidencias.push(i);
+    return i;
+  }
+  async corregir(id: string, titulo: string, descripcion: string) {
+    return this.cambiar(id, { titulo, descripcion });
+  }
+  async atender(id: string, cambios: CambiosIncidencia) {
+    this.cambios.push(cambios);
+    const definidos = Object.fromEntries(
+      Object.entries(cambios).filter(([, v]) => v !== undefined),
+    );
+    return this.cambiar(id, definidos);
+  }
+  async borrar(id: string) {
+    this.incidencias = this.incidencias.filter((i) => i.id !== id);
+  }
+  private cambiar(id: string, cambios: Partial<Incidencia>) {
+    const i = this.incidencias.find((x) => x.id === id);
+    if (!i) throw new Error('No existe');
+    Object.assign(i, cambios);
+    return i;
   }
 }

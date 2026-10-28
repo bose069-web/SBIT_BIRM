@@ -2,6 +2,7 @@ import type { AuthPort } from '@/core/ports/auth-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
+import type { IncidenciaPort } from '@/core/ports/incidencia-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
@@ -9,6 +10,7 @@ import { AuthMemory } from '@/infrastructure/memory/auth-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
 import { GestionCentroMemory } from '@/infrastructure/memory/gestion-centro-memory';
+import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
 import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
@@ -17,6 +19,7 @@ import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { EventoSupabase } from '@/infrastructure/supabase/evento-supabase';
 import { GestionCentroSupabase } from '@/infrastructure/supabase/gestion-centro-supabase';
+import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
 import { TareaSupabase } from '@/infrastructure/supabase/tarea-supabase';
 import { ValoracionSupabase } from '@/infrastructure/supabase/valoracion-supabase';
@@ -29,6 +32,7 @@ interface Container {
   centros: GestionCentroPort;
   tareas: TareaPort;
   eventos: EventoPort;
+  incidencias: IncidenciaPort;
 }
 
 /**
@@ -52,6 +56,7 @@ function crearContainer(): Container {
         centros: new GestionCentroSupabase(cliente),
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
+        incidencias: new IncidenciaSupabase(cliente),
       };
     }
     console.warn(
@@ -69,6 +74,7 @@ function crearContainer(): Container {
     centros: new GestionCentroMemory(),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
+    incidencias: new IncidenciaMemory(),
   };
 }
 
