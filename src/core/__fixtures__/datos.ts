@@ -1,6 +1,5 @@
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
-import type { GestionCentroPort } from '../ports/gestion-centro-port';
-import type { Dossier } from '../domain/dossier';
+import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
@@ -11,7 +10,9 @@ import type {
   ValoracionMensual,
 } from '../domain/valoracion';
 import type { BorradorTarea, Tarea } from '../domain/tarea';
+import type { DossierPort } from '../ports/dossier-port';
 import type { EventoPort } from '../ports/evento-port';
+import type { GestionCentroPort } from '../ports/gestion-centro-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { TareaPort } from '../ports/tarea-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
@@ -195,7 +196,7 @@ export class EventosFalsos implements EventoPort {
   }
 }
 
-const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
+export const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
   email: `${p.id}@kampus.test`,
   centroId: 'c1',
   profeId: null,
@@ -241,6 +242,12 @@ export class CentrosFalsos implements GestionCentroPort {
   async listarEmpresas() {
     return this.empresas;
   }
+  tutores: (Persona & { empresaId: string })[] = [
+    { ...persona({ id: 't1', nombre: 'Teo', rol: 'empresa', centroId: null }), empresaId: 'e1' },
+  ];
+  async listarTutoresEmpresa(empresaId: string) {
+    return this.tutores.filter((t) => t.empresaId === empresaId);
+  }
   async crearEmpresa(nombre: string, cif: string | null) {
     const e = { id: `e${this.empresas.length + 1}`, nombre, cif };
     this.empresas.push(e);
@@ -256,5 +263,33 @@ export class CentrosFalsos implements GestionCentroPort {
     this.convenios = this.convenios.filter(
       (c) => !(c.centroId === centroId && c.empresaId === empresaId),
     );
+  }
+}
+
+export class DossiersFalsos implements DossierPort {
+  dossiers: Dossier[] = [];
+  guardados: BorradorDossier[] = [];
+  async listar() {
+    return this.dossiers;
+  }
+  async obtener(id: string) {
+    return this.dossiers.find((d) => d.id === id) ?? null;
+  }
+  async guardar(b: BorradorDossier) {
+    this.guardados.push(b);
+    const d = crearDossier({
+      ...b,
+      id: b.id ?? `d${this.guardados.length + 1}`,
+      actividades: b.actividades.map((a, i) => ({
+        id: a.id ?? `nueva${i}`,
+        descripcion: a.descripcion,
+        orden: i + 1,
+      })),
+    });
+    this.dossiers = [...this.dossiers.filter((x) => x.id !== d.id), d];
+    return d;
+  }
+  async borrar(id: string) {
+    this.dossiers = this.dossiers.filter((d) => d.id !== id);
   }
 }

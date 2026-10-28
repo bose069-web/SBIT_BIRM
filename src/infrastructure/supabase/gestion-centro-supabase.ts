@@ -81,6 +81,25 @@ export class GestionCentroSupabase implements GestionCentroPort {
     }));
   }
 
+  async listarTutoresEmpresa(empresaId: string) {
+    const { data, error } = await this.cliente
+      .from('perfiles')
+      .select('id, nombre, email, rol, centro_id, profe_id')
+      .eq('rol', 'empresa')
+      .eq('empresa_id', empresaId)
+      .order('nombre')
+      .returns<FilaPersona[]>();
+    comprobar(error);
+    return (data ?? []).map((f): Persona => ({
+      id: f.id,
+      nombre: f.nombre,
+      email: f.email,
+      rol: 'empresa',
+      centroId: f.centro_id,
+      profeId: null,
+    }));
+  }
+
   async incorporarAlumno(personaId: string, centroId: string) {
     const { error } = await this.cliente
       .from('perfiles')

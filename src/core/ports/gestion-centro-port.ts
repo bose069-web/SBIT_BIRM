@@ -11,6 +11,8 @@ export interface GestionCentroPort {
   /** `profeId` null deja al alumno sin profe. */
   asignarProfe(alumnoId: string, profeId: string | null): Promise<void>;
   listarEmpresas(): Promise<Empresa[]>;
+  /** Tutores (rol empresa) que trabajan en esa empresa. */
+  listarTutoresEmpresa(empresaId: string): Promise<Persona[]>;
   crearEmpresa(nombre: string, cif: string | null): Promise<Empresa>;
   listarConvenios(centroId: string): Promise<Convenio[]>;
   crearConvenio(centroId: string, empresaId: string, firmadoEn: string | null): Promise<void>;

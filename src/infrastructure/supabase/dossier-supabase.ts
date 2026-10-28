@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { Dossier } from '@/core/domain/dossier';
+import type { BorradorDossier, Dossier } from '@/core/domain/dossier';
 import type { DossierPort } from '@/core/ports/dossier-port';
 
 interface FilaDossier {
@@ -73,5 +73,32 @@ export class DossierSupabase implements DossierPort {
       .maybeSingle<FilaDossier>();
     if (error) throw new Error(error.message);
     return data ? aDossier(data) : null;
+  }
+
+  async guardar(b: BorradorDossier) {
+    // Todo en una transacción en la base (migración guardar_dossier), con RLS aplicada.
+    const { data: id, error } = await this.cliente.rpc('guardar_dossier', {
+      datos: {
+        id: b.id,
+        alumno_id: b.alumnoId,
+        centro_id: b.centroId,
+        empresa_id: b.empresaId,
+        tutor_empresa_id: b.tutorEmpresaId,
+        ciclo: b.ciclo,
+        fecha_inicio: b.fechaInicio,
+        fecha_fin: b.fechaFin,
+        horas_totales: b.horasTotales,
+        actividades: b.actividades,
+      },
+    });
+    if (error) throw new Error(error.message);
+    const dossier = await this.obtener(id as string);
+    if (!dossier) throw new Error('El dossier se ha guardado pero no se puede leer');
+    return dossier;
+  }
+
+  async borrar(id: string) {
+    const { error } = await this.cliente.from('dossiers').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   }
 }
