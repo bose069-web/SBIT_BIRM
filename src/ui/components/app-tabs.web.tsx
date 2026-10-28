@@ -7,7 +7,7 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { router } from 'expo-router';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { Image, Pressable, View, StyleSheet, type ImageStyle, type ViewStyle } from 'react-native';
 
 import type { Rol } from '@/core/domain/usuario';
@@ -47,95 +47,39 @@ const transicion = (propiedad: string): ViewStyle & ImageStyle =>
     transitionTimingFunction: 'ease-out',
   }) as unknown as ViewStyle & ImageStyle;
 
-type NombreIcono = 'inicio' | 'calendario' | 'chat' | 'perfil';
-
-// Mismo trazo de 24 para los cuatro iconos: coherentes entre sí y con los del móvil
-// (casa, calendario, bocadillos y persona).
-const TRAZOS: Record<NombreIcono, ReactNode> = {
-  inicio: (
-    <>
-      <path d="M4 10.8 12 4l8 6.8" />
-      <path d="M6.2 9.6V20h11.6V9.6" />
-      <path d="M10.2 20v-5.2h3.6V20" />
-    </>
-  ),
-  calendario: (
-    <>
-      <rect x="4" y="5.5" width="16" height="14.5" rx="2" />
-      <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
-    </>
-  ),
-  chat: (
-    <>
-      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v4a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3v-3H6.5A2.5 2.5 0 0 1 4 10.5z" />
-      <path d="M18.5 9.5A1.5 1.5 0 0 1 20 11v4a1.5 1.5 0 0 1-1.5 1.5H18V19l-3-2.5h-2" />
-    </>
-  ),
-  perfil: (
-    <>
-      <circle cx="12" cy="8.5" r="3.6" />
-      <path d="M5.4 20c0-3.4 2.9-5.6 6.6-5.6s6.6 2.2 6.6 5.6" />
-    </>
-  ),
-};
-
-export default function AppTabs(_props: { rol: Rol }) {
+export default function AppTabs({ rol }: { rol: Rol }) {
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton icono="inicio">Inicio</TabButton>
+            <TabButton>Inicio</TabButton>
           </TabTrigger>
           <TabTrigger name="calendario" href="/calendario" asChild>
-            <TabButton icono="calendario">Calendario</TabButton>
+            <TabButton>Calendario</TabButton>
           </TabTrigger>
           <TabTrigger name="chat" href="/chat" asChild>
-            <TabButton icono="chat">Chat</TabButton>
+            <TabButton>Chat</TabButton>
           </TabTrigger>
           {/* Registrar y Centro siguen siendo rutas (si no, no se puede navegar a ellas), pero se
               abren desde Inicio, no desde la barra. */}
           <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
           <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           <TabTrigger name="perfil" href="/perfil" asChild>
-            <TabButton icono="perfil">Perfil</TabButton>
+            <TabButton>Perfil</TabButton>
           </TabTrigger>
+          <BotonEsquema />
+          {/* Como en anthropic.com: una sola acción destacada, en píldora oscura, al final. */}
+          {rol === 'alumno' ? <BotonDestacado texto="Registrar hoy" href="/registro" /> : null}
         </CustomTabList>
       </TabList>
     </Tabs>
   );
 }
 
-/** Icono decorativo: la etiqueta de la pestaña es el nombre accesible. */
-function IconoPestana({ nombre, color }: { nombre: NombreIcono; color: string }) {
-  return (
-    <svg
-      aria-hidden
-      focusable="false"
-      width={18}
-      height={18}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={1.6}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ display: 'block', flexShrink: 0 }}>
-      {TRAZOS[nombre]}
-    </svg>
-  );
-}
-
 // `ref` se descarta: el tipo de expo-router/ui no encaja con el de Pressable en RN 0.88 y la navegación va por onPress.
-export function TabButton({
-  children,
-  isFocused,
-  icono,
-  ref: _ref,
-  ...props
-}: TabTriggerSlotProps & { icono?: NombreIcono }) {
-  const theme = useTheme();
+export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable
       {...props}
@@ -143,19 +87,12 @@ export function TabButton({
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={typeof children === 'string' ? children : undefined}
       style={({ pressed }) => pressed && styles.pressed}>
-      <View
-        style={[
-          styles.tabButtonView,
-          { backgroundColor: isFocused ? theme.subtle : 'transparent' },
-        ]}>
-        <View style={styles.contenido}>
-          {icono ? (
-            <IconoPestana nombre={icono} color={isFocused ? theme.text : theme.textSecondary} />
-          ) : null}
-          <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-            {children}
-          </ThemedText>
-        </View>
+      <View style={styles.tabButtonView}>
+        <ThemedText
+          type={isFocused ? 'smallBold' : 'small'}
+          themeColor={isFocused ? 'text' : 'textSecondary'}>
+          {children}
+        </ThemedText>
       </View>
     </Pressable>
   );
@@ -177,13 +114,20 @@ export function CustomTabList(props: TabListProps) {
   }, []);
 
   return (
-    <View {...props} accessibilityRole="tablist" style={styles.tabListContainer}>
-      <View
-        style={[
-          styles.innerContainer,
-          cristalWeb,
-          { backgroundColor: theme.cristal, borderColor: theme.cristalBorde },
-        ]}>
+    // Barra a todo el ancho del color del fondo; al bajar se vuelve translúcida con una línea fina.
+    <View
+      {...props}
+      accessibilityRole="tablist"
+      style={[
+        styles.tabListContainer,
+        cristalWeb,
+        transicion('background-color, border-color'),
+        {
+          backgroundColor: desplazado ? theme.cristal : theme.background,
+          borderBottomColor: desplazado ? theme.border : 'transparent',
+        },
+      ]}>
+      <View style={styles.innerContainer}>
         {/* Al bajar, la palabra se desliza hacia la izquierda y se esconde detrás de la K; al
             volver arriba sale deslizándose. Son dos recortes del mismo logotipo. */}
         <Pressable
@@ -215,10 +159,25 @@ export function CustomTabList(props: TabListProps) {
         </Pressable>
 
         {props.children}
-
-        <BotonEsquema />
       </View>
     </View>
+  );
+}
+
+function BotonDestacado({ texto, href }: { texto: string; href: '/registro' }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => router.navigate(href)}
+      style={({ pressed }) => [
+        styles.destacado,
+        { backgroundColor: theme.text, opacity: pressed ? 0.8 : 1 },
+      ]}>
+      <ThemedText type="smallBold" style={{ color: theme.background }}>
+        {texto}
+      </ThemedText>
+    </Pressable>
   );
 }
 
@@ -260,20 +219,18 @@ const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
     width: '100%',
-    padding: Spacing.three,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
   },
   innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.card,
-    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,
-    gap: Spacing.two,
+    gap: Spacing.one,
     maxWidth: 1200,
   },
   logo: { height: ALTO_LOGO, marginRight: 'auto', overflow: 'hidden' },
@@ -287,6 +244,13 @@ const styles = StyleSheet.create({
   palabra: { width: ANCHO_PALABRA, height: ALTO_LOGO, overflow: 'hidden' },
   k: { position: 'absolute', left: 0, width: ANCHO_MARCA, height: ALTO_LOGO, overflow: 'hidden' },
   logotipo: { position: 'absolute', left: 0, width: ANCHO_LOGOTIPO, height: ALTO_LOGO },
+  destacado: {
+    minHeight: 40,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.pill,
+    justifyContent: 'center',
+    marginLeft: Spacing.one,
+  },
   botonEsquema: {
     width: 44,
     height: 44,
@@ -304,10 +268,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
     justifyContent: 'center',
-  },
-  contenido: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
   },
 });
