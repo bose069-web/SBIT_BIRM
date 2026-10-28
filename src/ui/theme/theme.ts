@@ -2,8 +2,9 @@ import '@/ui/theme/global.css';
 
 import { Platform } from 'react-native';
 
-// Sistema de diseño monocromo de Kampus (vault: 03 - Diseño/Sistema de diseño).
-// Negro para lo importante, grises para el resto; el color solo marca estados y siempre va con texto.
+// Sistema de diseño de Kampus (vault: 03 - Diseño/Sistema de diseño).
+// Monocromo con un único acento azul (`primary`): botón principal, selección, hoy, progreso y
+// pestaña activa. El resto del color solo marca estados y siempre va con texto.
 export const Colors = {
   light: {
     text: '#0A0A0A',
@@ -13,8 +14,13 @@ export const Colors = {
     subtle: '#F4F4F5',
     border: '#E4E4E7',
     borderStrong: '#71717A',
-    primary: '#0A0A0A',
+    // #2563EB sobre blanco: 5.2:1.
+    primary: '#2563EB',
     onPrimary: '#FFFFFF',
+    primarySuave: '#DBEAFE',
+    // Superficies de cristal (Liquid Glass): translúcidas sobre el fondo.
+    cristal: 'rgba(255,255,255,0.72)',
+    cristalBorde: 'rgba(255,255,255,0.9)',
     danger: '#B91C1C',
     estadoValidado: '#15803D',
     // Un punto más oscuro que antes para pasar 4.5:1 también sobre `subtle`.
@@ -31,8 +37,12 @@ export const Colors = {
     subtle: '#27272A',
     border: '#27272A',
     borderStrong: '#A1A1AA',
-    primary: '#FAFAFA',
+    // En oscuro el azul se aclara y el texto encima pasa a negro (8:1).
+    primary: '#60A5FA',
     onPrimary: '#0A0A0A',
+    primarySuave: '#172554',
+    cristal: 'rgba(24,24,27,0.72)',
+    cristalBorde: 'rgba(255,255,255,0.08)',
     danger: '#F87171',
     estadoValidado: '#4ADE80',
     estadoPendiente: '#FACC15',
@@ -58,8 +68,8 @@ export const Fonts = {
 
 export const Radius = {
   control: 8,
-  button: 10,
-  card: 14,
+  button: 12,
+  card: 18,
   pill: 999,
 } as const;
 
@@ -71,6 +81,14 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+// Duraciones de animación (ms). Salir siempre más rápido que entrar; con "reducir movimiento"
+// activado no se anima.
+export const Movimiento = {
+  rapido: 150,
+  normal: 250,
+  entrada: 350,
 } as const;
 
 // Fondo de marca: el arranque es negro tanto en claro como en oscuro, igual que el icono.
