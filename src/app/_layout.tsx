@@ -6,7 +6,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 
 import { AnimatedSplashOverlay } from '@/ui/components/animated-icon';
 import AppTabs from '@/ui/components/app-tabs';

@@ -6,12 +6,18 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import type { ReactNode } from 'react';
+import { router } from 'expo-router';
+import { useEffect, type ReactNode } from 'react';
 import { Image, Pressable, View, StyleSheet, type ImageStyle, type ViewStyle } from 'react-native';
 
 import type { Rol } from '@/core/domain/usuario';
 
-import { cambiarEsquemaWeb, useDesplazado, useEsquemaWeb } from '@/ui/estado/preferencias-web';
+import {
+  cambiarEsquemaWeb,
+  ponerDesplazado,
+  useDesplazado,
+  useEsquemaWeb,
+} from '@/ui/estado/preferencias-web';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { MaxContentWidth, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 
@@ -160,6 +166,16 @@ export function CustomTabList(props: TabListProps) {
   const esquema = useEsquemaWeb();
   const desplazado = useDesplazado();
 
+  // Escucha el scroll de cualquier zona de la página (cada pantalla tiene su propio ScrollView).
+  useEffect(() => {
+    const alDesplazar = (e: Event) => {
+      const el = e.target instanceof Element ? e.target : document.scrollingElement;
+      ponerDesplazado((el?.scrollTop ?? 0) > 24);
+    };
+    document.addEventListener('scroll', alDesplazar, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', alDesplazar, { capture: true });
+  }, []);
+
   return (
     <View {...props} accessibilityRole="tablist" style={styles.tabListContainer}>
       <View
@@ -169,10 +185,12 @@ export function CustomTabList(props: TabListProps) {
           { backgroundColor: theme.cristal, borderColor: theme.cristalBorde },
         ]}>
         {/* Al bajar, el logotipo se recoge y solo queda la marca. */}
-        <View
-          accessibilityRole="image"
-          accessibilityLabel="Kampus"
-          style={[
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Kampus, ir a Inicio"
+          onPress={() => router.navigate('/')}
+          style={({ pressed }) => [
+            pressed && styles.pressed,
             styles.logo,
             transicion('width'),
             { width: desplazado ? ALTO_LOGO : ANCHO_LOGOTIPO },
@@ -185,7 +203,7 @@ export function CustomTabList(props: TabListProps) {
             source={MARCA[esquema]}
             style={[styles.marca, transicion('opacity'), { opacity: desplazado ? 1 : 0 }]}
           />
-        </View>
+        </Pressable>
 
         {props.children}
 

@@ -1,5 +1,5 @@
 import { NativeTabs } from 'expo-router/native-tabs';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 
 import type { Rol } from '@/core/domain/usuario';
 import { Colors } from '@/ui/theme/theme';

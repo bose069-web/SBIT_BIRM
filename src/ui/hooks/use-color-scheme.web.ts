@@ -13,5 +13,10 @@ export function useColorScheme() {
   }, []);
 
   const esquema = useEsquemaWeb();
+  const actual = hasHydrated ? esquema : 'light';
+  // Que el navegador pinte también en ese modo sus partes (barras de scroll, campos, fondo).
+  useEffect(() => {
+    document.documentElement.style.colorScheme = actual;
+  }, [actual]);
   return hasHydrated ? esquema : 'light';
 }

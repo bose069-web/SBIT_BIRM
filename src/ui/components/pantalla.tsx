@@ -28,9 +28,7 @@ export function Pantalla({ titulo, subtitulo, children }: Props) {
         // Los campos de los formularios se pueden tocar con el teclado abierto y, al arrastrar,
         // el teclado se cierra en vez de quedarse tapando el contenido.
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        scrollEventThrottle={16}
-        onScroll={web ? (e) => ponerDesplazado(e.nativeEvent.contentOffset.y > 24) : undefined}>
+        keyboardDismissMode="on-drag">
         <View style={styles.contenido}>
           <View style={styles.cabecera}>
             <ThemedText accessibilityRole="header" type="title">

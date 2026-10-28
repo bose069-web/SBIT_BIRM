@@ -8,6 +8,7 @@ import { container } from '@/config/container';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Pantalla } from '@/ui/components/pantalla';
+import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -82,17 +83,21 @@ export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVol
       </Tarjeta>
 
       <Tarjeta titulo="Horas">
-        <View style={styles.horas}>
-          <ThemedText type="title">{formatoHoras(resumen.realizadas)}</ThemedText>
-          <ThemedText themeColor="textSecondary">de {formatoHoras(resumen.totales)}</ThemedText>
+        <View style={styles.quesito}>
+          <Quesito porcentaje={resumen.porcentaje} etiqueta="Horas de prácticas completadas" />
+          <View style={styles.flex}>
+            <View style={styles.horas}>
+              <ThemedText type="title">{formatoHoras(resumen.realizadas)}</ThemedText>
+              <ThemedText themeColor="textSecondary">de {formatoHoras(resumen.totales)}</ThemedText>
+            </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              {resumen.porcentaje}% completado ·{' '}
+              {plural(dias.trabajo, 'día de trabajo', 'días de trabajo')}
+              {dias.ausencia ? ` · ${plural(dias.ausencia, 'ausencia', 'ausencias')}` : ''}
+              {dias.festivo ? ` · ${plural(dias.festivo, 'festivo', 'festivos')}` : ''}
+            </ThemedText>
+          </View>
         </View>
-        <BarraProgreso porcentaje={resumen.porcentaje} />
-        <ThemedText type="small" themeColor="textSecondary">
-          {resumen.porcentaje}% completado ·{' '}
-          {plural(dias.trabajo, 'día de trabajo', 'días de trabajo')}
-          {dias.ausencia ? ` · ${plural(dias.ausencia, 'ausencia', 'ausencias')}` : ''}
-          {dias.festivo ? ` · ${plural(dias.festivo, 'festivo', 'festivos')}` : ''}
-        </ThemedText>
       </Tarjeta>
 
       <Tarjeta titulo={`Actividades (${actividades.length})`}>
@@ -156,6 +161,7 @@ function FilaActividad({
 
 const styles = StyleSheet.create({
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
+  quesito: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
   dato: { gap: Spacing.half },
   actividad: {
     gap: Spacing.one,

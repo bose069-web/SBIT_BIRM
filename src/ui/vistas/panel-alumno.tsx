@@ -5,10 +5,10 @@ import { obtenerDossierActual, obtenerResumenHoras } from '@/core/application/do
 import { obtenerSeguimiento } from '@/core/application/valoracion';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
-import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Chip } from '@/ui/components/chip';
 import { Pantalla } from '@/ui/components/pantalla';
+import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -54,16 +54,23 @@ export function PanelAlumno() {
       {datos ? (
         <>
           <Tarjeta titulo="Horas de prácticas">
-            <View style={styles.horas}>
-              <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
-              <ThemedText themeColor="textSecondary">
-                de {formatoHoras(datos.resumen.totales)}
-              </ThemedText>
+            <View style={styles.quesito}>
+              <Quesito
+                porcentaje={datos.resumen.porcentaje}
+                etiqueta="Horas de prácticas completadas"
+              />
+              <View style={styles.flex}>
+                <View style={styles.horas}>
+                  <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
+                  <ThemedText themeColor="textSecondary">
+                    de {formatoHoras(datos.resumen.totales)}
+                  </ThemedText>
+                </View>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {datos.resumen.porcentaje}% completado
+                </ThemedText>
+              </View>
             </View>
-            <BarraProgreso porcentaje={datos.resumen.porcentaje} />
-            <ThemedText type="small" themeColor="textSecondary">
-              {datos.resumen.porcentaje}% completado
-            </ThemedText>
           </Tarjeta>
 
           <Tarjeta titulo="Este mes">
@@ -117,4 +124,6 @@ export function PanelAlumno() {
 
 const styles = StyleSheet.create({
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
+  quesito: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  flex: { flex: 1, gap: Spacing.one },
 });
