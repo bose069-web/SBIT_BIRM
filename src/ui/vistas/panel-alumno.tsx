@@ -78,9 +78,10 @@ export function PanelAlumno() {
           ancho={ancho}
           izquierda={
             <>
-              {/* En la web las horas van primero; en el móvil, el calendario. */}
-              {ancho ? null : calendario}
+              {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
+                  sola con el calendario arriba. */}
               <Tarjeta titulo="Horas de prácticas">
+                {ancho ? null : <MiniCalendario hoy={hoy} />}
                 <View style={styles.quesito}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
