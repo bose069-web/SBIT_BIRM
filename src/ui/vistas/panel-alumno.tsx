@@ -33,7 +33,6 @@ import {
 } from './comun';
 
 export function PanelAlumno() {
-  const theme = useTheme();
   const usuario = useUsuario();
   const hoy = hoyISO();
   const { datos, error, cargando, recargar } = useDatos(async () => {
@@ -77,12 +76,7 @@ export function PanelAlumno() {
               <Tarjeta titulo="Horas de prácticas">
                 {/* En la web el quesito y sus datos van arriba; en el móvil, el calendario primero. */}
                 {ancho ? null : <MiniCalendario hoy={hoy} />}
-                <View
-                  style={[
-                    styles.quesito,
-                    !ancho && styles.separado,
-                    { borderTopColor: theme.border },
-                  ]}>
+                <View style={[styles.quesito, !ancho && styles.separado]}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
                     etiqueta="Horas de prácticas completadas"
@@ -102,7 +96,7 @@ export function PanelAlumno() {
                   {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
                 </View>
                 {ancho ? (
-                  <View style={[styles.separado, { borderTopColor: theme.border }]}>
+                  <View style={styles.separado}>
                     <MiniCalendario hoy={hoy} />
                   </View>
                 ) : null}
@@ -248,5 +242,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1, gap: Spacing.one },
   datos: { flex: 1.6, gap: Spacing.two, paddingLeft: Spacing.four },
   cifras: { flexDirection: 'row', gap: Spacing.three },
-  separado: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.three },
+  separado: { paddingTop: Spacing.two },
 });
