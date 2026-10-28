@@ -1,7 +1,9 @@
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { listarRegistros } from '@/core/application/registro-diario';
 import { resumirHoras } from '@/core/domain/registro-diario';
+import { gestionaDossier } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
@@ -9,6 +11,7 @@ import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras } from '@/ui/utils/fechas';
@@ -18,6 +21,7 @@ import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
 /** Ficha de solo lectura de un dossier: quién, dónde, cuándo y las horas de cada actividad. */
 export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVolver: () => void }) {
+  const usuario = useUsuario();
   const { datos, error, cargando, recargar } = useDatos(async () => {
     const dossier = await container.dossiers.obtener(dossierId);
     if (!dossier) return null;
@@ -57,6 +61,13 @@ export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVol
   return (
     <Pantalla titulo={dossier.alumnoNombre} subtitulo={`Ficha del dossier · ${dossier.ciclo}`}>
       {volver}
+      {gestionaDossier(usuario, dossier) ? (
+        <Boton
+          texto="Editar dossier"
+          variante="secundario"
+          onPress={() => router.push({ pathname: '/', params: { editar: dossier.id } })}
+        />
+      ) : null}
 
       <Tarjeta titulo="Prácticas">
         <Dato etiqueta="Ciclo" valor={dossier.ciclo} />
