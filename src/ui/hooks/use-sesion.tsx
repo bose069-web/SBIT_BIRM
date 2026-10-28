@@ -9,6 +9,8 @@ interface Sesion {
   cargando: boolean;
   entrar(email: string, contrasena: string): Promise<void>;
   salir(): Promise<void>;
+  /** Tras cambiar el nombre en el perfil, para que se vea en toda la app. */
+  renombrar(nombre: string): void;
 }
 
 const SesionContext = createContext<Sesion | null>(null);
@@ -33,8 +35,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     setUsuario(null);
   }, []);
 
+  const renombrar = useCallback((nombre: string) => {
+    setUsuario((actual) => (actual ? { ...actual, nombre } : actual));
+  }, []);
+
   return (
-    <SesionContext.Provider value={{ usuario, cargando, entrar, salir }}>
+    <SesionContext.Provider value={{ usuario, cargando, entrar, salir, renombrar }}>
       {children}
     </SesionContext.Provider>
   );
