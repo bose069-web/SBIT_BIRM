@@ -47,7 +47,7 @@ const transicion = (propiedad: string): ViewStyle & ImageStyle =>
     transitionTimingFunction: 'ease-out',
   }) as unknown as ViewStyle & ImageStyle;
 
-type NombreIcono = 'inicio' | 'calendario' | 'chat' | 'perfil';
+type NombreIcono = 'inicio' | 'calendario' | 'seguimiento' | 'chat' | 'perfil';
 
 // Mismo trazo de 24 para los cuatro iconos: coherentes entre sí y con los del móvil
 // (casa, calendario, bocadillos y persona).
@@ -65,6 +65,12 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
       <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
     </>
   ),
+  seguimiento: (
+    <>
+      <path d="M4 20h16" />
+      <path d="M7 16.5v-4M12 16.5V7M17 16.5v-6.5" />
+    </>
+  ),
   chat: (
     <>
       <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v4a2.5 2.5 0 0 1-2.5 2.5H9l-3.5 3v-3H6.5A2.5 2.5 0 0 1 4 10.5z" />
@@ -79,7 +85,9 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
   ),
 };
 
-export default function AppTabs(_props: { rol: Rol }) {
+export default function AppTabs({ rol }: { rol: Rol }) {
+  // El profe no usa calendario: en esa pestaña tiene el seguimiento de su clase.
+  const profe = rol === 'profe';
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -89,7 +97,9 @@ export default function AppTabs(_props: { rol: Rol }) {
             <TabButton icono="inicio">Inicio</TabButton>
           </TabTrigger>
           <TabTrigger name="calendario" href="/calendario" asChild>
-            <TabButton icono="calendario">Calendario</TabButton>
+            <TabButton icono={profe ? 'seguimiento' : 'calendario'}>
+              {profe ? 'Seguimiento' : 'Calendario'}
+            </TabButton>
           </TabTrigger>
           <TabTrigger name="chat" href="/chat" asChild>
             <TabButton icono="chat">Chat</TabButton>
