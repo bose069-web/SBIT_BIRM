@@ -6,6 +6,8 @@ import type { Rol } from './usuario';
 export interface Centro {
   id: string;
   nombre: string;
+  /** Los centros antiguos pueden no tener código asignado. */
+  codigo: string | null;
 }
 
 export interface Persona {

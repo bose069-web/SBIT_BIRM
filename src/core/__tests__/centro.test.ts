@@ -1,70 +1,124 @@
 import {
   asignarProfe,
+  crearCentro,
+  GestionCentroError,
+  listarCentros,
   darDeAltaEmpresa,
   firmarConvenio,
   incorporarAlumno,
   obtenerPanelCentro,
   quitarConvenio,
 } from '../application/centro';
-import type { Convenio, Empresa, Persona } from '../domain/centro';
 import { SinPermisoError } from '../domain/errores';
-import type { GestionCentroPort } from '../ports/gestion-centro-port';
-import { generalitat, instituto, otroInstituto, profe } from '../__fixtures__/datos';
+import {
+  alumno,
+  empresa,
+  generalitat,
+  instituto,
+  otroInstituto,
+  profe,
+  ANA,
+  BIEL,
+  NUEVA,
+  PAU,
+  RUT,
+  CentrosFalsos,
+} from '../__fixtures__/datos';
 
-const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
-  email: `${p.id}@kampus.test`,
-  centroId: 'c1',
-  profeId: null,
-  ...p,
+describe('listar centros', () => {
+  it('incluye centros sin alumnos ni dossiers y los ordena por nombre sin alterar el puerto', async () => {
+    const port = new CentrosFalsos();
+    port.centros = [
+      { id: 'c2', nombre: 'Zeta', codigo: '08000002' },
+      { id: 'c3', nombre: 'Alfa', codigo: null },
+    ];
+
+    await expect(listarCentros(port)).resolves.toEqual([
+      { id: 'c3', nombre: 'Alfa', codigo: null },
+      { id: 'c2', nombre: 'Zeta', codigo: '08000002' },
+    ]);
+    expect(port.centros.map((c) => c.id)).toEqual(['c2', 'c3']);
+  });
+
+  it('devuelve una lista vacía si todavía no hay centros', async () => {
+    const port = new CentrosFalsos();
+    port.centros = [];
+    await expect(listarCentros(port)).resolves.toEqual([]);
+  });
+
+  it('propaga los errores del puerto', async () => {
+    const port = new CentrosFalsos();
+    const error = new Error('No se pueden consultar los centros');
+    jest.spyOn(port, 'listarCentros').mockRejectedValueOnce(error);
+    await expect(listarCentros(port)).rejects.toBe(error);
+  });
 });
 
-const PAU = persona({ id: 'p1', nombre: 'Pau', rol: 'profe' });
-const RUT = persona({ id: 'p9', nombre: 'Rut', rol: 'profe', centroId: 'c2' });
-const ANA = persona({ id: 'a1', nombre: 'Ana', rol: 'alumno', profeId: 'p1' });
-const BIEL = persona({ id: 'a2', nombre: 'Biel', rol: 'alumno' });
-const NUEVA = persona({ id: 'n1', nombre: 'Nora', rol: 'alumno', centroId: null });
+describe('crear centros', () => {
+  it('permite a la generalitat crear un centro, limpia espacios y conserva los ceros iniciales', async () => {
+    const port = new CentrosFalsos();
+    const centro = await crearCentro(port, generalitat, {
+      nombre: '  Institut Nou  ',
+      codigo: '  08000002  ',
+    });
 
-class CentrosFalsos implements GestionCentroPort {
-  personas = [PAU, ANA, BIEL, NUEVA].map((p) => ({ ...p }));
-  empresas: Empresa[] = [
-    { id: 'e1', nombre: 'Zeta SL', cif: null },
-    { id: 'e2', nombre: 'Alfa SL', cif: null },
-  ];
-  convenios: Convenio[] = [
-    { centroId: 'c1', empresaId: 'e1', empresaNombre: 'Zeta SL', firmadoEn: null },
-  ];
-  async obtenerCentro(id: string) {
-    return id === 'c1' ? { id, nombre: 'Institut' } : null;
-  }
-  async listarPersonas() {
-    return this.personas;
-  }
-  async incorporarAlumno(id: string, centroId: string) {
-    this.personas.find((p) => p.id === id)!.centroId = centroId;
-  }
-  async asignarProfe(id: string, profeId: string | null) {
-    this.personas.find((p) => p.id === id)!.profeId = profeId;
-  }
-  async listarEmpresas() {
-    return this.empresas;
-  }
-  async crearEmpresa(nombre: string, cif: string | null) {
-    const e = { id: `e${this.empresas.length + 1}`, nombre, cif };
-    this.empresas.push(e);
-    return e;
-  }
-  async listarConvenios() {
-    return this.convenios;
-  }
-  async crearConvenio(centroId: string, empresaId: string, firmadoEn: string | null) {
-    this.convenios.push({ centroId, empresaId, empresaNombre: '', firmadoEn });
-  }
-  async eliminarConvenio(centroId: string, empresaId: string) {
-    this.convenios = this.convenios.filter(
-      (c) => !(c.centroId === centroId && c.empresaId === empresaId),
+    expect(centro).toEqual({ id: 'c2', nombre: 'Institut Nou', codigo: '08000002' });
+    await expect(listarCentros(port)).resolves.toContainEqual(centro);
+    await expect(port.obtenerCentro(centro.id)).resolves.toEqual(centro);
+  });
+
+  it.each([alumno, empresa, profe, instituto])(
+    'impide crear centros al rol $rol',
+    async (usuario) => {
+      const port = new CentrosFalsos();
+      const crear = jest.spyOn(port, 'crearCentro');
+
+      await expect(
+        crearCentro(port, usuario, { nombre: 'Institut Nou', codigo: '08000002' }),
+      ).rejects.toThrow(SinPermisoError);
+      expect(crear).not.toHaveBeenCalled();
+    },
+  );
+
+  it('comprueba el permiso antes de validar los datos', async () => {
+    await expect(
+      crearCentro(new CentrosFalsos(), instituto, { nombre: '', codigo: '' }),
+    ).rejects.toThrow(SinPermisoError);
+  });
+
+  it.each(['', ' \n\t '])('rechaza un nombre vacío (%j) sin llamar al puerto', async (nombre) => {
+    const port = new CentrosFalsos();
+    const crear = jest.spyOn(port, 'crearCentro');
+
+    await expect(crearCentro(port, generalitat, { nombre, codigo: '08000002' })).rejects.toThrow(
+      GestionCentroError,
     );
-  }
-}
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '0800000', '080000002', '0800000A', '0800 002', '０８０００００２'])(
+    'rechaza el código inválido %j sin llamar al puerto',
+    async (codigo) => {
+      const port = new CentrosFalsos();
+      const crear = jest.spyOn(port, 'crearCentro');
+
+      await expect(
+        crearCentro(port, generalitat, { nombre: 'Institut Nou', codigo }),
+      ).rejects.toThrow(GestionCentroError);
+      expect(crear).not.toHaveBeenCalled();
+    },
+  );
+
+  it('propaga los errores de creación del puerto', async () => {
+    const port = new CentrosFalsos();
+    const error = new Error('Ya existe un centro con ese código');
+    jest.spyOn(port, 'crearCentro').mockRejectedValueOnce(error);
+
+    await expect(
+      crearCentro(port, generalitat, { nombre: 'Institut Nou', codigo: '08000002' }),
+    ).rejects.toBe(error);
+  });
+});
 
 describe('panel del centro', () => {
   it('separa alumnos, profes y cuentas nuevas, y las empresas sin convenio', async () => {

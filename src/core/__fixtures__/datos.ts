@@ -1,3 +1,5 @@
+import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
+import type { GestionCentroPort } from '../ports/gestion-centro-port';
 import type { Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
@@ -190,5 +192,69 @@ export class EventosFalsos implements EventoPort {
   }
   async borrar(id: string) {
     this.eventos = this.eventos.filter((e) => e.id !== id);
+  }
+}
+
+const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
+  email: `${p.id}@kampus.test`,
+  centroId: 'c1',
+  profeId: null,
+  ...p,
+});
+
+export const PAU = persona({ id: 'p1', nombre: 'Pau', rol: 'profe' });
+export const RUT = persona({ id: 'p9', nombre: 'Rut', rol: 'profe', centroId: 'c2' });
+export const ANA = persona({ id: 'a1', nombre: 'Ana', rol: 'alumno', profeId: 'p1' });
+export const BIEL = persona({ id: 'a2', nombre: 'Biel', rol: 'alumno' });
+export const NUEVA = persona({ id: 'n1', nombre: 'Nora', rol: 'alumno', centroId: null });
+
+export class CentrosFalsos implements GestionCentroPort {
+  centros: Centro[] = [{ id: 'c1', nombre: 'Institut', codigo: '08000001' }];
+  personas = [PAU, ANA, BIEL, NUEVA].map((p) => ({ ...p }));
+  empresas: Empresa[] = [
+    { id: 'e1', nombre: 'Zeta SL', cif: null },
+    { id: 'e2', nombre: 'Alfa SL', cif: null },
+  ];
+  convenios: Convenio[] = [
+    { centroId: 'c1', empresaId: 'e1', empresaNombre: 'Zeta SL', firmadoEn: null },
+  ];
+  async listarCentros() {
+    return this.centros;
+  }
+  async crearCentro(datos: { nombre: string; codigo: string }) {
+    const centro: Centro = { id: `c${this.centros.length + 1}`, ...datos };
+    this.centros.push(centro);
+    return centro;
+  }
+  async obtenerCentro(id: string) {
+    return this.centros.find((c) => c.id === id) ?? null;
+  }
+  async listarPersonas() {
+    return this.personas;
+  }
+  async incorporarAlumno(id: string, centroId: string) {
+    this.personas.find((p) => p.id === id)!.centroId = centroId;
+  }
+  async asignarProfe(id: string, profeId: string | null) {
+    this.personas.find((p) => p.id === id)!.profeId = profeId;
+  }
+  async listarEmpresas() {
+    return this.empresas;
+  }
+  async crearEmpresa(nombre: string, cif: string | null) {
+    const e = { id: `e${this.empresas.length + 1}`, nombre, cif };
+    this.empresas.push(e);
+    return e;
+  }
+  async listarConvenios() {
+    return this.convenios;
+  }
+  async crearConvenio(centroId: string, empresaId: string, firmadoEn: string | null) {
+    this.convenios.push({ centroId, empresaId, empresaNombre: '', firmadoEn });
+  }
+  async eliminarConvenio(centroId: string, empresaId: string) {
+    this.convenios = this.convenios.filter(
+      (c) => !(c.centroId === centroId && c.empresaId === empresaId),
+    );
   }
 }

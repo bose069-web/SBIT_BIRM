@@ -5,8 +5,8 @@ import { IDS_DEMO } from './datos-demo';
 
 // Mismos IDs que datos-demo: el instituto demo administra IDS_DEMO.centro.
 const CENTROS: Centro[] = [
-  { id: IDS_DEMO.centro, nombre: 'Institut Demo' },
-  { id: IDS_DEMO.otroCentro, nombre: 'Escola Pia Demo' },
+  { id: IDS_DEMO.centro, nombre: 'Institut Demo', codigo: '08000001' },
+  { id: IDS_DEMO.otroCentro, nombre: 'Escola Pia Demo', codigo: '08000002' },
 ];
 
 const PERSONAS_DEMO: Persona[] = [
@@ -59,6 +59,7 @@ const EMPRESAS_DEMO: Empresa[] = [
 ];
 
 export class GestionCentroMemory implements GestionCentroPort {
+  private centros = CENTROS.map((c) => ({ ...c }));
   private personas = PERSONAS_DEMO.map((p) => ({ ...p }));
   private empresas = [...EMPRESAS_DEMO];
   private convenios: Omit<Convenio, 'empresaNombre'>[] = [
@@ -68,8 +69,24 @@ export class GestionCentroMemory implements GestionCentroPort {
   ];
   private siguienteId = 1;
 
+  async listarCentros(): Promise<Centro[]> {
+    return this.centros
+      .map((c) => ({ ...c }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }
+
+  async crearCentro(datos: { nombre: string; codigo: string }): Promise<Centro> {
+    if (this.centros.some((c) => c.codigo === datos.codigo)) {
+      throw new Error('Ya existe un centro con ese código');
+    }
+    const centro: Centro = { id: `centro-nuevo-${this.siguienteId++}`, ...datos };
+    this.centros.push(centro);
+    return { ...centro };
+  }
+
   async obtenerCentro(centroId: string) {
-    return CENTROS.find((c) => c.id === centroId) ?? null;
+    const centro = this.centros.find((c) => c.id === centroId);
+    return centro ? { ...centro } : null;
   }
 
   async listarPersonas(centroId: string) {

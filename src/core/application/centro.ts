@@ -43,6 +43,27 @@ export interface PanelCentro {
 const porNombre = (a: { nombre: string }, b: { nombre: string }) =>
   a.nombre.localeCompare(b.nombre, 'es');
 
+/** Todos los centros, incluidos los que todavía no tienen alumnos ni dossiers. */
+export async function listarCentros(port: GestionCentroPort): Promise<Centro[]> {
+  return [...(await port.listarCentros())].sort(porNombre);
+}
+
+/** Solo la generalitat da de alta centros. El código conserva sus ceros iniciales. */
+export async function crearCentro(
+  port: GestionCentroPort,
+  usuario: Usuario,
+  datos: { nombre: string; codigo: string },
+): Promise<Centro> {
+  if (usuario.rol !== 'generalitat') throw new SinPermisoError('crear centros');
+  const nombre = datos.nombre.trim();
+  const codigo = datos.codigo.trim();
+  if (!nombre) throw new GestionCentroError('Escribe el nombre del centro');
+  if (!/^[0-9]{8}$/.test(codigo)) {
+    throw new GestionCentroError('El código del centro debe tener 8 dígitos');
+  }
+  return port.crearCentro({ nombre, codigo });
+}
+
 export async function obtenerPanelCentro(
   port: GestionCentroPort,
   usuario: Usuario,

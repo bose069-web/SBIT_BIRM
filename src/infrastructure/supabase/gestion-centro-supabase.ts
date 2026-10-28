@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { Convenio, Persona } from '@/core/domain/centro';
+import type { Centro, Convenio, Persona } from '@/core/domain/centro';
 import { esRol } from '@/core/domain/usuario';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
@@ -33,12 +33,33 @@ function comprobar(error: { message: string; code?: string } | null) {
 export class GestionCentroSupabase implements GestionCentroPort {
   constructor(private readonly cliente: SupabaseClient) {}
 
+  async listarCentros(): Promise<Centro[]> {
+    const { data, error } = await this.cliente
+      .from('centros')
+      .select('id, nombre, codigo')
+      .order('nombre')
+      .returns<Centro[]>();
+    comprobar(error);
+    return data ?? [];
+  }
+
+  async crearCentro(datos: { nombre: string; codigo: string }): Promise<Centro> {
+    const { data, error } = await this.cliente
+      .from('centros')
+      .insert({ nombre: datos.nombre, codigo: datos.codigo })
+      .select('id, nombre, codigo')
+      .single<Centro>();
+    comprobar(error);
+    if (!data) throw new Error('No se ha podido crear el centro');
+    return data;
+  }
+
   async obtenerCentro(centroId: string) {
     const { data, error } = await this.cliente
       .from('centros')
-      .select('id, nombre')
+      .select('id, nombre, codigo')
       .eq('id', centroId)
-      .maybeSingle<{ id: string; nombre: string }>();
+      .maybeSingle<Centro>();
     comprobar(error);
     return data;
   }

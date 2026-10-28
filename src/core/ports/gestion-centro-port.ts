@@ -1,6 +1,8 @@
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 
 export interface GestionCentroPort {
+  listarCentros(): Promise<Centro[]>;
+  crearCentro(datos: { nombre: string; codigo: string }): Promise<Centro>;
   obtenerCentro(centroId: string): Promise<Centro | null>;
   /** Alumnos, profes e institutos del centro, más las cuentas nuevas sin centro. */
   listarPersonas(centroId: string): Promise<Persona[]>;
