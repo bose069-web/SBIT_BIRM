@@ -37,9 +37,9 @@ export const Colors = {
     subtle: '#27272A',
     border: '#27272A',
     borderStrong: '#A1A1AA',
-    // En oscuro el azul se aclara y el texto encima pasa a negro (8:1).
-    primary: '#60A5FA',
-    onPrimary: '#0A0A0A',
+    // El mismo azul que en claro, con texto blanco encima.
+    primary: '#2563EB',
+    onPrimary: '#FFFFFF',
     primarySuave: '#172554',
     cristal: 'rgba(24,24,27,0.72)',
     cristalBorde: 'rgba(255,255,255,0.08)',

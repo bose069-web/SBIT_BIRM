@@ -27,13 +27,12 @@ const LOGOTIPO = {
   light: require('@/assets/brand/kampus-logotipo.png'),
   dark: require('@/assets/brand/kampus-logotipo-blanco.png'),
 };
-const MARCA = {
-  light: require('@/assets/brand/kampus-marca.png'),
-  dark: require('@/assets/brand/kampus-marca-blanco.png'),
-};
 const ALTO_LOGO = 28;
 // El logotipo mide 1360 × 384.
 const ANCHO_LOGOTIPO = Math.round((ALTO_LOGO * 1360) / 384);
+// Al recoger, se recorta el mismo logotipo y solo queda su K (llega a x = 63 de 340): así la
+// marca no cambia de tamaño ni de resolución.
+const ANCHO_MARCA = Math.ceil((ALTO_LOGO * 66) / 96);
 
 // Propiedades solo de la web (cristal y transiciones); react-native-web las pasa tal cual al CSS.
 const cristalWeb = {
@@ -193,16 +192,9 @@ export function CustomTabList(props: TabListProps) {
             pressed && styles.pressed,
             styles.logo,
             transicion('width'),
-            { width: desplazado ? ALTO_LOGO : ANCHO_LOGOTIPO },
+            { width: desplazado ? ANCHO_MARCA : ANCHO_LOGOTIPO },
           ]}>
-          <Image
-            source={LOGOTIPO[esquema]}
-            style={[styles.logotipo, transicion('opacity'), { opacity: desplazado ? 0 : 1 }]}
-          />
-          <Image
-            source={MARCA[esquema]}
-            style={[styles.marca, transicion('opacity'), { opacity: desplazado ? 1 : 0 }]}
-          />
+          <Image source={LOGOTIPO[esquema]} style={styles.logotipo} />
         </Pressable>
 
         {props.children}
@@ -269,7 +261,6 @@ const styles = StyleSheet.create({
   },
   logo: { height: ALTO_LOGO, marginRight: 'auto', overflow: 'hidden' },
   logotipo: { position: 'absolute', left: 0, width: ANCHO_LOGOTIPO, height: ALTO_LOGO },
-  marca: { position: 'absolute', left: 0, width: ALTO_LOGO, height: ALTO_LOGO },
   botonEsquema: {
     width: 44,
     height: 44,

@@ -187,7 +187,7 @@ export function CalendarioMes({
                         style={[styles.pastilla, { backgroundColor: theme.primarySuave }]}>
                         <ThemedText
                           numberOfLines={1}
-                          style={[styles.textoPastilla, { color: theme.primary }]}>
+                          style={[styles.textoPastilla, { color: theme.text }]}>
                           {texto}
                         </ThemedText>
                       </View>
