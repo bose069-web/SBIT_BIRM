@@ -22,9 +22,7 @@ export function Aparecer({
     <Animated.View
       style={style}
       entering={
-        reducir
-          ? undefined
-          : FadeInDown.duration(Movimiento.entrada).delay(Math.min(orden, 6) * 50)
+        reducir ? undefined : FadeInDown.duration(Movimiento.entrada).delay(Math.min(orden, 6) * 50)
       }>
       {children}
     </Animated.View>
