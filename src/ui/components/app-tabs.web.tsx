@@ -7,7 +7,7 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import type { ReactNode } from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet, useWindowDimensions } from 'react-native';
 
 import type { Rol } from '@/core/domain/usuario';
 
@@ -52,19 +52,31 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
   ),
 };
 
+// Con la marca y las etiquetas al lado del icono la barra mide unos 472 px de ancho, así que por
+// debajo de 520 no cabe en la ventana (a 320 px se salía 76 px por cada lado). En estrecho se
+// esconde la marca y cada pestaña pone su etiqueta debajo del icono: sigue visible y accesible.
+const ANCHO_MINIMO_ANCHO = 520;
+
 export default function AppTabs({ rol }: { rol: Rol }) {
+  const { width } = useWindowDimensions();
+  const compacto = width < ANCHO_MINIMO_ANCHO;
+
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
-        <CustomTabList>
+        <CustomTabList compacto={compacto}>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton icono="inicio">Inicio</TabButton>
+            <TabButton icono="inicio" compacto={compacto}>
+              Inicio
+            </TabButton>
           </TabTrigger>
           {/* La ruta existe para todos (si no, no se puede navegar a ella); solo el alumno ve la pestaña. */}
           {rol === 'alumno' ? (
             <TabTrigger name="registro" href="/registro" asChild>
-              <TabButton icono="registrar">Registrar día</TabButton>
+              <TabButton icono="registrar" compacto={compacto}>
+                Registrar día
+              </TabButton>
             </TabTrigger>
           ) : (
             <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
@@ -72,13 +84,17 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           {/* El instituto gestiona el suyo y la generalitat, el que elija: los dos ven la pestaña. */}
           {rol === 'instituto' || rol === 'generalitat' ? (
             <TabTrigger name="centro" href="/centro" asChild>
-              <TabButton icono="centro">Centro</TabButton>
+              <TabButton icono="centro" compacto={compacto}>
+                Centro
+              </TabButton>
             </TabTrigger>
           ) : (
             <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           )}
           <TabTrigger name="perfil" href="/perfil" asChild>
-            <TabButton icono="perfil">Perfil</TabButton>
+            <TabButton icono="perfil" compacto={compacto}>
+              Perfil
+            </TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -111,9 +127,10 @@ export function TabButton({
   children,
   isFocused,
   icono,
+  compacto,
   ref: _ref,
   ...props
-}: TabTriggerSlotProps & { icono?: NombreIcono }) {
+}: TabTriggerSlotProps & { icono?: NombreIcono; compacto?: boolean }) {
   const theme = useTheme();
   return (
     <Pressable
@@ -122,12 +139,17 @@ export function TabButton({
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={typeof children === 'string' ? children : undefined}
       style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type={isFocused ? 'subtle' : 'surface'} style={styles.tabButtonView}>
-        <View style={styles.contenido}>
+      <ThemedView
+        type={isFocused ? 'subtle' : 'surface'}
+        style={[styles.tabButtonView, compacto && styles.tabButtonViewCompacto]}>
+        <View style={[styles.contenido, compacto && styles.contenidoCompacto]}>
           {icono ? (
             <IconoPestana nombre={icono} color={isFocused ? theme.text : theme.textSecondary} />
           ) : null}
-          <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+          <ThemedText
+            type="small"
+            numberOfLines={1}
+            themeColor={isFocused ? 'text' : 'textSecondary'}>
             {children}
           </ThemedText>
         </View>
@@ -136,15 +158,26 @@ export function TabButton({
   );
 }
 
-export function CustomTabList(props: TabListProps) {
+export function CustomTabList({ compacto, ...props }: TabListProps & { compacto?: boolean }) {
   const theme = useTheme();
 
   return (
-    <View {...props} accessibilityRole="tablist" style={styles.tabListContainer}>
-      <ThemedView type="surface" style={[styles.innerContainer, { borderColor: theme.border }]}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Kampus
-        </ThemedText>
+    <View
+      {...props}
+      accessibilityRole="tablist"
+      style={[styles.tabListContainer, compacto && styles.tabListContainerCompacto]}>
+      <ThemedView
+        type="surface"
+        style={[
+          styles.innerContainer,
+          compacto && styles.innerContainerCompacto,
+          { borderColor: theme.border },
+        ]}>
+        {compacto ? null : (
+          <ThemedText type="smallBold" style={styles.brandText}>
+            Kampus
+          </ThemedText>
+        )}
 
         {props.children}
       </ThemedView>
@@ -161,6 +194,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
   },
+  // En estrecho se aprieta el margen y se deja que la caja encoja en vez de salirse.
+  tabListContainerCompacto: {
+    padding: Spacing.two,
+  },
   innerContainer: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
@@ -171,6 +208,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
+  },
+  innerContainerCompacto: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    justifyContent: 'space-between',
   },
   brandText: {
     marginRight: 'auto',
@@ -185,10 +227,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
     justifyContent: 'center',
+    flexShrink: 1,
+  },
+  tabButtonViewCompacto: {
+    paddingVertical: Spacing.half,
+    paddingHorizontal: Spacing.two,
   },
   contenido: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  // Icono encima de la etiqueta: la pestaña ocupa el ancho del texto, no la suma de los dos.
+  contenidoCompacto: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: Spacing.half,
   },
 });
