@@ -42,7 +42,17 @@ La base se define SOLO con los archivos de `supabase/migrations/`. Nada de SQL a
 ## Normas
 
 - Todo el código, nombres de dominio y comentarios en español; TypeScript estricto, sin `any`.
-- Rama por tarea `feature/pcN-descripcion`; nunca commits directos a `main`.
+- Ramas (detalle en el vault: `04 - Desarrollo/Flujo de ramas`):
+  - `main` = producción (lo que se despliega a Supabase). Solo recibe PR desde `develop` (release) o `hotfix/`.
+  - `develop` = integración. Toda rama de trabajo sale de `develop` y vuelve a `develop` por PR.
+  - Ramas de trabajo `tipo/pcN-descripcion-corta`:
+    - DEV: `feature/` (funcionalidad nueva) y `fix/` (corrección).
+    - OPS: `ops/` (CI, workflows, Supabase/config, scripts, dependencias). Solo PC 1.
+    - QA: `test/` (tests unitarios o e2e sin cambiar funcionalidad).
+    - DOCS: `docs/`.
+    - `hotfix/` sale de `main` y vuelve a `main` y a `develop`. Solo PC 1.
+  - Commits: `tipo(área): qué hace`, con tipo `feat`, `fix`, `ops`, `test`, `docs`, `refactor` o `chore`.
+  - Nunca commits directos a `main` ni a `develop`; la rama se borra al fusionar.
 - Antes de dar algo por terminado: `npm run lint`, `npm run typecheck` y `npm run format:check`.
 - Nunca subas `.env.local` ni claves.
 
