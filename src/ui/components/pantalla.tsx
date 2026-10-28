@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ponerDesplazado } from '@/ui/estado/preferencias-web';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { BottomTabInset, MaxContentWidth, Spacing, TopTabInset } from '@/ui/theme/theme';
@@ -15,6 +16,11 @@ interface Props {
 /** Contenedor común de las pantallas: scroll, ancho máximo y hueco para las pestañas. */
 export function Pantalla({ titulo, subtitulo, children }: Props) {
   const theme = useTheme();
+  const web = Platform.OS === 'web';
+  // Cada pantalla empieza arriba: la cabecera de la web vuelve a mostrar el logotipo entero.
+  useEffect(() => {
+    if (web) ponerDesplazado(false);
+  }, [web]);
   return (
     <SafeAreaView edges={['top']} style={[styles.fondo, { backgroundColor: theme.background }]}>
       <ScrollView
@@ -22,7 +28,9 @@ export function Pantalla({ titulo, subtitulo, children }: Props) {
         // Los campos de los formularios se pueden tocar con el teclado abierto y, al arrastrar,
         // el teclado se cierra en vez de quedarse tapando el contenido.
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag">
+        keyboardDismissMode="on-drag"
+        scrollEventThrottle={16}
+        onScroll={web ? (e) => ponerDesplazado(e.nativeEvent.contentOffset.y > 24) : undefined}>
         <View style={styles.contenido}>
           <View style={styles.cabecera}>
             <ThemedText accessibilityRole="header" type="title">

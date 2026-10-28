@@ -8,16 +8,8 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useAnimar } from '@/ui/hooks/use-animar';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
-import {
-  DIAS_SEMANA,
-  estadoDia,
-  semanasDelMes,
-  sumarMeses,
-  type EstadoDia,
-} from '@/ui/utils/calendario';
+import { estadoDia, semanasDelMes, sumarMeses, type EstadoDia } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
-
-import { estilosComunes } from './comun';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 
@@ -76,109 +68,167 @@ export function CalendarioMes({
   }));
   if (agenda) leyenda.push({ texto: 'Evento o entrega', color: 'primary', forma: 'punto' });
 
+  const mesHoy = mesDe(hoy);
+
   return (
     <View style={styles.contenedor}>
       <View style={styles.cabecera}>
         <View style={styles.titulo}>
-          <ThemedText type="subtitle" style={estilosComunes.capital}>
-            {nombreMes(mes)}
+          <ThemedText accessibilityRole="header" style={styles.textoTitulo}>
+            {capitalizar(nombreMes(mes))}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {formatoHoras(horasMes)} este mes{cerrado ? ' · valorado' : ''}
           </ThemedText>
         </View>
-        <BotonMes
-          texto="‹"
-          etiqueta="Mes anterior"
-          desactivado={mes <= mesDe(periodo.fechaInicio)}
-          onPress={() => onCambiarMes(sumarMeses(mes, -1))}
-        />
-        <BotonMes
-          texto="›"
-          etiqueta="Mes siguiente"
-          desactivado={mes >= mesDe(periodo.fechaFin)}
-          onPress={() => onCambiarMes(sumarMeses(mes, 1))}
-        />
+        <View style={[styles.controles, { backgroundColor: theme.subtle }]}>
+          <BotonMes
+            texto="‹"
+            etiqueta="Mes anterior"
+            desactivado={mes <= mesDe(periodo.fechaInicio)}
+            onPress={() => onCambiarMes(sumarMeses(mes, -1))}
+          />
+          <BotonMes
+            texto="Hoy"
+            etiqueta="Ir al mes de hoy"
+            desactivado={mes === mesHoy}
+            onPress={() => onCambiarMes(mesHoy)}
+          />
+          <BotonMes
+            texto="›"
+            etiqueta="Mes siguiente"
+            desactivado={mes >= mesDe(periodo.fechaFin)}
+            onPress={() => onCambiarMes(sumarMeses(mes, 1))}
+          />
+        </View>
       </View>
 
-      <View style={styles.semana}>
-        {DIAS_SEMANA.map((d) => (
-          <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.diaSemana}>
-            {d}
-          </ThemedText>
-        ))}
-      </View>
+      <View>
+        <View style={styles.semana}>
+          {DIAS_SEMANA_CORTOS.map((d) => (
+            <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.diaSemana}>
+              {d}
+            </ThemedText>
+          ))}
+        </View>
 
-      {/* La clave hace que al cambiar de mes la rejilla entre con un fundido. */}
-      <Animated.View
-        key={mes}
-        entering={!animar ? undefined : FadeIn.duration(Movimiento.normal)}
-        style={styles.rejilla}>
-        {semanasDelMes(mes).map((semana, i) => (
-          <View key={i} style={styles.semana}>
-            {semana.map((fecha, j) => {
-              if (!fecha) return <View key={j} style={styles.celda} />;
-              const registro = porFecha.get(fecha);
-              const estado = estadoDia(fecha, registro, periodo, hoy);
-              const info = ESTADOS_DIA[estado];
-              const horas = estado === 'trabajo' && registro ? totalHoras(registro) : 0;
-              const elegida = fecha === seleccionada;
-              const esHoy = fecha === hoy;
-              const delDia = agenda?.get(fecha) ?? [];
-              const apagado = estado === 'libre' || estado === 'futuro' || estado === 'fuera';
-              return (
-                <Pressable
-                  key={fecha}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}: ${info.texto}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
-                  accessibilityState={{ disabled: estado === 'fuera', selected: elegida }}
-                  disabled={estado === 'fuera'}
-                  onPress={() => onElegir(fecha)}
-                  style={({ pressed }) => [
-                    styles.celda,
-                    styles.dia,
-                    {
-                      backgroundColor: elegida
-                        ? theme.primarySuave
-                        : pressed
-                          ? theme.subtle
-                          : 'transparent',
-                      opacity: estado === 'fuera' ? 0.35 : 1,
-                    },
-                  ]}>
-                  <View style={[styles.numero, esHoy && { backgroundColor: theme.primary }]}>
-                    <ThemedText
-                      style={[
-                        styles.textoNumero,
-                        {
-                          color: esHoy
-                            ? theme.onPrimary
-                            : apagado
-                              ? theme.textSecondary
-                              : theme.text,
-                        },
-                      ]}>
-                      {Number(fecha.slice(8))}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.marcas}>
-                    {info.color ? <Marca forma={info.forma} color={theme[info.color]} /> : null}
-                    {delDia.length ? <Marca forma="punto" color={theme.primary} /> : null}
-                  </View>
-                  {horas ? (
-                    <ThemedText style={[styles.horas, { color: theme.textSecondary }]}>
-                      {formatoHoras(horas).replace(' ', '')}
-                    </ThemedText>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
-      </Animated.View>
+        {/* La clave hace que al cambiar de mes la rejilla entre con un fundido. */}
+        <Animated.View
+          key={mes}
+          entering={!animar ? undefined : FadeIn.duration(Movimiento.normal)}>
+          {rejillaCompleta(mes).map((semana, i) => (
+            <View key={i} style={[styles.semana, styles.fila, { borderTopColor: theme.border }]}>
+              {semana.map((fecha, j) => {
+                const borde = j > 0 && {
+                  borderLeftWidth: StyleSheet.hairlineWidth,
+                  borderLeftColor: theme.border,
+                };
+                const dia = Number(fecha.slice(8));
+                // Días del mes de antes o de después: solo el número, apagado.
+                if (fecha.slice(0, 7) !== mes) {
+                  return (
+                    <View key={fecha} style={[styles.celda, borde]}>
+                      <ThemedText
+                        style={[styles.textoNumero, styles.ajeno, { color: theme.textSecondary }]}>
+                        {dia === 1 ? fechaCorta(fecha).replace(/ \d{4}$/, '') : dia}
+                      </ThemedText>
+                    </View>
+                  );
+                }
+                const registro = porFecha.get(fecha);
+                const estado = estadoDia(fecha, registro, periodo, hoy);
+                const info = ESTADOS_DIA[estado];
+                const horas = estado === 'trabajo' && registro ? totalHoras(registro) : 0;
+                const elegida = fecha === seleccionada;
+                const esHoy = fecha === hoy;
+                const delDia = agenda?.get(fecha) ?? [];
+                const apagado = estado === 'libre' || estado === 'futuro' || estado === 'fuera';
+                return (
+                  <Pressable
+                    key={fecha}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}: ${info.texto}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
+                    accessibilityState={{ disabled: estado === 'fuera', selected: elegida }}
+                    disabled={estado === 'fuera'}
+                    onPress={() => onElegir(fecha)}
+                    style={({ pressed }) => [
+                      styles.celda,
+                      borde,
+                      {
+                        backgroundColor: elegida || pressed ? theme.subtle : 'transparent',
+                        opacity: estado === 'fuera' ? 0.35 : 1,
+                      },
+                    ]}>
+                    <View style={styles.arriba}>
+                      {info.color ? (
+                        <Marca forma={info.forma} color={theme[info.color]} />
+                      ) : (
+                        <View />
+                      )}
+                      <View style={[styles.numero, esHoy && { backgroundColor: theme.primary }]}>
+                        <ThemedText
+                          style={[
+                            styles.textoNumero,
+                            {
+                              color: esHoy
+                                ? theme.onPrimary
+                                : apagado
+                                  ? theme.textSecondary
+                                  : theme.text,
+                            },
+                          ]}>
+                          {dia}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    {delDia.slice(0, 2).map((texto, k) => (
+                      <View
+                        key={k}
+                        style={[styles.pastilla, { backgroundColor: theme.primarySuave }]}>
+                        <ThemedText
+                          numberOfLines={1}
+                          style={[styles.textoPastilla, { color: theme.primary }]}>
+                          {texto}
+                        </ThemedText>
+                      </View>
+                    ))}
+                    {delDia.length > 2 ? (
+                      <ThemedText style={[styles.textoPastilla, { color: theme.textSecondary }]}>
+                        +{delDia.length - 2} más
+                      </ThemedText>
+                    ) : null}
+                    {horas ? (
+                      <ThemedText style={[styles.horas, { color: theme.textSecondary }]}>
+                        {formatoHoras(horas).replace(' ', '')}
+                      </ThemedText>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </Animated.View>
+      </View>
 
       <Leyenda elementos={leyenda} />
     </View>
+  );
+}
+
+const DIAS_SEMANA_CORTOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+
+const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** Como `semanasDelMes`, pero rellenando los huecos con los días del mes de antes y de después. */
+function rejillaCompleta(mes: string): string[][] {
+  const [a, m] = mes.split('-').map(Number);
+  return semanasDelMes(mes).map((semana, i) =>
+    semana.map((fecha, j) => {
+      if (fecha) return fecha;
+      const primera = semanasDelMes(mes)[0].findIndex((f) => f !== null);
+      const d = new Date(a, m - 1, 1 + i * 7 + j - primera);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }),
   );
 }
 
@@ -203,11 +253,9 @@ function BotonMes({
       onPress={onPress}
       style={({ pressed }) => [
         styles.botonMes,
-        { backgroundColor: pressed ? theme.border : theme.subtle, opacity: desactivado ? 0.4 : 1 },
+        { backgroundColor: pressed ? theme.border : 'transparent', opacity: desactivado ? 0.4 : 1 },
       ]}>
-      <ThemedText type="subtitle" style={styles.flecha}>
-        {texto}
-      </ThemedText>
+      <ThemedText type="smallBold">{texto}</ThemedText>
     </Pressable>
   );
 }
@@ -231,37 +279,46 @@ const styles = StyleSheet.create({
   contenedor: { gap: Spacing.three },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   titulo: { flex: 1 },
+  textoTitulo: { fontSize: 26, lineHeight: 32, fontFamily: FontFamily.semibold },
+  controles: { flexDirection: 'row', borderRadius: Radius.pill, padding: 2 },
   botonMes: {
-    width: 44,
-    height: 44,
+    minWidth: 44,
+    height: 40,
+    paddingHorizontal: Spacing.two,
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flecha: { lineHeight: 28 },
-  rejilla: { gap: Spacing.one },
-  semana: { flexDirection: 'row', gap: Spacing.one },
-  diaSemana: { flex: 1, textAlign: 'center' },
-  celda: { flex: 1, minHeight: 56 },
-  dia: {
+  semana: { flexDirection: 'row' },
+  fila: { borderTopWidth: StyleSheet.hairlineWidth },
+  diaSemana: {
+    flex: 1,
+    textAlign: 'right',
+    paddingHorizontal: Spacing.one,
+    paddingBottom: Spacing.one,
+  },
+  celda: { flex: 1, minHeight: 76, padding: 3, gap: 2, overflow: 'hidden' },
+  arriba: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 3,
-    borderRadius: Radius.button,
-    paddingVertical: Spacing.one,
+    paddingLeft: 2,
   },
   numero: {
-    width: 30,
-    height: 30,
+    minWidth: 26,
+    height: 26,
+    paddingHorizontal: 4,
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoNumero: { fontSize: 15, lineHeight: 20, fontFamily: FontFamily.medium },
-  marcas: { flexDirection: 'row', gap: 3, minHeight: 7, alignItems: 'center' },
+  textoNumero: { fontSize: 14, lineHeight: 18, fontFamily: FontFamily.medium },
+  ajeno: { textAlign: 'right', paddingHorizontal: 4, paddingTop: 4 },
+  pastilla: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
+  textoPastilla: { fontSize: 10, lineHeight: 13, fontFamily: FontFamily.medium },
   marca: { width: 7, height: 7 },
   redonda: { borderRadius: 4 },
   esquinas: { borderRadius: 1.5 },
   girada: { transform: [{ rotate: '45deg' }] },
-  horas: { fontSize: 10, lineHeight: 12, fontFamily: FontFamily.medium },
+  horas: { fontSize: 10, lineHeight: 12, fontFamily: FontFamily.medium, textAlign: 'right' },
 });

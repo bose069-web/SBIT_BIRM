@@ -7,15 +7,39 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import type { ReactNode } from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Image, Pressable, View, StyleSheet, type ImageStyle, type ViewStyle } from 'react-native';
 
 import type { Rol } from '@/core/domain/usuario';
 
+import { cambiarEsquemaWeb, useDesplazado, useEsquemaWeb } from '@/ui/estado/preferencias-web';
 import { useTheme } from '@/ui/hooks/use-theme';
-import { MaxContentWidth, Radius, Spacing } from '@/ui/theme/theme';
+import { MaxContentWidth, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 
 import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+
+const LOGOTIPO = {
+  light: require('@/assets/brand/kampus-logotipo.png'),
+  dark: require('@/assets/brand/kampus-logotipo-blanco.png'),
+};
+const MARCA = {
+  light: require('@/assets/brand/kampus-marca.png'),
+  dark: require('@/assets/brand/kampus-marca-blanco.png'),
+};
+const ALTO_LOGO = 28;
+// El logotipo mide 1360 × 384.
+const ANCHO_LOGOTIPO = Math.round((ALTO_LOGO * 1360) / 384);
+
+// Propiedades solo de la web (cristal y transiciones); react-native-web las pasa tal cual al CSS.
+const cristalWeb = {
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+} as unknown as ViewStyle;
+const transicion = (propiedad: string): ViewStyle & ImageStyle =>
+  ({
+    transitionProperty: propiedad,
+    transitionDuration: `${Movimiento.normal}ms`,
+    transitionTimingFunction: 'ease-out',
+  }) as unknown as ViewStyle & ImageStyle;
 
 type NombreIcono = 'inicio' | 'calendario' | 'chat' | 'perfil';
 
@@ -113,7 +137,11 @@ export function TabButton({
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={typeof children === 'string' ? children : undefined}
       style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type={isFocused ? 'subtle' : 'surface'} style={styles.tabButtonView}>
+      <View
+        style={[
+          styles.tabButtonView,
+          { backgroundColor: isFocused ? theme.subtle : 'transparent' },
+        ]}>
         <View style={styles.contenido}>
           {icono ? (
             <IconoPestana nombre={icono} color={isFocused ? theme.text : theme.textSecondary} />
@@ -122,24 +150,82 @@ export function TabButton({
             {children}
           </ThemedText>
         </View>
-      </ThemedView>
+      </View>
     </Pressable>
   );
 }
 
 export function CustomTabList(props: TabListProps) {
   const theme = useTheme();
+  const esquema = useEsquemaWeb();
+  const desplazado = useDesplazado();
 
   return (
     <View {...props} accessibilityRole="tablist" style={styles.tabListContainer}>
-      <ThemedView type="surface" style={[styles.innerContainer, { borderColor: theme.border }]}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Kampus
-        </ThemedText>
+      <View
+        style={[
+          styles.innerContainer,
+          cristalWeb,
+          { backgroundColor: theme.cristal, borderColor: theme.cristalBorde },
+        ]}>
+        {/* Al bajar, el logotipo se recoge y solo queda la marca. */}
+        <View
+          accessibilityRole="image"
+          accessibilityLabel="Kampus"
+          style={[
+            styles.logo,
+            transicion('width'),
+            { width: desplazado ? ALTO_LOGO : ANCHO_LOGOTIPO },
+          ]}>
+          <Image
+            source={LOGOTIPO[esquema]}
+            style={[styles.logotipo, transicion('opacity'), { opacity: desplazado ? 0 : 1 }]}
+          />
+          <Image
+            source={MARCA[esquema]}
+            style={[styles.marca, transicion('opacity'), { opacity: desplazado ? 1 : 0 }]}
+          />
+        </View>
 
         {props.children}
-      </ThemedView>
+
+        <BotonEsquema />
+      </View>
     </View>
+  );
+}
+
+function BotonEsquema() {
+  const theme = useTheme();
+  const oscuro = useEsquemaWeb() === 'dark';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      onPress={() => cambiarEsquemaWeb(oscuro ? 'light' : 'dark')}
+      style={({ pressed }) => [styles.botonEsquema, pressed && { backgroundColor: theme.subtle }]}>
+      <svg
+        aria-hidden
+        focusable="false"
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={theme.text}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: 'block' }}>
+        {oscuro ? (
+          <>
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+          </>
+        ) : (
+          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+        )}
+      </svg>
+    </Pressable>
   );
 }
 
@@ -154,7 +240,7 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.three,
     borderRadius: Radius.card,
     borderWidth: 1,
     flexDirection: 'row',
@@ -163,8 +249,15 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
-  brandText: {
-    marginRight: 'auto',
+  logo: { height: ALTO_LOGO, marginRight: 'auto', overflow: 'hidden' },
+  logotipo: { position: 'absolute', left: 0, width: ANCHO_LOGOTIPO, height: ALTO_LOGO },
+  marca: { position: 'absolute', left: 0, width: ALTO_LOGO, height: ALTO_LOGO },
+  botonEsquema: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.7,
