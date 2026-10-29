@@ -67,7 +67,8 @@ export function VistaPerfil() {
     const [personales, dossier, identidad] = await Promise.all([
       obtenerDatosPersonales(container.perfil),
       usuario.rol === 'alumno' ? obtenerDossierActual(container.dossiers, hoyISO()) : null,
-      obtenerMiIdentidad(container.perfil, usuario),
+      // Sin el DNI el resto del perfil sigue sirviendo: se muestra como no registrado.
+      obtenerMiIdentidad(container.perfil, usuario).catch(() => ({ dni: null })),
     ]);
     return { personales, dossier, dni: identidad.dni };
   }, [usuario.id]);
