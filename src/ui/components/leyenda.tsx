@@ -8,7 +8,7 @@ export interface ElementoLeyenda {
   texto: string;
   color: ThemeColor;
   /** La forma ayuda a distinguir sin depender solo del color. */
-  forma?: 'punto' | 'anillo' | 'cuadrado' | 'rombo';
+  forma?: 'punto' | 'anillo' | 'cuadrado' | 'rombo' | 'hueco';
 }
 
 /** Leyenda para calendarios y gráficos: cada marca va siempre con su texto. */
@@ -25,7 +25,16 @@ export function Leyenda({ elementos }: { elementos: ElementoLeyenda[] }) {
                 ? { borderColor: theme[e.color], borderWidth: 1.5 }
                 : { backgroundColor: theme[e.color] },
               e.forma === 'rombo' && styles.girada,
-              e.forma === 'cuadrado' || e.forma === 'rombo' ? styles.esquinas : styles.redonda,
+              e.forma === 'cuadrado' || e.forma === 'hueco' || e.forma === 'rombo'
+                ? styles.esquinas
+                : styles.redonda,
+              (e.forma === 'cuadrado' || e.forma === 'hueco') && styles.cuadro,
+              // Hueco: el mismo cuadro con borde discontinuo, como los días sin apuntar.
+              e.forma === 'hueco' && {
+                borderWidth: 1.5,
+                borderStyle: 'dashed',
+                borderColor: theme.bordePendiente,
+              },
             ]}
           />
           <ThemedText type="small" themeColor="textSecondary">
@@ -49,4 +58,6 @@ const styles = StyleSheet.create({
   redonda: { borderRadius: 5 },
   esquinas: { borderRadius: 2 },
   girada: { transform: [{ rotate: '45deg' }] },
+  // Los cuadros de color del calendario: más grandes para que se vea el relleno.
+  cuadro: { width: 14, height: 14, borderRadius: 3 },
 });

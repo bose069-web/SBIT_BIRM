@@ -8,6 +8,7 @@ import {
   atenderIncidencia,
   enviarMensaje,
   escalarIncidencia,
+  buscarIncidencia,
   listarMensajes,
   obtenerBandeja,
 } from '@/core/application/incidencias';
@@ -45,17 +46,17 @@ export const TEXTO_CATEGORIA: Record<CategoriaIncidencia, string> = {
   app: 'La app',
   otra: 'Otra',
 };
-const TEXTO_ESTADO: Record<EstadoIncidencia, string> = {
+export const TEXTO_ESTADO: Record<EstadoIncidencia, string> = {
   abierta: 'Abierta',
   en_curso: 'En curso',
   resuelta: 'Resuelta',
 };
-const COLOR_ESTADO: Record<EstadoIncidencia, ThemeColor> = {
+export const COLOR_ESTADO: Record<EstadoIncidencia, ThemeColor> = {
   abierta: 'estadoPendiente',
   en_curso: 'primary',
   resuelta: 'estadoValidado',
 };
-const TEXTO_PRIORIDAD: Record<PrioridadIncidencia, string> = {
+export const TEXTO_PRIORIDAD: Record<PrioridadIncidencia, string> = {
   baja: 'Prioridad baja',
   media: 'Prioridad media',
   alta: 'Prioridad alta',
@@ -146,7 +147,13 @@ function ListaIncidencias({ lista }: { lista: Incidencia[] }) {
   );
 }
 
-function NuevaIncidencia({ onCreada }: { onCreada: () => void }) {
+export function NuevaIncidencia({
+  onCreada,
+  onAbrir = abrirDetalle,
+}: {
+  onCreada: () => void;
+  onAbrir?: (id: string) => void;
+}) {
   const usuario = useUsuario();
   const [abierto, setAbierto] = useState(false);
   const [titulo, setTitulo] = useState('');
@@ -176,7 +183,7 @@ function NuevaIncidencia({ onCreada }: { onCreada: () => void }) {
       setTitulo('');
       setDescripcion('');
       onCreada();
-      abrirDetalle(creada.id);
+      onAbrir(creada.id);
     } catch (e) {
       setAviso(e instanceof Error ? e.message : String(e));
     } finally {
@@ -215,8 +222,7 @@ function NuevaIncidencia({ onCreada }: { onCreada: () => void }) {
 export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () => void }) {
   const usuario = useUsuario();
   const { datos, error, cargando, recargar } = useDatos(async () => {
-    const todas = await container.incidencias.listar();
-    const incidencia = todas.find((i) => i.id === id) ?? null;
+    const incidencia = await buscarIncidencia(container.incidencias, id);
     if (!incidencia) return null;
     const mensajes = await listarMensajes(container.incidencias, usuario, incidencia);
     return { incidencia, mensajes };
@@ -268,7 +274,13 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
   );
 }
 
-function Atender({ incidencia, onCambio }: { incidencia: Incidencia; onCambio: () => void }) {
+export function Atender({
+  incidencia,
+  onCambio,
+}: {
+  incidencia: Incidencia;
+  onCambio: () => void;
+}) {
   const usuario = useUsuario();
   const [estado, setEstado] = useState<EstadoIncidencia>(incidencia.estado);
   const [respuesta, setRespuesta] = useState(incidencia.respuesta ?? '');

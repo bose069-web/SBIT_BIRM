@@ -12,6 +12,8 @@ import { AnimatedSplashOverlay } from '@/ui/components/animated-icon';
 import AppTabs from '@/ui/components/app-tabs';
 import { SesionProvider, useSesion } from '@/ui/hooks/use-sesion';
 import { Colors } from '@/ui/theme/theme';
+import { Pantalla } from '@/ui/components/pantalla';
+import { ErrorCarga } from '@/ui/vistas/comun';
 import { VistaLogin } from '@/ui/vistas/login';
 
 SplashScreen.preventAutoHideAsync();
@@ -52,8 +54,14 @@ export default function TabLayout() {
 
 /** Sin sesión se ve el login; con sesión, las pestañas de su rol. */
 function Contenido() {
-  const { usuario, cargando } = useSesion();
+  const { usuario, cargando, error, reintentar } = useSesion();
   if (cargando) return null;
+  if (error)
+    return (
+      <Pantalla titulo="Sesión">
+        <ErrorCarga texto={error} onReintentar={reintentar} />
+      </Pantalla>
+    );
   if (!usuario) return <VistaLogin />;
   return <AppTabs rol={usuario.rol} />;
 }

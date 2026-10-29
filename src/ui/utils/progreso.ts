@@ -71,3 +71,56 @@ export function nivelSinApuntar(dias: number): NivelAviso {
   if (dias <= 15) return 'medio';
   return 'grave';
 }
+
+/** Semana de prácticas en la que está hoy (1 = la del primer día) y cuántas tiene el periodo. */
+export function semanaDePracticas(
+  dossier: Pick<Dossier, 'fechaInicio' | 'fechaFin'>,
+  hoy: string,
+): { actual: number; total: number } {
+  const dias = (desde: string, hasta: string) =>
+    Math.round((Date.parse(hasta) - Date.parse(desde)) / 86_400_000);
+  const total = Math.ceil((dias(dossier.fechaInicio, dossier.fechaFin) + 1) / 7);
+  const actual = Math.floor(dias(dossier.fechaInicio, hoy) / 7) + 1;
+  return { actual: Math.min(Math.max(actual, 1), total), total };
+}
+
+export interface HorasDeActividad {
+  id: string;
+  descripcion: string;
+  horas: number;
+}
+
+/** Horas de un mes (`AAAA-MM`) repartidas por las actividades del dossier, en su orden. */
+export function horasPorActividad(
+  dossier: Pick<Dossier, 'actividades'>,
+  registros: RegistroDiario[],
+  mes: string,
+): HorasDeActividad[] {
+  const suma = new Map<string, number>();
+  for (const r of registros) {
+    if (!r.fecha.startsWith(mes)) continue;
+    for (const h of r.horas) suma.set(h.actividadId, (suma.get(h.actividadId) ?? 0) + h.horas);
+  }
+  return [...dossier.actividades]
+    .sort((a, b) => a.orden - b.orden)
+    .map((a) => ({ id: a.id, descripcion: a.descripcion, horas: suma.get(a.id) ?? 0 }));
+}
+
+/** Los últimos días apuntados, del más reciente al más antiguo. */
+export function ultimosRegistros(registros: RegistroDiario[], cuantos: number): RegistroDiario[] {
+  return [...registros].sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, cuantos);
+}
+
+export type PasoMes = 'hecho' | 'actual' | 'pendiente';
+
+/**
+ * Validación de un mes: el alumno apunta, la empresa lo valida al acabar y el profe lo confirma.
+ * La confirmación del profe todavía no existe en la app: hasta entonces se queda pendiente.
+ */
+export function pasosDelMes(
+  mes: string,
+  mesesValidados: string[],
+): { alumno: PasoMes; empresa: PasoMes; profe: PasoMes } {
+  if (mesesValidados.includes(mes)) return { alumno: 'hecho', empresa: 'hecho', profe: 'actual' };
+  return { alumno: 'actual', empresa: 'pendiente', profe: 'pendiente' };
+}

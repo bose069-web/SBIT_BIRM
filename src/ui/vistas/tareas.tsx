@@ -17,7 +17,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { leerFecha } from '@/ui/utils/fecha-escrita';
-import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
+import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
 import { Cargando, ErrorCarga } from './comun';
 
@@ -32,6 +32,7 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
   const hoy = hoyISO();
   const gestiona = gestionaDossier(usuario, dossier);
   const [aviso, setAviso] = useState<Aviso>(null);
+  const [verHechas, setVerHechas] = useState(false);
   const { datos, error, recargar } = useDatos(
     () => listarTareas(container.tareas, dossier.id),
     [dossier.id],
@@ -60,6 +61,9 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
   }
 
   const pendientes = datos.filter((t) => !t.completada).length;
+  const hechas = datos.length - pendientes;
+  // Las hechas van plegadas: lo que importa es lo que queda por hacer.
+  const visibles = verHechas ? datos : datos.filter((t) => !t.completada);
 
   return (
     <View style={styles.contenedor}>
@@ -70,7 +74,7 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
             : 'Tu tutor todavía no te ha encargado ninguna tarea.'
           : `${pendientes} pendiente${pendientes === 1 ? '' : 's'} de ${datos.length}`}
       </ThemedText>
-      {datos.map((t) => (
+      {visibles.map((t) => (
         <FilaTarea
           key={t.id}
           tarea={t}
@@ -86,6 +90,18 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
           }
         />
       ))}
+      {hechas > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: verHechas }}
+          onPress={() => setVerHechas((v) => !v)}
+          hitSlop={8}
+          style={({ pressed }) => pressed && { opacity: 0.6 }}>
+          <ThemedText type="small" themeColor="textSecondary">
+            {verHechas ? 'Ocultar las hechas' : `${hechas} hecha${hechas === 1 ? '' : 's'} ›`}
+          </ThemedText>
+        </Pressable>
+      ) : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       {gestiona ? (
         <NuevaTarea
@@ -120,6 +136,9 @@ function FilaTarea({
 }) {
   const theme = useTheme();
   const vencida = tareaVencida(tarea, hoy);
+  // Vence en 3 días o menos: aviso intermedio antes del rojo de vencida.
+  const pronto =
+    !vencida && !tarea.completada && !!tarea.fechaLimite && tarea.fechaLimite <= sumarDias(hoy, 3);
   return (
     <View style={[styles.fila, { borderColor: theme.border }]}>
       {/* Toda la fila marca la tarea: un dedo no tiene que acertar en la casilla. */}
@@ -159,8 +178,9 @@ function FilaTarea({
             vencida ? (
               <Chip texto={`Vencida: ${fechaCorta(tarea.fechaLimite)}`} color="danger" />
             ) : (
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText type="small" themeColor={pronto ? 'avisoLeve' : 'textSecondary'}>
                 Para el {fechaCorta(tarea.fechaLimite)}
+                {pronto ? ' · vence pronto' : ''}
               </ThemedText>
             )
           ) : null}

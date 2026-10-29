@@ -1,25 +1,34 @@
 import type { AuthPort } from '@/core/ports/auth-port';
+import type { ChatPort } from '@/core/ports/chat-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 import type { IncidenciaPort } from '@/core/ports/incidencia-port';
+import type { InformePort } from '@/core/ports/informe-port';
+import type { PerfilPort } from '@/core/ports/perfil-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
 import { AuthMemory } from '@/infrastructure/memory/auth-memory';
+import { ChatMemory } from '@/infrastructure/memory/chat-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
 import { GestionCentroMemory } from '@/infrastructure/memory/gestion-centro-memory';
 import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
+import { InformesMemory } from '@/infrastructure/memory/informes-memory';
+import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
 import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
 import { AuthSupabase } from '@/infrastructure/supabase/auth-supabase';
+import { ChatSupabase } from '@/infrastructure/supabase/chat-supabase';
 import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { EventoSupabase } from '@/infrastructure/supabase/evento-supabase';
 import { GestionCentroSupabase } from '@/infrastructure/supabase/gestion-centro-supabase';
 import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
+import { InformesSupabase } from '@/infrastructure/supabase/informes-supabase';
+import { PerfilSupabase } from '@/infrastructure/supabase/perfil-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
 import { TareaSupabase } from '@/infrastructure/supabase/tarea-supabase';
 import { ValoracionSupabase } from '@/infrastructure/supabase/valoracion-supabase';
@@ -33,6 +42,9 @@ interface Container {
   tareas: TareaPort;
   eventos: EventoPort;
   incidencias: IncidenciaPort;
+  perfil: PerfilPort;
+  chat: ChatPort;
+  informes: InformePort;
 }
 
 /**
@@ -57,6 +69,9 @@ function crearContainer(): Container {
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
         incidencias: new IncidenciaSupabase(cliente),
+        perfil: new PerfilSupabase(cliente),
+        chat: new ChatSupabase(cliente),
+        informes: new InformesSupabase(cliente),
       };
     }
     console.warn(
@@ -75,6 +90,9 @@ function crearContainer(): Container {
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
     incidencias: new IncidenciaMemory(),
+    perfil: new PerfilMemory(),
+    chat: new ChatMemory(),
+    informes: new InformesMemory(),
   };
 }
 

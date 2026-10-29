@@ -46,6 +46,15 @@ export function fechaLarga(fecha: string): string {
   return `${dia} ${d} de ${MESES[m - 1]}`;
 }
 
+/** Días que faltan de `hoy` a `fecha`; negativo si ya pasó y 0 si es hoy. */
+export function diasHasta(fecha: string, hoy = hoyISO()): number {
+  const [a1, m1, d1] = hoy.split('-').map(Number);
+  const [a2, m2, d2] = fecha.split('-').map(Number);
+  const desde = new Date(a1, m1 - 1, d1).getTime();
+  const hasta = new Date(a2, m2 - 1, d2).getTime();
+  return Math.round((hasta - desde) / 86_400_000);
+}
+
 /** Primer y último día del mes de una fecha. */
 export function limitesMes(fecha: string): [string, string] {
   const [a, m] = fecha.split('-').map(Number);

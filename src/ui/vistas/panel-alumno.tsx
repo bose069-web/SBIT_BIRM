@@ -4,12 +4,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import { listarRegistros } from '@/core/application/registro-diario';
-import { resumirHoras } from '@/core/domain/registro-diario';
+import { resumirHoras, totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
+import type { Dossier } from '@/core/domain/dossier';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
-import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
-import { Chip } from '@/ui/components/chip';
+import { Leyenda } from '@/ui/components/leyenda';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
@@ -19,24 +19,23 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Spacing, type ThemeColor } from '@/ui/theme/theme';
+import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 import {
   calcularProgreso,
+  horasPorActividad,
   nivelSinApuntar,
+  semanaDePracticas,
+  ultimosRegistros,
   type NivelAviso,
   type Progreso,
 } from '@/ui/utils/progreso';
 
+import { ESTADOS_DIA, LEYENDA_DIAS } from './calendario-mes';
+import { EstadoMes } from './estado-mes';
 import { MiniCalendario } from './mini-calendario';
 import { TareasDossier } from './tareas';
-import {
-  ErrorCarga,
-  EsqueletoPanel,
-  EstadoVacio,
-  ListaValoraciones,
-  estilosComunes,
-} from './comun';
+import { ErrorCarga, EsqueletoPanel, EstadoVacio, ListaValoraciones } from './comun';
 
 export function PanelAlumno() {
   const usuario = useUsuario();
@@ -50,6 +49,7 @@ export function PanelAlumno() {
     ]);
     return {
       dossier,
+      registros,
       resumen: resumirHoras(dossier, registros),
       progreso: calcularProgreso(dossier, registros, hoy),
       seguimiento,
@@ -58,16 +58,25 @@ export function PanelAlumno() {
   useRecargarAlVolver(recargar);
   // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
   const ancho = useWebAncha();
-  const calendario = (
-    <Tarjeta titulo="Calendario">
-      <MiniCalendario hoy={hoy} />
+  const mes = hoy.slice(0, 7);
+  const mesesValidados = datos?.seguimiento.mensuales.map((v) => v.mes) ?? [];
+  const semana = datos ? semanaDePracticas(datos.dossier, hoy) : null;
+  const estadoMes = <EstadoMes hoy={hoy} mesesValidados={mesesValidados} />;
+  const valoraciones = datos ? (
+    <Tarjeta titulo="Valoraciones de la empresa">
+      <ListaValoraciones mensuales={datos.seguimiento.mensuales} final={datos.seguimiento.final} />
     </Tarjeta>
-  );
+  ) : null;
 
   return (
     <Pantalla
       titulo={`Hola, ${usuario.nombre.split(' ')[0]}`}
-      subtitulo={fechaCorta(hoy)}
+      subtitulo={
+        semana ? `${fechaCorta(hoy)} · semana ${semana.actual} de ${semana.total}` : fechaCorta(hoy)
+      }
+      // En la web el estado del mes llena el hueco junto al saludo; el botón de registrar ya
+      // está en la cabecera.
+      accion={ancho && datos ? estadoMes : undefined}
       amplia={ancho}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
@@ -86,13 +95,15 @@ export function PanelAlumno() {
               {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
                   sola con el calendario arriba. */}
               <Tarjeta titulo="Horas de prácticas">
-                {ancho ? null : <MiniCalendario hoy={hoy} />}
+                {ancho ? null : (
+                  <MiniCalendario hoy={hoy} registros={datos.registros} periodo={datos.dossier} />
+                )}
                 <View style={styles.quesito}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
                     etiqueta="Horas de prácticas completadas"
                   />
-                  <View style={styles.flex}>
+                  <View style={ancho ? undefined : styles.flex}>
                     <View style={styles.horas}>
                       <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
                       <ThemedText themeColor="textSecondary">
@@ -107,20 +118,43 @@ export function PanelAlumno() {
                   {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
                 </View>
               </Tarjeta>
-              {ancho ? calendario : null}
-              <Tarjeta titulo="Este mes">
-                <View style={estilosComunes.fila}>
-                  <ThemedText type="smallBold" style={estilosComunes.capital}>
-                    {nombreMes(mesDe(hoy))}
-                  </ThemedText>
-                  {mesCerrado(hoy, datos.seguimiento.mensuales, datos.seguimiento.final) ? (
-                    <Chip texto="Cerrado: ya valorado" color="estadoFestivo" />
-                  ) : (
-                    <Chip texto="Abierto" color="estadoValidado" />
-                  )}
-                </View>
-                <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
-              </Tarjeta>
+              {ancho ? (
+                <Tarjeta
+                  titulo={nombreMes(mes)}
+                  accion={
+                    <Enlace
+                      texto="Ver calendario ›"
+                      onPress={() => router.navigate('/calendario')}
+                    />
+                  }>
+                  <View style={styles.mes}>
+                    <View style={styles.calendario}>
+                      <MiniCalendario
+                        hoy={hoy}
+                        registros={datos.registros}
+                        periodo={datos.dossier}
+                        cabecera={false}
+                      />
+                    </View>
+                    <View style={styles.actividades}>
+                      <HorasActividades
+                        dossier={datos.dossier}
+                        registros={datos.registros}
+                        mes={mes}
+                      />
+                      <Leyenda elementos={LEYENDA_DIAS} />
+                    </View>
+                  </View>
+                </Tarjeta>
+              ) : (
+                <Tarjeta titulo="Este mes">
+                  <EstadoMes hoy={hoy} mesesValidados={mesesValidados} enTarjeta />
+                  <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
+                </Tarjeta>
+              )}
+              {/* En la web las valoraciones van con el mes: así las dos columnas quedan
+                  parejas. En el móvil, al final. */}
+              {ancho ? valoraciones : null}
             </>
           }
           derecha={
@@ -128,37 +162,161 @@ export function PanelAlumno() {
               <Tarjeta titulo="Tareas">
                 <TareasDossier dossier={datos.dossier} />
               </Tarjeta>
-              <Tarjeta titulo="Mis prácticas">
-                <ThemedText type="smallBold">
-                  {datos.dossier.ciclo} · {datos.dossier.empresa ?? 'Sin empresa'}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {datos.dossier.centro ?? 'Sin centro'} · del{' '}
-                  {fechaCorta(datos.dossier.fechaInicio)} al {fechaCorta(datos.dossier.fechaFin)}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  Tutor del centro: {datos.dossier.tutorNombre ?? 'sin asignar'}
-                  {'\n'}Tutor de empresa: {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
-                </ThemedText>
-                <Boton
-                  texto="Ver la ficha completa"
-                  variante="secundario"
-                  onPress={() =>
-                    router.push({ pathname: '/', params: { dossier: datos.dossier.id } })
-                  }
-                />
+              <Tarjeta
+                titulo="Últimos registros"
+                accion={
+                  <Enlace texto="Ver todo ›" onPress={() => router.navigate('/calendario')} />
+                }>
+                <UltimosRegistros dossier={datos.dossier} registros={datos.registros} />
               </Tarjeta>
-              <Tarjeta titulo="Valoraciones de la empresa">
-                <ListaValoraciones
-                  mensuales={datos.seguimiento.mensuales}
-                  final={datos.seguimiento.final}
-                />
+              <Tarjeta
+                titulo="Mis prácticas"
+                accion={
+                  <Enlace
+                    texto="Ficha ›"
+                    onPress={() =>
+                      router.push({ pathname: '/', params: { dossier: datos.dossier.id } })
+                    }
+                  />
+                }>
+                <View style={styles.ficha}>
+                  <ThemedText type="smallBold">
+                    {datos.dossier.empresa ?? 'Sin empresa'} · {datos.dossier.ciclo}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Tutor: {datos.dossier.tutorNombre ?? 'sin asignar'} · Empresa:{' '}
+                    {datos.dossier.tutorEmpresaNombre ?? 'sin asignar'}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Hasta el {fechaCorta(datos.dossier.fechaFin)}
+                  </ThemedText>
+                </View>
               </Tarjeta>
+              {ancho ? null : valoraciones}
             </>
           }
         />
       ) : null}
     </Pantalla>
+  );
+}
+
+function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <ThemedText type="small" themeColor="textSecondary">
+        {texto}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+/** Horas del mes por actividad: en qué ha ido el tiempo. */
+function HorasActividades({
+  dossier,
+  registros,
+  mes,
+}: {
+  dossier: Dossier;
+  registros: RegistroDiario[];
+  mes: string;
+}) {
+  const theme = useTheme();
+  const filas = horasPorActividad(dossier, registros, mes);
+  const total = filas.reduce((s, f) => s + f.horas, 0);
+  const maximo = Math.max(...filas.map((f) => f.horas), 1);
+  return (
+    <View style={styles.barras}>
+      <View style={styles.horas}>
+        <ThemedText type="subtitle">{formatoHoras(total)}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          este mes
+        </ThemedText>
+      </View>
+      {filas.map((f) => (
+        <View
+          key={f.id}
+          style={styles.barra}
+          accessible
+          accessibilityLabel={`${f.descripcion}: ${formatoHoras(f.horas)}`}>
+          <View style={styles.filaBarra}>
+            <ThemedText type="small" style={styles.flex} numberOfLines={1}>
+              {f.descripcion}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatoHoras(f.horas)}
+            </ThemedText>
+          </View>
+          <View style={[styles.pista, { backgroundColor: theme.subtle }]}>
+            <View
+              style={[
+                styles.relleno,
+                { width: `${(f.horas / maximo) * 100}%`, backgroundColor: theme.primary },
+              ]}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Los tres últimos días apuntados; tocar uno abre su registro. */
+function UltimosRegistros({
+  dossier,
+  registros,
+}: {
+  dossier: Dossier;
+  registros: RegistroDiario[];
+}) {
+  const theme = useTheme();
+  const ultimos = ultimosRegistros(registros, 3);
+  if (ultimos.length === 0) {
+    return (
+      <ThemedText type="small" themeColor="textSecondary">
+        Todavía no has apuntado ningún día.
+      </ThemedText>
+    );
+  }
+  const actividad = (id: string) => dossier.actividades.find((a) => a.id === id)?.descripcion;
+  return (
+    <View>
+      {ultimos.map((r, i) => {
+        const principal = [...r.horas].sort((a, b) => b.horas - a.horas)[0];
+        const detalle =
+          r.tipo === 'trabajo'
+            ? `${formatoHoras(totalHoras(r))}${principal ? ` · ${actividad(principal.actividadId) ?? ''}` : ''}`
+            : ESTADOS_DIA[r.tipo].texto;
+        return (
+          <Pressable
+            key={r.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${fechaCorta(r.fecha)}: ${detalle}. Abrir el registro`}
+            onPress={() => router.push({ pathname: '/registro', params: { fecha: r.fecha } })}
+            style={({ pressed }) => [
+              styles.registro,
+              i > 0 && { borderTopWidth: 1, borderColor: theme.border },
+              pressed && { opacity: 0.6 },
+            ]}>
+            <View style={styles.filaBarra}>
+              <ThemedText type="smallBold">{fechaCorta(r.fecha)}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                {detalle}
+              </ThemedText>
+            </View>
+            {r.observaciones ? (
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                {r.observaciones}
+              </ThemedText>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -253,7 +411,22 @@ const styles = StyleSheet.create({
   lateral: { flex: 1, gap: Spacing.three },
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
   quesito: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  mes: { flexDirection: 'row', gap: Spacing.five },
+  calendario: { flex: 1.3 },
+  actividades: { flex: 1, gap: Spacing.four, justifyContent: 'space-between' },
+  barras: { gap: Spacing.three },
+  barra: { gap: Spacing.one },
+  filaBarra: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  pista: { height: 6, borderRadius: Radius.pill, overflow: 'hidden' },
+  relleno: { height: 6, borderRadius: Radius.pill },
+  registro: { paddingVertical: Spacing.two, gap: 2 },
+  ficha: { gap: Spacing.one },
   flex: { flex: 1, gap: Spacing.one },
-  datos: { flex: 1.6, gap: Spacing.two, paddingLeft: Spacing.four },
+  datos: { flex: 1, gap: Spacing.two, paddingLeft: Spacing.two },
   cifras: { flexDirection: 'row', gap: Spacing.three },
 });
