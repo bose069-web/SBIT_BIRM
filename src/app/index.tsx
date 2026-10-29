@@ -10,14 +10,16 @@ import { PanelProfe } from '@/ui/vistas/panel-profe';
 
 // Inicio distinto según el rol: el alumno ve sus horas, la empresa valora y profe, instituto y
 // generalitat hacen el seguimiento (cada uno de los dossiers que le deja ver la base).
-// Con ?nuevo=1 o ?editar=<id>, el formulario del dossier. Con ?dossier=<id> se ve la ficha de ese dossier dentro de la misma pestaña (así no hace
-// falta una ruta nueva en la barra de pestañas).
+// Las subpartes de Inicio van en la URL (`?dossier=`, `?editar=`, `?nuevo=`, `?valorar=`): así la
+// pestaña Inicio lleva siempre a la pantalla principal aunque ya estés dentro.
 export default function InicioScreen() {
   const { rol } = useUsuario();
-  const { dossier, editar, nuevo } = useLocalSearchParams<{
+  const { dossier, editar, nuevo, valorar, mes } = useLocalSearchParams<{
     dossier?: string;
     editar?: string;
     nuevo?: string;
+    valorar?: string;
+    mes?: string;
   }>();
   // Al terminar el formulario se vuelve a la ficha del dossier guardado (o a Inicio).
   const alTerminar = (id: string | null) =>
@@ -26,7 +28,9 @@ export default function InicioScreen() {
   if (editar) return <FormularioDossier key={editar} dossierId={editar} onTerminar={alTerminar} />;
   if (dossier)
     return <FichaDossier key={dossier} dossierId={dossier} onVolver={() => router.replace('/')} />;
-  if (rol === 'empresa') return <PanelEmpresa />;
+  // La clave hace que el panel se vuelva a cargar al entrar y salir de la valoración.
+  if (rol === 'empresa')
+    return <PanelEmpresa key={valorar ?? 'inicio'} validar={valorar ?? null} mes={mes ?? null} />;
   if (haceSeguimiento(rol)) return <PanelProfe />;
   return <PanelAlumno />;
 }

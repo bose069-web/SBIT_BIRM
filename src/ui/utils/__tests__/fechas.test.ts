@@ -1,4 +1,12 @@
-import { fechaCorta, fechaLarga, formatoHoras, limitesMes, nombreMes, sumarDias } from '../fechas';
+import {
+  diasHasta,
+  fechaCorta,
+  fechaLarga,
+  formatoHoras,
+  limitesMes,
+  nombreMes,
+  sumarDias,
+} from '../fechas';
 
 describe('fechas', () => {
   it('escribe la fecha larga con el día de la semana', () => {
@@ -9,6 +17,12 @@ describe('fechas', () => {
   it('suma días cambiando de mes y de año', () => {
     expect(sumarDias('2026-10-31', 1)).toBe('2026-11-01');
     expect(sumarDias('2027-01-01', -1)).toBe('2026-12-31');
+  });
+
+  it('cuenta los días que faltan, también a través de meses', () => {
+    expect(diasHasta('2027-03-15', '2026-10-29')).toBe(137);
+    expect(diasHasta('2026-10-29', '2026-10-29')).toBe(0);
+    expect(diasHasta('2026-10-27', '2026-10-29')).toBe(-2);
   });
 
   it('da los límites del mes, también en febrero bisiesto', () => {

@@ -54,20 +54,35 @@ export default function AppTabs({ rol }: { rol: Rol }) {
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Inicio</TabButton>
+            <TabButton href="/">Inicio</TabButton>
           </TabTrigger>
-          <TabTrigger name="calendario" href="/calendario" asChild>
-            <TabButton>Calendario</TabButton>
-          </TabTrigger>
+          {/* La empresa no tiene calendario: lo que necesita son los informes que le toca
+              validar. Se mantiene la ruta oculta para que la navegación por pestañas siga
+              teniendo todas las rutas. */}
+          {rol === 'empresa' ? (
+            <>
+              <TabTrigger name="calendario" href="/calendario" style={{ display: 'none' }} />
+              <TabTrigger name="validaciones" href="/validaciones" asChild>
+                <TabButton href="/validaciones">Validaciones</TabButton>
+              </TabTrigger>
+            </>
+          ) : (
+            <>
+              <TabTrigger name="calendario" href="/calendario" asChild>
+                <TabButton href="/calendario">Calendario</TabButton>
+              </TabTrigger>
+              <TabTrigger name="validaciones" href="/validaciones" style={{ display: 'none' }} />
+            </>
+          )}
           <TabTrigger name="chat" href="/chat" asChild>
-            <TabButton>Chat</TabButton>
+            <TabButton href="/chat">Chat</TabButton>
           </TabTrigger>
           {/* Registrar y Centro siguen siendo rutas (si no, no se puede navegar a ellas), pero se
               abren desde Inicio, no desde la barra. */}
           <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
           <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           <TabTrigger name="perfil" href="/perfil" asChild>
-            <TabButton>Perfil</TabButton>
+            <TabButton href="/perfil">Perfil</TabButton>
           </TabTrigger>
           <BotonEsquema />
           {/* Como en anthropic.com: una sola acción destacada, en píldora oscura, al final. */}
@@ -78,11 +93,27 @@ export default function AppTabs({ rol }: { rol: Rol }) {
   );
 }
 
+/** Pantalla principal de cada pestaña: al pulsarla siempre se vuelve a ella. */
+type RutaPestana = '/' | '/calendario' | '/validaciones' | '/chat' | '/perfil';
+
 // `ref` se descarta: el tipo de expo-router/ui no encaja con el de Pressable en RN 0.88 y la navegación va por onPress.
-export function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
+export function TabButton({
+  children,
+  isFocused,
+  ref: _ref,
+  href,
+  onPress,
+  ...props
+}: TabTriggerSlotProps & { href: RutaPestana }) {
   return (
     <Pressable
       {...props}
+      // Pulsar la pestaña lleva a su pantalla principal aunque estés dentro de una subparte
+      // (ficha de un dossier, valoración de un mes, un hilo del chat): así se cierra la subparte.
+      onPress={(evento) => {
+        onPress?.(evento);
+        router.replace(href);
+      }}
       accessibilityRole="tab"
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={typeof children === 'string' ? children : undefined}
