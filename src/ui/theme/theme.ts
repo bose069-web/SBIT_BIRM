@@ -9,6 +9,7 @@ export const Colors = {
   light: {
     // Neutros cálidos tipo marfil (como anthropic.com): fondo crema y texto casi negro.
     text: '#141413',
+    textHover: '#2A2826',
     textSecondary: '#5E5D59',
     background: '#F5F4EE',
     surface: '#FAF9F5',
@@ -17,6 +18,7 @@ export const Colors = {
     borderStrong: '#87867F',
     // #2563EB sobre blanco: 5.2:1.
     primary: '#2563EB',
+    primaryHover: '#306BED',
     onPrimary: '#FFFFFF',
     primarySuave: '#DBEAFE',
     // Superficies de cristal (Liquid Glass): translúcidas sobre el fondo.
@@ -48,6 +50,7 @@ export const Colors = {
   dark: {
     // Grises «carbón cálido»: fondo menos negro y un tinte cálido suave.
     text: '#F5F3F0',
+    textHover: '#FAF9F5',
     textSecondary: '#A8A39C',
     background: '#141312',
     surface: '#1E1D1B',
@@ -56,6 +59,7 @@ export const Colors = {
     borderStrong: '#A8A39C',
     // El mismo azul que en claro, con texto blanco encima.
     primary: '#2563EB',
+    primaryHover: '#306BED',
     onPrimary: '#FFFFFF',
     primarySuave: '#172554',
     cristal: 'rgba(30,29,27,0.72)',

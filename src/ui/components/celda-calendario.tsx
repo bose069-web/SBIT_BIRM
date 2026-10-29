@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras } from '@/ui/utils/fechas';
 
@@ -54,6 +56,7 @@ export function CeldaCalendario({
   style,
 }: Props) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   const dia = Number(fecha.slice(8, 10));
   const interactiva = !!onPress && estado !== 'fuera_periodo';
   const colorPunto = theme[COLOR_ESTADO[estado]];
@@ -124,7 +127,11 @@ export function CeldaCalendario({
       accessibilityHint="Abre el registro de ese día"
       accessibilityState={{ selected: !!seleccionada }}
       onPress={() => onPress(fecha)}
-      style={estilo}>
+      style={({ hovered }: EstadoPressable) => [
+        estilo,
+        transicionWeb(reducido),
+        fondoHoverWeb(hovered, theme.subtle),
+      ]}>
       {contenido}
     </Pressable>
   );

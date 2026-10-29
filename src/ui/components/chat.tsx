@@ -10,6 +10,8 @@ import {
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
@@ -189,6 +191,7 @@ export function Compositor({
   enviando: boolean;
 }) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   const [texto, setTexto] = useState('');
   const [alto, setAlto] = useState(ALTO_MIN);
   const [pista, setPista] = useState<string | null>(null);
@@ -250,12 +253,14 @@ export function Compositor({
           accessibilityLabel="Enviar mensaje"
           accessibilityState={{ disabled: vacio, busy: enviando }}
           onPress={enviar}
-          style={({ pressed }) => [
+          style={({ hovered, pressed }: EstadoPressable) => [
             styles.enviar,
+            transicionWeb(reducido),
             {
               backgroundColor: vacio ? theme.subtle : theme.primary,
               opacity: pressed || enviando ? 0.7 : 1,
             },
+            !vacio && !enviando && fondoHoverWeb(hovered, theme.primaryHover),
           ]}>
           <ThemedText
             type="smallBold"

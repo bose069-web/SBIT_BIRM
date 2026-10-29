@@ -27,7 +27,7 @@ export const ESTADOS_DIA: Record<
   }
 > = {
   trabajo: {
-    texto: 'Trabajo',
+    texto: 'Fichado',
     color: 'estadoValidado',
     fondo: 'fondoTrabajo',
     tinta: 'textoTrabajo',

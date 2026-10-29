@@ -40,7 +40,7 @@ import { CalendarioMes, ESTADOS_DIA } from './calendario-mes';
 import { Cargando } from './comun';
 
 const TIPOS: { valor: TipoDia; texto: string }[] = [
-  { valor: 'trabajo', texto: 'Trabajo' },
+  { valor: 'trabajo', texto: 'Fichado' },
   { valor: 'ausencia', texto: 'Ausencia' },
   { valor: 'festivo', texto: 'Festivo' },
 ];
