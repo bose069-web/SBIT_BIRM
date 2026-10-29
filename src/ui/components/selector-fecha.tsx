@@ -5,6 +5,8 @@ import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useAnimar } from '@/ui/hooks/use-animar';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { FontFamily, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 import { DIAS_SEMANA, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
@@ -21,6 +23,7 @@ interface Props {
 /** Campo de fecha que despliega un calendario del mes al tocarlo, en vez de escribir la fecha. */
 export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   const animar = useAnimar();
   const hoy = hoyISO();
   const [abierto, setAbierto] = useState(false);
@@ -42,12 +45,14 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
         }
         accessibilityState={{ expanded: abierto }}
         onPress={() => setAbierto(!abierto)}
-        style={[
+        style={({ hovered }: EstadoPressable) => [
           styles.campo,
           {
             borderColor: abierto ? theme.primary : theme.borderStrong,
             backgroundColor: theme.surface,
           },
+          transicionWeb(reducido),
+          fondoHoverWeb(hovered, theme.subtle),
         ]}>
         <ThemedText themeColor={valor ? 'text' : 'textSecondary'}>
           {valor ? fechaCorta(valor) : 'Elegir día'}
@@ -98,8 +103,9 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
                     accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}`}
                     accessibilityState={{ selected: elegido }}
                     onPress={() => elegir(fecha)}
-                    style={({ pressed }) => [
+                    style={({ hovered, pressed }: EstadoPressable) => [
                       styles.dia,
+                      transicionWeb(reducido),
                       {
                         backgroundColor: elegido
                           ? theme.primary
@@ -108,6 +114,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
                             : 'transparent',
                         borderColor: esHoy && !elegido ? theme.primary : 'transparent',
                       },
+                      fondoHoverWeb(hovered, elegido ? theme.primaryHover : theme.subtle),
                     ]}>
                     <ThemedText
                       style={[styles.numero, { color: elegido ? theme.onPrimary : theme.text }]}>
@@ -138,14 +145,17 @@ function BotonFlecha({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ hovered, pressed }: EstadoPressable) => [
         styles.flecha,
+        transicionWeb(reducido),
         { backgroundColor: pressed ? theme.border : theme.subtle },
+        fondoHoverWeb(hovered, theme.border),
       ]}>
       <ThemedText type="smallBold">{texto}</ThemedText>
     </Pressable>
@@ -153,8 +163,17 @@ function BotonFlecha({
 }
 
 function BotonTexto({ texto, onPress }: { texto: string; onPress: () => void }) {
+  const theme = useTheme();
+  const reducido = useMovimientoReducido();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.botonTexto}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ hovered }: EstadoPressable) => [
+        styles.botonTexto,
+        transicionWeb(reducido),
+        fondoHoverWeb(hovered, theme.subtle),
+      ]}>
       <ThemedText type="smallBold" themeColor="primary">
         {texto}
       </ThemedText>

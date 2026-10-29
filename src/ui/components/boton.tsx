@@ -1,7 +1,9 @@
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
 interface Props {
@@ -24,6 +26,7 @@ export function Boton({
   accessibilityHint,
 }: Props) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   const primario = variante === 'primario';
   const color = primario ? theme.onPrimary : variante === 'peligro' ? theme.danger : theme.text;
   const inactivo = desactivado || cargando;
@@ -35,11 +38,29 @@ export function Boton({
       accessibilityState={{ disabled: !!inactivo, busy: !!cargando }}
       disabled={inactivo}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ hovered, pressed }: EstadoPressable) => [
         styles.boton,
         primario
           ? { backgroundColor: theme.primary }
           : { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 },
+        transicionWeb(reducido, 'background-color, transform'),
+        !inactivo &&
+          fondoHoverWeb(
+            hovered,
+            primario
+              ? theme.primaryHover
+              : variante === 'peligro'
+                ? theme.fondoAusencia
+                : theme.subtle,
+          ),
+        Platform.OS === 'web' &&
+          !reducido &&
+          !inactivo && {
+            transform: [
+              { translateY: hovered && !pressed ? -1 : 0 },
+              { scale: pressed ? 0.98 : 1 },
+            ],
+          },
         (pressed || inactivo) && { opacity: 0.6 },
       ]}>
       {cargando ? (

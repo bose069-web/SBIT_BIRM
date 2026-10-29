@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius } from '@/ui/theme/theme';
 
 interface Props {
@@ -19,6 +21,7 @@ interface Props {
  */
 export function CasillaTarea({ titulo, hecha, onPress, desactivada, style }: Props) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -27,7 +30,13 @@ export function CasillaTarea({ titulo, hecha, onPress, desactivada, style }: Pro
       accessibilityState={{ checked: hecha, disabled: !!desactivada }}
       disabled={desactivada}
       onPress={onPress}
-      style={({ pressed }) => [styles.area, style, (pressed || desactivada) && styles.atenuada]}>
+      style={({ hovered, pressed }: EstadoPressable) => [
+        styles.area,
+        style,
+        transicionWeb(reducido),
+        !desactivada && fondoHoverWeb(hovered, theme.subtle),
+        (pressed || desactivada) && styles.atenuada,
+      ]}>
       <View
         style={[
           styles.cuadrado,

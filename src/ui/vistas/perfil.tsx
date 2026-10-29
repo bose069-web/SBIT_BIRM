@@ -67,7 +67,7 @@ export function VistaPerfil() {
   }, [usuario.id]);
 
   return (
-    <Pantalla titulo="Perfil" amplia={ancho}>
+    <Pantalla titulo="Perfil" amplia={ancho} compacta>
       <Cabecera usuario={usuario} dossier={datos?.dossier ?? null} />
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}

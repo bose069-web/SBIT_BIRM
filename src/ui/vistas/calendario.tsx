@@ -34,7 +34,11 @@ export function VistaCalendario() {
 function CalendarioGeneral({ hoy, ponFechas }: { hoy: string; ponFechas: boolean }) {
   const ancho = useWebAncha();
   return (
-    <Pantalla titulo="Calendario" subtitulo="Entregas, reuniones y festivos" amplia={ancho}>
+    <Pantalla
+      titulo="Calendario"
+      subtitulo="Entregas, reuniones y festivos"
+      amplia={ancho}
+      compacta>
       <Tarjeta titulo="Próximas fechas">
         <ProximasFechas hoy={hoy} />
       </Tarjeta>
@@ -64,7 +68,8 @@ function CalendarioDelAlumno({ hoy }: { hoy: string }) {
     <Pantalla
       titulo="Calendario"
       subtitulo="Toca un día para ver qué hay y registrarlo"
-      amplia={ancho}>
+      amplia={ancho}
+      compacta>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {!cargando && !datos && !error ? (

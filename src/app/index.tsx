@@ -7,9 +7,11 @@ import { FormularioDossier } from '@/ui/vistas/formulario-dossier';
 import { PanelAlumno } from '@/ui/vistas/panel-alumno';
 import { PanelEmpresa } from '@/ui/vistas/panel-empresa';
 import { PanelProfe } from '@/ui/vistas/panel-profe';
+import { SeguimientoProfe } from '@/ui/vistas/seguimiento-profe';
 
-// Inicio distinto según el rol: el alumno ve sus horas, la empresa valora y profe, instituto y
-// generalitat hacen el seguimiento (cada uno de los dossiers que le deja ver la base).
+// Inicio distinto según el rol: el alumno ve sus horas, la empresa valora, el profe ve lo que
+// tiene pendiente (mensajes, horas por validar y quién no apunta) e instituto y generalitat
+// hacen el seguimiento (cada uno de los dossiers que le deja ver la base).
 // Las subpartes de Inicio van en la URL (`?dossier=`, `?editar=`, `?nuevo=`, `?valorar=`): así la
 // pestaña Inicio lleva siempre a la pantalla principal aunque ya estés dentro.
 export default function InicioScreen() {
@@ -31,6 +33,7 @@ export default function InicioScreen() {
   // La clave hace que el panel se vuelva a cargar al entrar y salir de la valoración.
   if (rol === 'empresa')
     return <PanelEmpresa key={valorar ?? 'inicio'} validar={valorar ?? null} mes={mes ?? null} />;
-  if (haceSeguimiento(rol)) return <PanelProfe />;
+  if (rol === 'profe') return <PanelProfe />;
+  if (haceSeguimiento(rol)) return <SeguimientoProfe />;
   return <PanelAlumno />;
 }

@@ -8,6 +8,10 @@ import { Colors } from '@/ui/theme/theme';
 // Expo, así que no hace falta ningún archivo ni dependencia nueva). El nombre de la pestaña es
 // la etiqueta accesible; el icono solo acompaña.
 export default function AppTabs({ rol }: { rol: Rol }) {
+  // El profe no usa calendario: en esa pestaña tiene el seguimiento de su clase.
+  const profe = rol === 'profe';
+  // La empresa tampoco: en esa pestaña tiene los informes que le toca validar.
+  const empresa = rol === 'empresa';
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
@@ -21,13 +25,16 @@ export default function AppTabs({ rol }: { rol: Rol }) {
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
       </NativeTabs.Trigger>
 
-      {/* La empresa no tiene calendario: su segunda pestaña son los informes por validar. */}
-      <NativeTabs.Trigger name="calendario" hidden={rol === 'empresa'}>
-        <NativeTabs.Trigger.Label>Calendario</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+      <NativeTabs.Trigger name="calendario" hidden={empresa}>
+        <NativeTabs.Trigger.Label>{profe ? 'Seguimiento' : 'Calendario'}</NativeTabs.Trigger.Label>
+        {profe ? (
+          <NativeTabs.Trigger.Icon sf="chart.bar" md="bar_chart" />
+        ) : (
+          <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+        )}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="validaciones" hidden={rol !== 'empresa'}>
+      <NativeTabs.Trigger name="validaciones" hidden={!empresa}>
         <NativeTabs.Trigger.Label>Validaciones</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'checkmark.circle', selected: 'checkmark.circle.fill' }}
