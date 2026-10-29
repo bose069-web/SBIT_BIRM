@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   DATOS_PERSONALES_VACIOS,
   type DatosPersonales,
+  type Identidad,
   type Idioma,
   type ResultadoCambioEmail,
 } from '@/core/domain/perfil';
@@ -96,5 +97,16 @@ export class PerfilSupabase implements PerfilPort {
     const { data, error } = await this.cliente.auth.updateUser({ email });
     if (error) throw new Error(error.message);
     return data.user?.email?.toLowerCase() === email ? 'cambiado' : 'pendiente';
+  }
+
+  // RLS: el alumno solo lee la suya; la escriben quienes gestionan su dossier.
+  async obtenerIdentidad(): Promise<Identidad> {
+    const { data, error } = await this.cliente
+      .from('identidad_alumno')
+      .select('dni')
+      .eq('alumno_id', await this.idActual())
+      .maybeSingle<{ dni: string | null }>();
+    if (error) throw new Error(error.message);
+    return { dni: data?.dni ?? null };
   }
 }

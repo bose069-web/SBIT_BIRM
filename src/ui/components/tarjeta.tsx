@@ -17,8 +17,9 @@ interface Props {
 // Tarjeta de cristal que entra con una animación suave.
 export function Tarjeta({ titulo, accion, children, style }: Props) {
   return (
-    <Aparecer>
-      <Cristal style={[styles.tarjeta, style]}>
+    // Crece para igualar la altura cuando va junto a otra tarjeta en una fila.
+    <Aparecer style={styles.crecer}>
+      <Cristal style={[styles.tarjeta, styles.crecer, style]}>
         {titulo || accion ? (
           <View style={styles.cabecera}>
             {titulo ? (
@@ -40,6 +41,7 @@ export function Tarjeta({ titulo, accion, children, style }: Props) {
 }
 
 const styles = StyleSheet.create({
+  crecer: { flexGrow: 1 },
   tarjeta: {
     borderRadius: Radius.card,
     padding: Spacing.three,

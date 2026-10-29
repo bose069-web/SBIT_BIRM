@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, View, type ViewStyle } from 'react-native';
 
@@ -7,9 +8,11 @@ import {
   cambiarNombre,
   guardarDatosPersonales,
   obtenerDatosPersonales,
+  obtenerMiIdentidad,
 } from '@/core/application/perfil';
 import type { Dossier } from '@/core/domain/dossier';
 import {
+  enmascararDni,
   puedeCambiarSuEmail,
   puedeCambiarSuNombre,
   type DatosPersonales,
@@ -61,11 +64,12 @@ export function VistaPerfil() {
   const { salir } = useSesion();
   const ancho = useWebAncha();
   const { datos, error, cargando, recargar } = useDatos(async () => {
-    const [personales, dossier] = await Promise.all([
+    const [personales, dossier, identidad] = await Promise.all([
       obtenerDatosPersonales(container.perfil),
       usuario.rol === 'alumno' ? obtenerDossierActual(container.dossiers, hoyISO()) : null,
+      obtenerMiIdentidad(container.perfil, usuario),
     ]);
-    return { personales, dossier };
+    return { personales, dossier, dni: identidad.dni };
   }, [usuario.id]);
 
   return (
@@ -74,17 +78,13 @@ export function VistaPerfil() {
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {datos ? (
-        <Columnas
+        <Formulario
+          key={usuario.id}
+          usuario={usuario}
+          inicial={datos.personales}
+          dni={datos.dni}
           ancho={ancho}
-          izquierda={
-            <Formulario
-              key={usuario.id}
-              usuario={usuario}
-              inicial={datos.personales}
-              ancho={ancho}
-            />
-          }
-          derecha={
+          sesion={
             <Tarjeta titulo="Sesión">
               <ThemedText type="small" themeColor="textSecondary">
                 Datos: {container.auth.nombre}
@@ -156,17 +156,21 @@ function Cabecera({ usuario, dossier }: { usuario: Usuario; dossier: Dossier | n
 function Formulario({
   usuario,
   inicial,
+  dni,
   ancho,
+  sesion,
 }: {
   usuario: Usuario;
   inicial: DatosPersonales;
+  dni: string | null;
   ancho: boolean;
+  sesion: ReactNode;
 }) {
   const theme = useTheme();
   const { renombrar, cambiarCorreo } = useSesion();
   const [nombre, setNombre] = useState(usuario.nombre);
-  const [email, setEmail] = useState(usuario.email);
   const [datos, setDatos] = useState(inicial);
+  const [email, setEmail] = useState(usuario.email);
   const [guardado, setGuardado] = useState({
     nombre: usuario.nombre,
     datos: inicial,
@@ -228,162 +232,227 @@ function Formulario({
   };
 
   const tituloRol = TITULO_ROL[usuario.rol];
-  return (
-    <>
-      <Tarjeta titulo="Cuenta">
-        {!editaNombre ? (
-          <FilaDato
-            etiqueta="Nombre y apellidos"
-            valor={usuario.nombre}
-            ayuda="Lo gestiona tu centro"
-          />
-        ) : null}
-        {editaEmail ? (
-          <Campo
-            etiqueta="Correo"
-            value={email}
-            onChangeText={(v) => {
-              setEmail(v);
-              setAviso(null);
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
-          />
-        ) : (
-          <FilaDato etiqueta="Correo" valor={usuario.email} ayuda="Lo gestiona tu centro" />
-        )}
-        <FilaDato etiqueta="Rol" valor={NOMBRE_ROL[usuario.rol]} ayuda="Lo gestiona tu centro" />
-      </Tarjeta>
 
-      <Tarjeta titulo="Contacto">
-        {editaNombre ? (
-          <Campo
-            etiqueta="Nombre y apellidos"
-            value={nombre}
-            onChangeText={(v) => {
-              setNombre(v);
-              setAviso(null);
-            }}
-            autoComplete="name"
-          />
-        ) : null}
+  // Datos de identidad: solo consulta, con una única nota sobre quién los gestiona.
+  const cuenta = (
+    <Tarjeta titulo="Cuenta">
+      {!editaNombre ? <FilaDato etiqueta="Nombre y apellidos" valor={usuario.nombre} /> : null}
+      {editaEmail ? (
         <Campo
-          etiqueta="Teléfono"
-          value={texto('telefono')}
-          onChangeText={(v) => cambiar('telefono', v)}
-          placeholder="600 123 456"
-          keyboardType="phone-pad"
-          autoComplete="tel"
+          etiqueta="Correo"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setAviso(null);
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
         />
-      </Tarjeta>
-
-      {tituloRol ? (
-        <Tarjeta titulo={tituloRol}>
-          {usuario.rol === 'alumno' ? (
-            <>
-              <Campo
-                etiqueta="Nombre del contacto"
-                value={texto('emergenciaNombre')}
-                onChangeText={(v) => cambiar('emergenciaNombre', v)}
-                placeholder="Madre, padre, tutor legal…"
-              />
-              <Campo
-                etiqueta="Teléfono del contacto"
-                value={texto('emergenciaTelefono')}
-                onChangeText={(v) => cambiar('emergenciaTelefono', v)}
-                keyboardType="phone-pad"
-              />
-              <ThemedText type="small" themeColor="textSecondary">
-                Pendiente de validar por tu tutor
-              </ThemedText>
-            </>
-          ) : null}
-          {usuario.rol === 'profe' ? (
-            <>
-              <Campo
-                etiqueta="Departamento"
-                value={texto('departamento')}
-                onChangeText={(v) => cambiar('departamento', v)}
-                placeholder="Informática"
-              />
-              <Campo
-                etiqueta="Horario de tutoría"
-                value={texto('horarioTutoria')}
-                onChangeText={(v) => cambiar('horarioTutoria', v)}
-                placeholder="Martes de 15:00 a 16:00"
-              />
-            </>
-          ) : null}
-          {usuario.rol === 'empresa' || usuario.rol === 'instituto' ? (
-            <Campo
-              etiqueta="Cargo"
-              value={texto('cargo')}
-              onChangeText={(v) => cambiar('cargo', v)}
-              placeholder={
-                usuario.rol === 'empresa' ? 'Responsable de desarrollo' : 'Coordinación FCT'
-              }
-            />
-          ) : null}
-          {usuario.rol === 'empresa' ? (
-            <>
-              <Campo
-                etiqueta="Teléfono de trabajo"
-                value={texto('telefonoTrabajo')}
-                onChangeText={(v) => cambiar('telefonoTrabajo', v)}
-                keyboardType="phone-pad"
-              />
-              <Campo
-                etiqueta="Centro de trabajo"
-                value={texto('centroTrabajo')}
-                onChangeText={(v) => cambiar('centroTrabajo', v)}
-                placeholder="Oficina de Barcelona"
-              />
-            </>
-          ) : null}
-        </Tarjeta>
-      ) : null}
-
-      <Tarjeta titulo="Preferencias">
-        <Selector
-          etiqueta="Idioma"
-          opciones={IDIOMAS}
-          valor={datos.idioma}
-          onCambio={(v) => cambiar('idioma', v)}
-        />
-        <Interruptor
-          texto="Avisos y notificaciones"
-          valor={datos.notificaciones}
-          onCambio={(v) => cambiar('notificaciones', v)}
-        />
-      </Tarjeta>
-
-      <View
-        style={[
-          styles.barraGuardado,
-          { backgroundColor: theme.surface, borderColor: theme.border },
-          ancho && barraFijaWeb,
-          ancho && styles.barraGuardadoAncha,
-        ]}>
-        <View style={styles.estadoGuardado}>
-          {aviso ? (
-            <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
-          ) : (
-            <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-              {hayCambios ? 'Tienes cambios sin guardar' : 'Tu perfil está al día'}
-            </ThemedText>
-          )}
-        </View>
+      ) : (
+        <FilaDato etiqueta="Correo" valor={usuario.email} />
+      )}
+      {usuario.rol === 'alumno' ? <FilaDni dni={dni} /> : null}
+      {/* La empresa gestiona su propia cuenta; al resto se la gestiona su centro. */}
+      {editaEmail ? null : (
+        <ThemedText type="small" themeColor="textSecondary">
+          Estos datos los gestiona tu centro. Si alguno está mal, avisa a tu tutor.
+        </ThemedText>
+      )}
+      {usuario.rol === 'alumno' ? (
         <Boton
-          texto={hayCambios ? 'Guardar cambios' : 'Sin cambios'}
-          variante={hayCambios ? 'primario' : 'secundario'}
-          desactivado={!hayCambios}
-          onPress={guardar}
-          cargando={guardando}
+          texto="Avisar a mi tutor"
+          variante="secundario"
+          onPress={() => router.push('/chat')}
+          accessibilityHint="Abre el chat para comunicar una incidencia"
         />
+      ) : null}
+    </Tarjeta>
+  );
+
+  const contacto = (
+    <Tarjeta titulo="Contacto">
+      {editaNombre ? (
+        <Campo
+          etiqueta="Nombre y apellidos"
+          value={nombre}
+          onChangeText={(v) => {
+            setNombre(v);
+            setAviso(null);
+          }}
+          autoComplete="name"
+        />
+      ) : null}
+      <Campo
+        etiqueta="Teléfono"
+        value={texto('telefono')}
+        onChangeText={(v) => cambiar('telefono', v)}
+        placeholder="600 123 456"
+        keyboardType="phone-pad"
+        autoComplete="tel"
+      />
+    </Tarjeta>
+  );
+
+  const tarjetaRol = tituloRol ? (
+    <Tarjeta titulo={tituloRol}>
+      {usuario.rol === 'alumno' ? (
+        <>
+          <Campo
+            etiqueta="Nombre del contacto"
+            value={texto('emergenciaNombre')}
+            onChangeText={(v) => cambiar('emergenciaNombre', v)}
+            placeholder="Madre, padre, tutor legal…"
+          />
+          <Campo
+            etiqueta="Teléfono del contacto"
+            value={texto('emergenciaTelefono')}
+            onChangeText={(v) => cambiar('emergenciaTelefono', v)}
+            keyboardType="phone-pad"
+          />
+          <ThemedText type="small" themeColor="textSecondary">
+            Pendiente de validar por tu tutor
+          </ThemedText>
+        </>
+      ) : null}
+      {usuario.rol === 'profe' ? (
+        <>
+          <Campo
+            etiqueta="Departamento"
+            value={texto('departamento')}
+            onChangeText={(v) => cambiar('departamento', v)}
+            placeholder="Informática"
+          />
+          <Campo
+            etiqueta="Horario de tutoría"
+            value={texto('horarioTutoria')}
+            onChangeText={(v) => cambiar('horarioTutoria', v)}
+            placeholder="Martes de 15:00 a 16:00"
+          />
+        </>
+      ) : null}
+      {usuario.rol === 'empresa' || usuario.rol === 'instituto' ? (
+        <Campo
+          etiqueta="Cargo"
+          value={texto('cargo')}
+          onChangeText={(v) => cambiar('cargo', v)}
+          placeholder={usuario.rol === 'empresa' ? 'Responsable de desarrollo' : 'Coordinación FCT'}
+        />
+      ) : null}
+      {usuario.rol === 'empresa' ? (
+        <>
+          <Campo
+            etiqueta="Teléfono de trabajo"
+            value={texto('telefonoTrabajo')}
+            onChangeText={(v) => cambiar('telefonoTrabajo', v)}
+            keyboardType="phone-pad"
+          />
+          <Campo
+            etiqueta="Centro de trabajo"
+            value={texto('centroTrabajo')}
+            onChangeText={(v) => cambiar('centroTrabajo', v)}
+            placeholder="Oficina de Barcelona"
+          />
+        </>
+      ) : null}
+    </Tarjeta>
+  ) : null;
+
+  const preferencias = (
+    <Tarjeta titulo="Preferencias">
+      <Selector
+        etiqueta="Idioma"
+        opciones={IDIOMAS}
+        valor={datos.idioma}
+        onCambio={(v) => cambiar('idioma', v)}
+      />
+      <Interruptor
+        texto="Avisos y notificaciones"
+        valor={datos.notificaciones}
+        onCambio={(v) => cambiar('notificaciones', v)}
+      />
+    </Tarjeta>
+  );
+
+  const barra = (
+    <View
+      style={[
+        styles.barraGuardado,
+        { backgroundColor: theme.background, borderTopColor: theme.border },
+        ancho && barraFijaWeb,
+        ancho && styles.barraGuardadoAncha,
+      ]}>
+      <View style={styles.estadoGuardado}>
+        {aviso ? (
+          <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+            {hayCambios ? 'Tienes cambios sin guardar' : 'Tu perfil está al día'}
+          </ThemedText>
+        )}
       </View>
-    </>
+      <Boton
+        texto={hayCambios ? 'Guardar cambios' : 'Sin cambios'}
+        variante={hayCambios ? 'primario' : 'secundario'}
+        desactivado={!hayCambios}
+        onPress={guardar}
+        cargando={guardando}
+      />
+    </View>
+  );
+
+  if (!ancho) {
+    return (
+      <>
+        {cuenta}
+        {contacto}
+        {tarjetaRol}
+        {preferencias}
+        {barra}
+        {sesion}
+      </>
+    );
+  }
+
+  // Web ancha: lo editable a la izquierda (contacto y rol en paralelo) y la cuenta a la derecha.
+  return (
+    <View style={styles.columnas}>
+      <View style={[styles.columna, styles.principal]}>
+        <View style={styles.pareja}>
+          <View style={styles.mitad}>{contacto}</View>
+          {tarjetaRol ? <View style={styles.mitad}>{tarjetaRol}</View> : null}
+        </View>
+        {preferencias}
+        {barra}
+      </View>
+      <View style={[styles.columna, styles.lateral]}>
+        {cuenta}
+        {sesion}
+      </View>
+    </View>
+  );
+}
+
+/** DNI enmascarado por defecto; el alumno puede mostrarlo pero nunca editarlo. */
+function FilaDni({ dni }: { dni: string | null }) {
+  const [visible, setVisible] = useState(false);
+  if (!dni) return <FilaDato etiqueta="DNI" valor="Sin registrar" />;
+  return (
+    <View style={styles.filaDni}>
+      <View style={styles.flex}>
+        <FilaDato etiqueta="DNI" valor={visible ? dni : enmascararDni(dni)} />
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={visible ? 'Ocultar DNI' : 'Mostrar DNI'}
+        onPress={() => setVisible((v) => !v)}
+        style={({ pressed }) => [styles.botonDni, pressed && styles.pulsado]}>
+        <ThemedText type="smallBold" themeColor="primary">
+          {visible ? 'Ocultar' : 'Mostrar'}
+        </ThemedText>
+      </Pressable>
+    </View>
   );
 }
 
@@ -437,23 +506,6 @@ function Interruptor({
   );
 }
 
-function Columnas({
-  ancho,
-  izquierda,
-  derecha,
-}: {
-  ancho: boolean;
-  izquierda: ReactNode;
-  derecha: ReactNode;
-}) {
-  return (
-    <View style={ancho ? styles.columnas : styles.columna}>
-      <View style={[styles.columna, ancho && styles.principal]}>{izquierda}</View>
-      <View style={[styles.columna, ancho && styles.lateral]}>{derecha}</View>
-    </View>
-  );
-}
-
 // useWebAncha solo activa este estilo CSS en web; queda dentro de la columna del formulario.
 const barraFijaWeb = { position: 'sticky', bottom: 0 } as ViewStyle;
 
@@ -479,9 +531,8 @@ const styles = StyleSheet.create({
   areaInterruptor: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   barraGuardado: {
     gap: Spacing.three,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Radius.card,
+    paddingVertical: Spacing.three,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   barraGuardadoAncha: { flexDirection: 'row', alignItems: 'center', zIndex: 1 },
   estadoGuardado: { flex: 1, minWidth: 0 },
@@ -489,5 +540,17 @@ const styles = StyleSheet.create({
   columna: { minWidth: 0, gap: Spacing.three },
   columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
   principal: { flex: 1.7 },
-  lateral: { flex: 1, maxWidth: 320 },
+  lateral: { flex: 1, maxWidth: 380 },
+  pareja: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: Spacing.three },
+  mitad: { flexGrow: 1, flexBasis: 280, minWidth: 0 },
+  filaDni: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  botonDni: {
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: Spacing.two,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
+  },
+  pulsado: { opacity: 0.6 },
 });

@@ -1,6 +1,16 @@
-import { cambiarEmail, cambiarNombre, guardarDatosPersonales } from '../application/perfil';
+import {
+  cambiarEmail,
+  cambiarNombre,
+  guardarDatosPersonales,
+  obtenerMiIdentidad,
+} from '../application/perfil';
 import { DatosInvalidosError, SinPermisoError } from '../domain/errores';
-import { DATOS_PERSONALES_VACIOS, telefonoValido, type DatosPersonales } from '../domain/perfil';
+import {
+  DATOS_PERSONALES_VACIOS,
+  enmascararDni,
+  telefonoValido,
+  type DatosPersonales,
+} from '../domain/perfil';
 import type { PerfilPort } from '../ports/perfil-port';
 import { alumno, empresa, generalitat, instituto, profe } from '../__fixtures__/datos';
 
@@ -21,6 +31,9 @@ class PerfilFalso implements PerfilPort {
   async cambiarEmail(email: string) {
     this.email = email;
     return 'cambiado' as const;
+  }
+  async obtenerIdentidad() {
+    return { dni: '12345678Z' };
   }
 }
 
@@ -107,5 +120,20 @@ describe('correo', () => {
         SinPermisoError,
       );
     }
+  });
+});
+
+describe('identidad', () => {
+  it('el alumno consulta su DNI', async () => {
+    expect(await obtenerMiIdentidad(new PerfilFalso(), alumno)).toEqual({ dni: '12345678Z' });
+  });
+
+  it('los demás roles no tienen DNI registrado', async () => {
+    expect(await obtenerMiIdentidad(new PerfilFalso(), profe)).toEqual({ dni: null });
+  });
+
+  it('enmascara el DNI y el NIE dejando las dos primeras cifras y la letra', () => {
+    expect(enmascararDni('12345678Z')).toBe('12****78Z');
+    expect(enmascararDni('x1234567-l')).toBe('X1****67L');
   });
 });

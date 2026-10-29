@@ -1,4 +1,4 @@
-import type { DatosPersonales, ResultadoCambioEmail } from '../domain/perfil';
+import type { DatosPersonales, Identidad, ResultadoCambioEmail } from '../domain/perfil';
 
 /** Datos personales del usuario con sesión: solo los suyos. */
 export interface PerfilPort {
@@ -10,4 +10,6 @@ export interface PerfilPort {
    * confirmación al buzón nuevo y hasta entonces sigue valiendo el anterior.
    */
   cambiarEmail(email: string): Promise<ResultadoCambioEmail>;
+  /** La identidad propia, solo lectura: la cambian el instituto o el tutor. */
+  obtenerIdentidad(): Promise<Identidad>;
 }

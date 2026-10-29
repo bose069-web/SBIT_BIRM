@@ -5,6 +5,7 @@ import {
   puedeCambiarSuNombre,
   limpiarDatosPersonales,
   type DatosPersonales,
+  type Identidad,
   type ResultadoCambioEmail,
 } from '../domain/perfil';
 import { SinPermisoError } from '../domain/errores';
@@ -49,4 +50,10 @@ export async function cambiarEmail(
   if (!puedeCambiarSuEmail(usuario.rol)) throw new SinPermisoError('cambiar tu correo');
   const limpio = comprobarEmail(email);
   return { email: limpio, estado: await perfil.cambiarEmail(limpio) };
+}
+
+/** Solo el alumno tiene identidad registrada; el resto de roles no la necesita. */
+export function obtenerMiIdentidad(perfil: PerfilPort, usuario: Usuario): Promise<Identidad> {
+  if (usuario.rol !== 'alumno') return Promise.resolve({ dni: null });
+  return perfil.obtenerIdentidad();
 }

@@ -1,4 +1,8 @@
-import { DATOS_PERSONALES_VACIOS, type DatosPersonales } from '@/core/domain/perfil';
+import {
+  DATOS_PERSONALES_VACIOS,
+  type DatosPersonales,
+  type Identidad,
+} from '@/core/domain/perfil';
 import type { PerfilPort } from '@/core/ports/perfil-port';
 
 import { sesionMemory } from './auth-memory';
@@ -20,6 +24,11 @@ const PERFILES_DEMO: Record<string, Partial<DatosPersonales>> = {
     telefonoTrabajo: '93 123 45 67',
     centroTrabajo: 'Oficina de Barcelona',
   },
+};
+
+// DNI de ejemplo (formato válido, no es de nadie).
+const IDENTIDADES_DEMO: Record<string, Identidad> = {
+  [IDS_DEMO.alumno]: { dni: '12345678Z' },
 };
 
 export class PerfilMemory implements PerfilPort {
@@ -55,5 +64,9 @@ export class PerfilMemory implements PerfilPort {
     if (!usuario) throw new Error('No hay sesión');
     usuario.email = email;
     return 'cambiado' as const;
+  }
+
+  async obtenerIdentidad() {
+    return { ...(IDENTIDADES_DEMO[this.idActual()] ?? { dni: null }) };
   }
 }

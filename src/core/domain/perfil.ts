@@ -124,3 +124,16 @@ export function comprobarNombre(nombre: string): string {
   if (limpio.length > 80) throw new DatosInvalidosError('Nombre demasiado largo');
   return limpio;
 }
+
+// Identidad del alumno: la pone su instituto o su tutor y el alumno solo la consulta. Si ve un
+// error, se lo comunica a su tutor. Va aparte de los datos personales y la empresa no la ve.
+export interface Identidad {
+  dni: string | null;
+}
+
+/** Deja ver las dos primeras cifras y la letra: 12****78Z. */
+export function enmascararDni(dni: string): string {
+  const limpio = dni.replace(/[\s-]/g, '').toUpperCase();
+  if (limpio.length < 5) return '*'.repeat(limpio.length);
+  return limpio.slice(0, 2) + '*'.repeat(limpio.length - 5) + limpio.slice(-3);
+}
