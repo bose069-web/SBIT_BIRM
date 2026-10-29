@@ -31,7 +31,7 @@ import {
   type Progreso,
 } from '@/ui/utils/progreso';
 
-import { ESTADOS_DIA } from './calendario-mes';
+import { ESTADOS_DIA, LEYENDA_DIAS } from './calendario-mes';
 import { EstadoMes } from './estado-mes';
 import { MiniCalendario } from './mini-calendario';
 import { TareasDossier } from './tareas';
@@ -142,15 +142,7 @@ export function PanelAlumno() {
                         registros={datos.registros}
                         mes={mes}
                       />
-                      <Leyenda
-                        elementos={(['trabajo', 'pendiente', 'ausencia', 'festivo'] as const).map(
-                          (e) => ({
-                            texto: ESTADOS_DIA[e].texto,
-                            color: ESTADOS_DIA[e].color ?? 'textSecondary',
-                            forma: ESTADOS_DIA[e].forma,
-                          }),
-                        )}
-                      />
+                      <Leyenda elementos={LEYENDA_DIAS} />
                     </View>
                   </View>
                 </Tarjeta>

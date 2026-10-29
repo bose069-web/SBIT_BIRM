@@ -32,6 +32,18 @@ export const Colors = {
     estadoAusencia: '#B91C1C',
     // Gris oscurecido para que el festivo llegue a 4.5:1 también sobre `subtle`.
     estadoFestivo: '#6B6B75',
+    // Relleno de los días en el calendario, con su propio color de texto encima
+    // (número y horas): todos pasan de 5.8:1.
+    fondoTrabajo: '#C9D8F5',
+    fondoAusencia: '#F3C9BE',
+    fondoPendiente: '#FFFFFF',
+    fondoFestivo: '#ECEAE4',
+    textoTrabajo: '#16336B',
+    textoAusencia: '#6A2A1A',
+    textoPendiente: '#16336B',
+    textoFestivo: '#57534E',
+    // Sin apuntar: blanco con borde discontinuo azul, como un hueco por rellenar.
+    bordePendiente: '#7FA0DE',
   },
   dark: {
     // Grises «carbón cálido»: fondo menos negro y un tinte cálido suave.
@@ -56,6 +68,17 @@ export const Colors = {
     estadoAusencia: '#F87171',
     // En oscuro el gris de antes (#71717A) se quedaba en 3.7:1 sobre `surface`.
     estadoFestivo: '#9A9AA5',
+    // Rellenos vivos en oscuro: blanco sobre verde, rojo y gris; texto oscuro
+    // sobre el amarillo (todos pasan de 4.8:1).
+    fondoTrabajo: '#1E3A6E',
+    fondoAusencia: '#6B2E22',
+    fondoPendiente: '#1E1D1B',
+    fondoFestivo: '#2E2C29',
+    textoTrabajo: '#DCE6FA',
+    textoAusencia: '#FBE3DC',
+    textoPendiente: '#C9D8F5',
+    textoFestivo: '#B8B4AC',
+    bordePendiente: '#4F72B8',
   },
 } as const;
 

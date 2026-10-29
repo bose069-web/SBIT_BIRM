@@ -13,7 +13,7 @@ import { ESTADOS_DIA } from './calendario-mes';
 
 interface Props {
   hoy: string;
-  /** Con los días apuntados y el periodo, cada día lleva una marca con su estado. */
+  /** Con los días apuntados y el periodo, cada día se pinta con el color de su estado. */
   registros?: RegistroDiario[];
   periodo?: { fechaInicio: string; fechaFin: string };
   /** Mes y enlace propios; sin ellos, los pone la tarjeta que lo contiene. */
@@ -21,8 +21,8 @@ interface Props {
 }
 
 /**
- * Vistazo del mes para Inicio: el día de hoy y una marca por día (trabajado, sin apuntar,
- * ausencia, festivo). No se eligen días aquí; al tocarlo se abre la pestaña Calendario.
+ * Vistazo del mes para Inicio: el día de hoy y cada día pintado según su estado (trabajado, sin
+ * apuntar, ausencia, festivo). No se eligen días aquí; al tocarlo se abre la pestaña Calendario.
  */
 export function MiniCalendario({ hoy, registros, periodo, cabecera = true }: Props) {
   const theme = useTheme();
@@ -59,40 +59,38 @@ export function MiniCalendario({ hoy, registros, periodo, cabecera = true }: Pro
             const estado = periodo
               ? ESTADOS_DIA[estadoDia(fecha, porFecha.get(fecha), periodo, hoy)]
               : null;
-            const colorMarca = estado?.color ? theme[estado.color] : null;
+            // El día se pinta con el color de su estado; hoy sigue en azul.
+            const fondo = esHoy ? theme.primary : estado?.fondo ? theme[estado.fondo] : undefined;
             return (
               <View key={fecha} style={styles.celda}>
-                <View style={[styles.dia, esHoy && { backgroundColor: theme.primary }]}>
+                <View
+                  style={[
+                    styles.dia,
+                    fondo ? { backgroundColor: fondo } : null,
+                    !esHoy &&
+                      estado?.fondo === 'fondoPendiente' && {
+                        borderWidth: 1.5,
+                        borderStyle: 'dashed',
+                        borderColor: theme.bordePendiente,
+                      },
+                  ]}>
                   <ThemedText
                     style={[
                       styles.numero,
                       {
                         color: esHoy
                           ? theme.onPrimary
-                          : esFinDeSemana(fecha) || fecha < hoy
-                            ? theme.textSecondary
-                            : theme.text,
+                          : estado?.tinta
+                            ? theme[estado.tinta]
+                            : !estado?.fondo && (esFinDeSemana(fecha) || fecha < hoy)
+                              ? theme.textSecondary
+                              : theme.text,
                       },
                       esHoy && styles.numeroHoy,
                     ]}>
                     {Number(fecha.slice(8))}
                   </ThemedText>
                 </View>
-                {periodo ? (
-                  <View
-                    style={[
-                      styles.marca,
-                      colorMarca &&
-                        (estado?.forma === 'anillo' || estado?.forma === 'rombo'
-                          ? { borderColor: colorMarca, borderWidth: 1.2 }
-                          : { backgroundColor: colorMarca }),
-                      estado?.forma === 'cuadrado' || estado?.forma === 'rombo'
-                        ? styles.esquinas
-                        : null,
-                      estado?.forma === 'rombo' && styles.girada,
-                    ]}
-                  />
-                ) : null}
               </View>
             );
           })}
@@ -112,7 +110,7 @@ const styles = StyleSheet.create({
   },
   titulo: { fontSize: 20, lineHeight: 26, fontFamily: FontFamily.semibold },
   semana: { flexDirection: 'row' },
-  celda: { flex: 1, alignItems: 'center', gap: 2 },
+  celda: { flex: 1, alignItems: 'center', paddingVertical: 2 },
   letra: { fontSize: 11, lineHeight: 16, textAlign: 'center' },
   dia: {
     width: 32,
@@ -123,7 +121,4 @@ const styles = StyleSheet.create({
   },
   numero: { fontSize: 14, lineHeight: 18 },
   numeroHoy: { fontFamily: FontFamily.semibold },
-  marca: { width: 6, height: 6, borderRadius: 3, marginBottom: 2 },
-  esquinas: { borderRadius: 1 },
-  girada: { transform: [{ rotate: '45deg' }] },
 });
