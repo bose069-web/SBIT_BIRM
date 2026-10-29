@@ -95,6 +95,29 @@ export function puedeCambiarSuNombre(rol: Rol): boolean {
   return rol !== 'alumno';
 }
 
+/**
+ * El tutor de empresa es una cuenta propia, fuera del centro: su correo de acceso lo gestiona él
+ * mismo. Los demás dependen de su centro (o de su instituto y su profe, el alumno).
+ */
+export function puedeCambiarSuEmail(rol: Rol): boolean {
+  return rol === 'empresa';
+}
+
+/** Resultado de pedir un correo nuevo: si hay que confirmarlo desde el buzón, queda pendiente. */
+export type ResultadoCambioEmail = 'cambiado' | 'pendiente';
+
+/** Correo de acceso: minúsculas y con forma de correo. */
+export function comprobarEmail(email: string): string {
+  const limpio = email.trim().toLowerCase();
+  if (limpio.length < 5 || limpio.length > 120) {
+    throw new DatosInvalidosError('Escribe un correo válido');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(limpio)) {
+    throw new DatosInvalidosError('Escribe un correo válido');
+  }
+  return limpio;
+}
+
 export function comprobarNombre(nombre: string): string {
   const limpio = nombre.trim().replace(/\s+/g, ' ');
   if (limpio.length < 2) throw new DatosInvalidosError('Escribe tu nombre y apellidos');

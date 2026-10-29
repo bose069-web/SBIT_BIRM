@@ -1,12 +1,13 @@
-import { cambiarNombre, guardarDatosPersonales } from '../application/perfil';
+import { cambiarEmail, cambiarNombre, guardarDatosPersonales } from '../application/perfil';
 import { DatosInvalidosError, SinPermisoError } from '../domain/errores';
 import { DATOS_PERSONALES_VACIOS, telefonoValido, type DatosPersonales } from '../domain/perfil';
 import type { PerfilPort } from '../ports/perfil-port';
-import { alumno, empresa, profe } from '../__fixtures__/datos';
+import { alumno, empresa, generalitat, instituto, profe } from '../__fixtures__/datos';
 
 class PerfilFalso implements PerfilPort {
   datos = { ...DATOS_PERSONALES_VACIOS };
   nombre = '';
+  email = '';
   async obtener() {
     return this.datos;
   }
@@ -16,6 +17,10 @@ class PerfilFalso implements PerfilPort {
   }
   async cambiarNombre(nombre: string) {
     this.nombre = nombre;
+  }
+  async cambiarEmail(email: string) {
+    this.email = email;
+    return 'cambiado' as const;
   }
 }
 
@@ -75,5 +80,32 @@ describe('nombre', () => {
     await expect(cambiarNombre(new PerfilFalso(), alumno, 'Otro Nombre')).rejects.toThrow(
       SinPermisoError,
     );
+  });
+});
+
+describe('correo', () => {
+  it('la empresa cambia el suyo: se limpia y va en minúsculas', async () => {
+    const perfil = new PerfilFalso();
+    expect(await cambiarEmail(perfil, empresa, '  Nueva@Empresa.TEST ')).toEqual({
+      email: 'nueva@empresa.test',
+      estado: 'cambiado',
+    });
+    expect(perfil.email).toBe('nueva@empresa.test');
+  });
+
+  it('rechaza lo que no es un correo', async () => {
+    for (const email of ['sin arroba', 'a@b', 'dos@@kampus.test', '@kampus.test']) {
+      await expect(cambiarEmail(new PerfilFalso(), empresa, email)).rejects.toThrow(
+        DatosInvalidosError,
+      );
+    }
+  });
+
+  it('los demás no: su correo lo gestiona el centro', async () => {
+    for (const usuario of [alumno, profe, instituto, generalitat]) {
+      await expect(cambiarEmail(new PerfilFalso(), usuario, 'otro@kampus.test')).rejects.toThrow(
+        SinPermisoError,
+      );
+    }
   });
 });

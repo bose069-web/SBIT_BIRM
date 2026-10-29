@@ -3,12 +3,18 @@ import { Platform, Pressable, StyleSheet, Switch, View, type ViewStyle } from 'r
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
+  cambiarEmail,
   cambiarNombre,
   guardarDatosPersonales,
   obtenerDatosPersonales,
 } from '@/core/application/perfil';
 import type { Dossier } from '@/core/domain/dossier';
-import { puedeCambiarSuNombre, type DatosPersonales, type Idioma } from '@/core/domain/perfil';
+import {
+  puedeCambiarSuEmail,
+  puedeCambiarSuNombre,
+  type DatosPersonales,
+  type Idioma,
+} from '@/core/domain/perfil';
 import type { Rol, Usuario } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
@@ -157,16 +163,23 @@ function Formulario({
   ancho: boolean;
 }) {
   const theme = useTheme();
-  const { renombrar } = useSesion();
+  const { renombrar, cambiarCorreo } = useSesion();
   const [nombre, setNombre] = useState(usuario.nombre);
+  const [email, setEmail] = useState(usuario.email);
   const [datos, setDatos] = useState(inicial);
-  const [guardado, setGuardado] = useState({ nombre: usuario.nombre, datos: inicial });
+  const [guardado, setGuardado] = useState({
+    nombre: usuario.nombre,
+    datos: inicial,
+    email: usuario.email,
+  });
   const editaNombre = puedeCambiarSuNombre(usuario.rol);
+  const editaEmail = puedeCambiarSuEmail(usuario.rol);
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
   const hayCambios =
     (editaNombre && nombre !== guardado.nombre) ||
+    (editaEmail && email.trim().toLowerCase() !== guardado.email.toLowerCase()) ||
     (Object.keys(datos) as (keyof DatosPersonales)[]).some(
       (campo) => (datos[campo] ?? '') !== (guardado.datos[campo] ?? ''),
     );
@@ -189,10 +202,24 @@ function Formulario({
         nombreGuardado = await cambiarNombre(container.perfil, usuario, nombre);
         renombrar(nombreGuardado);
       }
+      let mensaje = 'Cambios guardados';
+      let emailGuardado = guardado.email;
+      // El correo solo se pide si ha cambiado de verdad.
+      if (editaEmail && email.trim().toLowerCase() !== guardado.email.toLowerCase()) {
+        const cambio = await cambiarEmail(container.perfil, usuario, email);
+        emailGuardado = cambio.email;
+        setEmail(cambio.email);
+        if (cambio.estado === 'cambiado') {
+          cambiarCorreo(cambio.email);
+          mensaje = 'Correo actualizado';
+        } else {
+          mensaje = `Te hemos enviado un enlace a ${cambio.email} para confirmar el cambio. Hasta que lo confirmes, entra con el de siempre.`;
+        }
+      }
       setDatos(guardados);
       setNombre(nombreGuardado);
-      setGuardado({ nombre: nombreGuardado, datos: guardados });
-      setAviso({ tipo: 'ok', texto: 'Cambios guardados' });
+      setGuardado({ nombre: nombreGuardado, datos: guardados, email: emailGuardado });
+      setAviso({ tipo: 'ok', texto: mensaje });
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo guardar' });
     } finally {
@@ -211,7 +238,22 @@ function Formulario({
             ayuda="Lo gestiona tu centro"
           />
         ) : null}
-        <FilaDato etiqueta="Correo" valor={usuario.email} ayuda="Lo gestiona tu centro" />
+        {editaEmail ? (
+          <Campo
+            etiqueta="Correo"
+            value={email}
+            onChangeText={(v) => {
+              setEmail(v);
+              setAviso(null);
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
+          />
+        ) : (
+          <FilaDato etiqueta="Correo" valor={usuario.email} ayuda="Lo gestiona tu centro" />
+        )}
         <FilaDato etiqueta="Rol" valor={NOMBRE_ROL[usuario.rol]} ayuda="Lo gestiona tu centro" />
       </Tarjeta>
 

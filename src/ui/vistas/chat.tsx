@@ -31,6 +31,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
+import { ChatEmpresa } from './chat-empresa';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import {
   Atender,
@@ -44,12 +45,17 @@ import {
 /**
  * Pestaña Chat: cada incidencia es una conversación. En la web ancha, lista a la izquierda y
  * conversación a la derecha; en móvil, la lista abre la conversación en su propia pantalla.
- * El chat por alumno (profe, tutor de empresa e instituto) llega cuando PC 2 y PC 3 lo tengan.
+ * La empresa tiene su propio chat con sus alumnos y sus profes; el chat por dossier del resto de
+ * roles llega cuando PC 2 y PC 3 lo tengan.
  */
 export function VistaChat() {
+  const usuario = useUsuario();
   const ancha = useWebAncha();
   const { incidencia } = useLocalSearchParams<{ incidencia?: string }>();
   const lista = useListaConversaciones();
+
+  // La empresa habla con sus alumnos y con sus profes, no por incidencias.
+  if (usuario.rol === 'empresa') return <ChatEmpresa />;
 
   if (ancha) {
     return (

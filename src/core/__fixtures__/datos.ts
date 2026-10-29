@@ -25,6 +25,8 @@ import type {
   MensajeIncidencia,
 } from '../domain/incidencia';
 import type { IncidenciaPort } from '../ports/incidencia-port';
+import type { DiaParaInforme, DossierParaInforme } from '../domain/informe';
+import type { InformePort } from '../ports/informe-port';
 
 export const alumno: Usuario = {
   id: 'a1',
@@ -200,6 +202,35 @@ export class EventosFalsos implements EventoPort {
   }
   async borrar(id: string) {
     this.eventos = this.eventos.filter((e) => e.id !== id);
+  }
+}
+
+export function crearDossierInforme(cambios: Partial<DossierParaInforme> = {}): DossierParaInforme {
+  return {
+    id: 'd1',
+    alumnoId: alumno.id,
+    alumnoNombre: alumno.nombre,
+    tutorId: profe.id,
+    tutorNombre: profe.nombre,
+    tutorEmpresaId: empresa.id,
+    centroId: 'c1',
+    centro: 'Institut',
+    empresaId: 'emp1',
+    empresa: 'Empresa SL',
+    horasTotales: 400,
+    ...cambios,
+  };
+}
+
+export function crearDia(cambios: Partial<DiaParaInforme> = {}): DiaParaInforme {
+  return { dossierId: 'd1', fecha: '2026-10-20', horas: 6, ...cambios };
+}
+
+export class InformesFalsos implements InformePort {
+  dossiers: DossierParaInforme[] = [];
+  dias: DiaParaInforme[] = [];
+  async obtenerDatos() {
+    return { dossiers: this.dossiers, dias: this.dias };
   }
 }
 
