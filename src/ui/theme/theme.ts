@@ -7,48 +7,78 @@ import { Platform } from 'react-native';
 // pestaña activa. El resto del color solo marca estados y siempre va con texto.
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    textSecondary: '#52525B',
-    background: '#FAFAFA',
-    surface: '#FFFFFF',
-    subtle: '#F4F4F5',
-    border: '#E4E4E7',
-    borderStrong: '#71717A',
+    // Neutros cálidos tipo marfil (como anthropic.com): fondo crema y texto casi negro.
+    text: '#141413',
+    textSecondary: '#5E5D59',
+    background: '#F5F4EE',
+    surface: '#FAF9F5',
+    subtle: '#F0EEE6',
+    border: '#E8E6DC',
+    borderStrong: '#87867F',
     // #2563EB sobre blanco: 5.2:1.
     primary: '#2563EB',
     onPrimary: '#FFFFFF',
     primarySuave: '#DBEAFE',
     // Superficies de cristal (Liquid Glass): translúcidas sobre el fondo.
-    cristal: 'rgba(255,255,255,0.72)',
-    cristalBorde: 'rgba(255,255,255,0.9)',
+    cristal: 'rgba(250,249,245,0.72)',
+    cristalBorde: 'rgba(232,230,220,0.9)',
     danger: '#B91C1C',
+    // Avisos por días sin apuntar: amarillo y naranja oscurecidos para leerse sobre blanco (4.5:1).
+    avisoLeve: '#A16207',
+    avisoMedio: '#C2410C',
     estadoValidado: '#15803D',
     // Un punto más oscuro que antes para pasar 4.5:1 también sobre `subtle`.
     estadoPendiente: '#9D5F06',
     estadoAusencia: '#B91C1C',
     // Gris oscurecido para que el festivo llegue a 4.5:1 también sobre `subtle`.
     estadoFestivo: '#6B6B75',
+    // Relleno de los días en el calendario, con su propio color de texto encima
+    // (número y horas): todos pasan de 5.8:1.
+    fondoTrabajo: '#C9D8F5',
+    fondoAusencia: '#F3C9BE',
+    fondoPendiente: '#FFFFFF',
+    fondoFestivo: '#ECEAE4',
+    textoTrabajo: '#16336B',
+    textoAusencia: '#6A2A1A',
+    textoPendiente: '#16336B',
+    textoFestivo: '#57534E',
+    // Sin apuntar: blanco con borde discontinuo azul, como un hueco por rellenar.
+    bordePendiente: '#7FA0DE',
   },
   dark: {
-    text: '#FAFAFA',
-    textSecondary: '#A1A1AA',
-    background: '#09090B',
-    surface: '#18181B',
-    subtle: '#27272A',
-    border: '#27272A',
-    borderStrong: '#A1A1AA',
+    // Grises «carbón cálido»: fondo menos negro y un tinte cálido suave.
+    text: '#F5F3F0',
+    textSecondary: '#A8A39C',
+    background: '#141312',
+    surface: '#1E1D1B',
+    subtle: '#2A2826',
+    border: '#3A3734',
+    borderStrong: '#A8A39C',
     // El mismo azul que en claro, con texto blanco encima.
     primary: '#2563EB',
     onPrimary: '#FFFFFF',
     primarySuave: '#172554',
-    cristal: 'rgba(24,24,27,0.72)',
+    cristal: 'rgba(30,29,27,0.72)',
     cristalBorde: 'rgba(255,255,255,0.08)',
     danger: '#F87171',
+    avisoLeve: '#FACC15',
+    avisoMedio: '#FB923C',
     estadoValidado: '#4ADE80',
     estadoPendiente: '#FACC15',
     estadoAusencia: '#F87171',
     // En oscuro el gris de antes (#71717A) se quedaba en 3.7:1 sobre `surface`.
     estadoFestivo: '#9A9AA5',
+    // Rellenos vivos en oscuro: blanco sobre verde, rojo y gris; texto oscuro
+    // sobre el amarillo (todos pasan de 4.8:1).
+    fondoTrabajo: '#1E3A6E',
+    fondoAusencia: '#6B2E22',
+    fondoPendiente: '#1E1D1B',
+    fondoFestivo: '#2E2C29',
+    textoTrabajo: '#DCE6FA',
+    textoAusencia: '#FBE3DC',
+    textoPendiente: '#C9D8F5',
+    textoFestivo: '#B8B4AC',
+    bordePendiente: '#4F72B8',
   },
 } as const;
 

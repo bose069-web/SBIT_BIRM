@@ -1,4 +1,4 @@
-import { filtrarHoras, leerHoras } from '../horas';
+import { filtrarHoras, leerHoras, pasoHoras } from '../horas';
 
 describe('leerHoras', () => {
   it('vacío no es error', () => {
@@ -25,5 +25,14 @@ describe('filtrarHoras', () => {
     expect(filtrarHoras('1,255')).toBe('1,25');
     expect(filtrarHoras('2,,5')).toBe('2,5');
     expect(filtrarHoras('3h')).toBe('3');
+  });
+});
+
+describe('pasoHoras', () => {
+  it('sube y baja en tramos de 15 min sin salirse de los límites', () => {
+    expect(pasoHoras(0, 0.5, 12)).toBe(0.5);
+    expect(pasoHoras(1.25, 0.25, 12)).toBe(1.5);
+    expect(pasoHoras(0.25, -0.5, 12)).toBe(0);
+    expect(pasoHoras(11.75, 0.5, 12)).toBe(12);
   });
 });

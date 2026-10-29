@@ -13,21 +13,60 @@ import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 
-// Cada estado tiene color y forma propios (no se distingue solo por el color) y la leyenda lo
-// explica. El texto completo va en la etiqueta accesible de cada día.
+// Cada estado tiene su color de texto (`color`) y el relleno de su día en el calendario
+// (`fondo`); la leyenda lo explica y el texto completo va en la etiqueta accesible de cada día.
 export const ESTADOS_DIA: Record<
   EstadoDia,
-  { texto: string; color: ThemeColor | null; forma: Forma }
+  {
+    texto: string;
+    color: ThemeColor | null;
+    fondo: ThemeColor | null;
+    // Color del número y las horas cuando el día va relleno.
+    tinta: ThemeColor | null;
+    forma: Forma;
+  }
 > = {
-  trabajo: { texto: 'Trabajo', color: 'estadoValidado', forma: 'punto' },
-  ausencia: { texto: 'Ausencia', color: 'estadoAusencia', forma: 'cuadrado' },
-  festivo: { texto: 'Festivo', color: 'estadoFestivo', forma: 'rombo' },
-  pendiente: { texto: 'Sin apuntar', color: 'estadoPendiente', forma: 'anillo' },
-  futuro: { texto: 'Próximo', color: null, forma: 'punto' },
-  libre: { texto: 'Fin de semana', color: null, forma: 'punto' },
-  fuera: { texto: 'Fuera del periodo', color: null, forma: 'punto' },
+  trabajo: {
+    texto: 'Trabajo',
+    color: 'estadoValidado',
+    fondo: 'fondoTrabajo',
+    tinta: 'textoTrabajo',
+    forma: 'punto',
+  },
+  ausencia: {
+    texto: 'Ausencia',
+    color: 'estadoAusencia',
+    fondo: 'fondoAusencia',
+    tinta: 'textoAusencia',
+    forma: 'cuadrado',
+  },
+  festivo: {
+    texto: 'Festivo',
+    color: 'estadoFestivo',
+    fondo: 'fondoFestivo',
+    tinta: 'textoFestivo',
+    forma: 'rombo',
+  },
+  pendiente: {
+    texto: 'Sin apuntar',
+    color: 'estadoPendiente',
+    fondo: 'fondoPendiente',
+    tinta: 'textoPendiente',
+    forma: 'anillo',
+  },
+  futuro: { texto: 'Próximo', color: null, fondo: null, tinta: null, forma: 'punto' },
+  libre: { texto: 'Fin de semana', color: null, fondo: null, tinta: null, forma: 'punto' },
+  fuera: { texto: 'Fuera del periodo', color: null, fondo: null, tinta: null, forma: 'punto' },
 };
-const EN_LEYENDA: EstadoDia[] = ['trabajo', 'pendiente', 'ausencia', 'festivo'];
+
+/** La leyenda de los días: un cuadro con el mismo relleno que el calendario. */
+export const LEYENDA_DIAS: ElementoLeyenda[] = (
+  ['trabajo', 'ausencia', 'pendiente', 'festivo'] as const
+).map((e) => ({
+  texto: ESTADOS_DIA[e].texto,
+  color: ESTADOS_DIA[e].fondo ?? 'subtle',
+  forma: e === 'pendiente' ? 'hueco' : 'cuadrado',
+}));
 
 interface Props {
   /** `AAAA-MM` */
@@ -61,11 +100,7 @@ export function CalendarioMes({
   const animar = useAnimar();
   const porFecha = new Map(dias.map((d) => [d.fecha, d]));
   const horasMes = dias.reduce((s, d) => s + totalHoras(d), 0);
-  const leyenda: ElementoLeyenda[] = EN_LEYENDA.map((e) => ({
-    texto: ESTADOS_DIA[e].texto,
-    color: ESTADOS_DIA[e].color ?? 'textSecondary',
-    forma: ESTADOS_DIA[e].forma,
-  }));
+  const leyenda: ElementoLeyenda[] = [...LEYENDA_DIAS];
   if (agenda) leyenda.push({ texto: 'Evento o entrega', color: 'primary', forma: 'punto' });
 
   const mesHoy = mesDe(hoy);
@@ -155,16 +190,23 @@ export function CalendarioMes({
                       styles.celda,
                       borde,
                       {
-                        backgroundColor: elegida || pressed ? theme.subtle : 'transparent',
-                        opacity: estado === 'fuera' ? 0.35 : 1,
+                        // El día entero se pinta con el color de su estado.
+                        backgroundColor: info.fondo
+                          ? theme[info.fondo]
+                          : elegida || pressed
+                            ? theme.subtle
+                            : 'transparent',
+                        opacity: estado === 'fuera' ? 0.35 : pressed ? 0.75 : 1,
                       },
+                      // Sin apuntar se ve como un hueco por rellenar.
+                      estado === 'pendiente' && {
+                        borderWidth: 1.5,
+                        borderStyle: 'dashed',
+                        borderColor: theme.bordePendiente,
+                      },
+                      elegida && { borderWidth: 2, borderColor: theme.primary },
                     ]}>
                     <View style={styles.arriba}>
-                      {info.color ? (
-                        <Marca forma={info.forma} color={theme[info.color]} />
-                      ) : (
-                        <View />
-                      )}
                       <View style={[styles.numero, esHoy && { backgroundColor: theme.primary }]}>
                         <ThemedText
                           style={[
@@ -172,9 +214,11 @@ export function CalendarioMes({
                             {
                               color: esHoy
                                 ? theme.onPrimary
-                                : apagado
-                                  ? theme.textSecondary
-                                  : theme.text,
+                                : info.tinta
+                                  ? theme[info.tinta]
+                                  : apagado
+                                    ? theme.textSecondary
+                                    : theme.text,
                             },
                           ]}>
                           {dia}
@@ -198,7 +242,11 @@ export function CalendarioMes({
                       </ThemedText>
                     ) : null}
                     {horas ? (
-                      <ThemedText style={[styles.horas, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.horas,
+                          { color: info.tinta ? theme[info.tinta] : theme.textSecondary },
+                        ]}>
                         {formatoHoras(horas).replace(' ', '')}
                       </ThemedText>
                     ) : null}
@@ -260,21 +308,6 @@ function BotonMes({
   );
 }
 
-function Marca({ forma, color }: { forma: Forma; color: string }) {
-  return (
-    <View
-      style={[
-        styles.marca,
-        forma === 'anillo' || forma === 'rombo'
-          ? { borderColor: color, borderWidth: 1.5 }
-          : { backgroundColor: color },
-        forma === 'punto' || forma === 'anillo' ? styles.redonda : styles.esquinas,
-        forma === 'rombo' && styles.girada,
-      ]}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
   contenedor: { gap: Spacing.three },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
@@ -300,7 +333,7 @@ const styles = StyleSheet.create({
   celda: { flex: 1, minHeight: 76, padding: 3, gap: 2, overflow: 'hidden' },
   arriba: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingLeft: 2,
   },
@@ -316,9 +349,5 @@ const styles = StyleSheet.create({
   ajeno: { textAlign: 'right', paddingHorizontal: 4, paddingTop: 4 },
   pastilla: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
   textoPastilla: { fontSize: 10, lineHeight: 13, fontFamily: FontFamily.medium },
-  marca: { width: 7, height: 7 },
-  redonda: { borderRadius: 4 },
-  esquinas: { borderRadius: 1.5 },
-  girada: { transform: [{ rotate: '45deg' }] },
   horas: { fontSize: 10, lineHeight: 12, fontFamily: FontFamily.medium, textAlign: 'right' },
 });
