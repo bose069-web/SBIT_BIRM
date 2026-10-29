@@ -47,6 +47,15 @@ export async function obtenerBandeja(
   };
 }
 
+/** Una incidencia por su id, o null si no existe o la RLS no la deja ver. */
+export async function buscarIncidencia(
+  incidencias: IncidenciaPort,
+  id: string,
+): Promise<Incidencia | null> {
+  const todas = await incidencias.listar();
+  return todas.find((i) => i.id === id) ?? null;
+}
+
 export function abrirIncidencia(
   incidencias: IncidenciaPort,
   borrador: BorradorIncidencia,

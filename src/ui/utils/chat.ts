@@ -14,7 +14,7 @@ export const TEXTO_ROL_CHAT: Record<RolChat, string> = {
 };
 
 export interface Conversacion {
-  /** `alumno:<id del alumno>` o `profe:<id del profe>`. */
+  /** Id de la otra persona: hay un solo hilo por cada par. */
   id: string;
   titulo: string;
   /** Ciclo y centro del alumno, o los alumnos que sigue el profe. */
@@ -50,7 +50,7 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
   const conversaciones: Conversacion[] = [];
   const vistas = new Set<string>();
   for (const d of mios) {
-    const id = `alumno:${d.alumnoId}`;
+    const id = d.alumnoId;
     if (vistas.has(id)) continue;
     vistas.add(id);
     conversaciones.push({
@@ -62,7 +62,7 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
   }
   for (const d of mios) {
     if (!d.tutorId || !d.tutorNombre) continue;
-    const id = `profe:${d.tutorId}`;
+    const id = d.tutorId;
     if (vistas.has(id)) continue;
     vistas.add(id);
     conversaciones.push({

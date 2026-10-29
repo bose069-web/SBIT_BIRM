@@ -28,7 +28,7 @@ import { Pantalla } from '@/ui/components/pantalla';
 import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
-import { useChatEmpresa } from '@/ui/estado/chat-empresa';
+import { useChat } from '@/ui/estado/chat-empresa';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
@@ -117,7 +117,7 @@ export function PanelEmpresa({
     );
   }, [usuario.id, hoy]);
   useRecargarAlVolver(recargar);
-  const { mensajes, leidoHasta } = useChatEmpresa();
+  const { mensajes, leidoHasta } = useChat(usuario);
 
   // Valorar es una subparte de Inicio: se sale de ella volviendo a la pantalla principal.
   if (validar) {

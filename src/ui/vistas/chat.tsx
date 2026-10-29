@@ -9,7 +9,12 @@ import {
   type ScrollViewInstance,
 } from 'react-native';
 
-import { enviarMensaje, listarMensajes, obtenerBandeja } from '@/core/application/incidencias';
+import {
+  enviarMensaje,
+  buscarIncidencia,
+  listarMensajes,
+  obtenerBandeja,
+} from '@/core/application/incidencias';
 import { atiendeIncidencia, type Incidencia } from '@/core/domain/incidencia';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
@@ -297,8 +302,7 @@ function DosPaneles({ lista, abierta }: { lista: Lista; abierta: string | null }
 function useConversacion(id: string, onCambio: () => void) {
   const usuario = useUsuario();
   const { datos, error, cargando, recargar } = useDatos(async () => {
-    const todas = await container.incidencias.listar();
-    const incidencia = todas.find((i) => i.id === id) ?? null;
+    const incidencia = await buscarIncidencia(container.incidencias, id);
     if (!incidencia) return null;
     const mensajes = await listarMensajes(container.incidencias, usuario, incidencia);
     return { incidencia, mensajes };

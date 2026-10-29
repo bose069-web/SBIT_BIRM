@@ -1,17 +1,28 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type ScrollViewInstance,
+} from 'react-native';
 
 import { listarDossiers } from '@/core/application/dossier';
 import type { Usuario } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
-import { Campo } from '@/ui/components/campo';
-import { Chip } from '@/ui/components/chip';
+import {
+  Avatar,
+  Compositor,
+  ListaMensajes,
+  type MensajeChat as MensajeLista,
+} from '@/ui/components/chat';
+import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
-import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
-import { enviarMensajeChat, marcarChatLeido, useChatEmpresa } from '@/ui/estado/chat-empresa';
+import { useChat } from '@/ui/estado/chat-empresa';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
@@ -32,110 +43,153 @@ import {
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
+type Enviar = (otroId: string, texto: string) => Promise<string | null>;
+
 /**
  * Chat de la empresa con los alumnos que tutela y con sus profes del centro. Se abre desde la
- * pestaña Chat o desde la bandeja de mensajes de Inicio (`?conversacion=<id>`).
+ * pestaña Chat o desde la bandeja de mensajes de Inicio (`?conversacion=<id>`). En la web ancha,
+ * lista a la izquierda y conversación a la derecha; en estrecho, la lista abre el hilo.
  */
 export function ChatEmpresa() {
   const usuario = useUsuario();
-  const ancho = useWebAncha();
+  const ancha = useWebAncha();
   const { conversacion } = useLocalSearchParams<{ conversacion?: string }>();
   const { datos, error, cargando, recargar } = useDatos(
     () => listarDossiers(container.dossiers),
     [usuario.id],
   );
   useRecargarAlVolver(recargar);
-  const { mensajes, leidoHasta } = useChatEmpresa();
+  const chat = useChat(usuario);
+  const { mensajes, leidoHasta, marcarLeido } = chat;
   // Al llegar desde la bandeja de Inicio (`?conversacion=<id>`) se abre ese hilo.
   const [elegida, setElegida] = useState<string | null>(conversacion ?? null);
 
   // Abrir el hilo quita el aviso de mensajes sin leer.
   useEffect(() => {
-    if (elegida) marcarChatLeido(elegida);
-  }, [elegida]);
+    if (elegida) marcarLeido(elegida);
+  }, [elegida, marcarLeido, mensajes.length]);
 
   const conversaciones = porRecientes(conversacionesDe(datos ?? [], usuario.id), mensajes);
   const seleccionada = conversaciones.find((c) => c.id === elegida) ?? null;
 
-  const lista = (
-    <Tarjeta titulo="Conversaciones">
-      {conversaciones.length === 0 ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay conversaciones: aparecerán tus alumnos y sus profes cuando el centro te
-          asigne prácticas.
-        </ThemedText>
-      ) : (
-        <View style={styles.lista}>
-          {conversaciones.map((c) => (
-            <FilaConversacion
-              key={c.id}
-              conversacion={c}
-              mensajes={mensajes}
-              leidoHasta={leidoHasta[c.id] ?? null}
-              usuario={usuario}
-              activa={c.id === elegida}
-              onPress={() => setElegida(c.id)}
-            />
-          ))}
-        </View>
-      )}
-    </Tarjeta>
-  );
+  if (!datos || conversaciones.length === 0) {
+    return (
+      <Pantalla titulo="Chat" compacta>
+        {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
+        {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
+        {datos && !cargando ? (
+          <EstadoVacio
+            titulo="No tienes alumnos asignados"
+            texto="Cuando el centro te ponga como tutor de empresa de un alumno, podrás hablar aquí con él y con su profe."
+            accion={{ texto: 'Volver a mirar', onPress: recargar }}
+          />
+        ) : null}
+      </Pantalla>
+    );
+  }
 
-  const hilo = seleccionada ? (
-    <Tarjeta
-      titulo={seleccionada.titulo}
-      accion={
-        <ThemedText type="small" themeColor="textSecondary">
-          {TEXTO_ROL_CHAT[seleccionada.rol]}
-        </ThemedText>
-      }>
-      <ThemedText type="small" themeColor="textSecondary">
-        {seleccionada.etiqueta}
-      </ThemedText>
-      <HiloConversacion usuario={usuario} conversacion={seleccionada} mensajes={mensajes} />
-    </Tarjeta>
-  ) : null;
+  const lista = (
+    <View accessibilityRole="list" style={styles.filas}>
+      {conversaciones.map((c) => (
+        <FilaConversacion
+          key={c.id}
+          conversacion={c}
+          mensajes={mensajes}
+          leidoHasta={leidoHasta[c.id] ?? null}
+          usuario={usuario}
+          seleccionada={c.id === elegida}
+          onPress={() => setElegida(c.id)}
+        />
+      ))}
+    </View>
+  );
+  const aviso = chat.error ? <ErrorCarga texto={chat.error} onReintentar={chat.recargar} /> : null;
+
+  if (ancha) {
+    return (
+      <Pantalla titulo="Chat" amplia compacta>
+        {aviso}
+        <DosPaneles lista={lista}>
+          {seleccionada ? (
+            <Hilo
+              key={seleccionada.id}
+              conversacion={seleccionada}
+              mensajes={mensajes}
+              usuario={usuario}
+              onEnviar={chat.enviar}
+              conScroll
+            />
+          ) : (
+            <View style={styles.centrado}>
+              <EstadoVacio
+                titulo="Elige una conversación"
+                texto="Selecciona un alumno o un profe de la lista para leer los mensajes."
+              />
+            </View>
+          )}
+        </DosPaneles>
+      </Pantalla>
+    );
+  }
+
+  if (seleccionada) {
+    return (
+      <Pantalla
+        titulo="Conversación"
+        compacta
+        accion={
+          <Boton texto="‹ Conversaciones" variante="secundario" onPress={() => setElegida(null)} />
+        }>
+        {aviso}
+        <TarjetaMovil>
+          <Hilo
+            key={seleccionada.id}
+            conversacion={seleccionada}
+            mensajes={mensajes}
+            usuario={usuario}
+            onEnviar={chat.enviar}
+          />
+        </TarjetaMovil>
+      </Pantalla>
+    );
+  }
 
   return (
-    <Pantalla titulo="Chat" subtitulo="Habla con tus alumnos y con sus profes" amplia={ancho}>
-      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
-      {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
-      {datos && conversaciones.length === 0 && !cargando ? (
-        <EstadoVacio
-          titulo="No tienes alumnos asignados"
-          texto="Cuando el centro te ponga como tutor de empresa de un alumno, podrás hablar aquí con él y con su profe."
-          accion={{ texto: 'Volver a mirar', onPress: recargar }}
-        />
-      ) : null}
-      {conversaciones.length > 0 ? (
-        ancho ? (
-          <View style={styles.columnas}>
-            <View style={styles.lateral}>{lista}</View>
-            <View style={styles.principal}>
-              {hilo ?? (
-                <Tarjeta>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Elige una conversación para leer los mensajes.
-                  </ThemedText>
-                </Tarjeta>
-              )}
-            </View>
-          </View>
-        ) : seleccionada ? (
-          <>
-            <Boton
-              texto="‹ Conversaciones"
-              variante="secundario"
-              onPress={() => setElegida(null)}
-            />
-            {hilo}
-          </>
-        ) : (
-          lista
-        )
-      ) : null}
+    <Pantalla titulo="Chat" compacta>
+      {aviso}
+      {lista}
     </Pantalla>
+  );
+}
+
+function TarjetaMovil({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[styles.tarjetaMovil, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {children}
+    </View>
+  );
+}
+
+function DosPaneles({ lista, children }: { lista: ReactNode; children: ReactNode }) {
+  const theme = useTheme();
+  const { height } = useWindowDimensions();
+  // Alto fijo: lista y conversación tienen su propio scroll, el compositor queda siempre a mano.
+  const alto = Math.max(520, height - 260);
+  return (
+    <View
+      style={[
+        styles.paneles,
+        { height: alto, borderColor: theme.border, backgroundColor: theme.surface },
+      ]}>
+      <ScrollView
+        style={[styles.panelLista, { borderRightColor: theme.border }]}
+        contentContainerStyle={styles.contenidoPanelLista}>
+        {lista}
+      </ScrollView>
+      <View style={[styles.flex, { backgroundColor: theme.background }]}>{children}</View>
+    </View>
   );
 }
 
@@ -144,14 +198,14 @@ function FilaConversacion({
   mensajes,
   leidoHasta,
   usuario,
-  activa,
+  seleccionada,
   onPress,
 }: {
   conversacion: Conversacion;
   mensajes: MensajeChat[];
   leidoHasta: string | null;
   usuario: Usuario;
-  activa: boolean;
+  seleccionada: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -159,124 +213,195 @@ function FilaConversacion({
   const ultimo = delHilo[delHilo.length - 1] ?? null;
   const nuevos = noLeidos(mensajes, conversacion.id, leidoHasta, usuario.id);
   const propio = ultimo?.autorId === usuario.id;
-  const resumen = ultimo ? `${propio ? 'Tú: ' : ''}${ultimo.texto}` : 'Sin mensajes todavía';
+  const vistaPrevia = ultimo ? `${propio ? 'Tú: ' : ''}${ultimo.texto}` : 'Sin mensajes todavía';
+  const cuando = ultimo ? hace(ultimo.enviadoEn) : null;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Abrir el chat con ${conversacion.titulo}${
-        nuevos ? `, ${nuevos} sin leer` : ''
-      }`}
+      accessibilityState={{ selected: seleccionada }}
+      accessibilityLabel={`${conversacion.titulo}, ${TEXTO_ROL_CHAT[conversacion.rol]}. ${vistaPrevia}${
+        cuando ? `. ${cuando}` : ''
+      }${nuevos ? `. ${nuevos} sin leer` : ''}`}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.fila,
         {
-          borderColor: activa ? theme.primary : theme.border,
-          backgroundColor: pressed || activa ? theme.subtle : 'transparent',
+          backgroundColor: seleccionada
+            ? theme.primarySuave
+            : pressed || hovered
+              ? theme.subtle
+              : 'transparent',
         },
       ]}>
-      <View style={styles.filaTexto}>
-        <View style={styles.filaArriba}>
+      <Avatar nombre={conversacion.titulo} />
+      <View style={styles.textoFila}>
+        <View style={styles.lineaFila}>
           <ThemedText type="smallBold" numberOfLines={1} style={styles.flex}>
             {conversacion.titulo}
           </ThemedText>
-          {ultimo ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              {hace(ultimo.enviadoEn)}
+          {cuando ? (
+            <ThemedText
+              type="small"
+              themeColor={nuevos ? 'primary' : 'textSecondary'}
+              style={styles.meta}>
+              {cuando}
             </ThemedText>
           ) : null}
         </View>
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-          {conversacion.etiqueta}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-          {resumen}
+        <View style={styles.lineaFila}>
+          <ThemedText
+            type="small"
+            themeColor={nuevos ? 'text' : 'textSecondary'}
+            numberOfLines={1}
+            style={styles.flex}>
+            {vistaPrevia}
+          </ThemedText>
+          {nuevos ? (
+            <View style={[styles.insignia, { backgroundColor: theme.primary }]}>
+              <ThemedText type="smallBold" style={[styles.meta, { color: theme.onPrimary }]}>
+                {nuevos > 99 ? '99+' : nuevos}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.meta}>
+          {TEXTO_ROL_CHAT[conversacion.rol]} · {conversacion.etiqueta}
         </ThemedText>
       </View>
-      {nuevos ? <Chip texto={`${nuevos} sin leer`} color="estadoPendiente" /> : null}
     </Pressable>
   );
 }
 
-function HiloConversacion({
-  usuario,
+/** Cabecera, mensajes y compositor de un hilo. */
+function Hilo({
   conversacion,
   mensajes,
+  usuario,
+  onEnviar,
+  conScroll = false,
 }: {
-  usuario: Usuario;
   conversacion: Conversacion;
   mensajes: MensajeChat[];
+  usuario: Usuario;
+  onEnviar: Enviar;
+  conScroll?: boolean;
 }) {
   const theme = useTheme();
-  const [texto, setTexto] = useState('');
-  const delHilo = mensajesDe(mensajes, conversacion.id);
+  const scroll = useRef<ScrollViewInstance>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
 
-  function enviar() {
-    enviarMensajeChat(conversacion.id, usuario.id, usuario.nombre, texto);
-    setTexto('');
+  // ListaMensajes pinta su propio formato: se adapta aquí el del chat de la empresa.
+  const delHilo: MensajeLista[] = mensajesDe(mensajes, conversacion.id).map((m) => ({
+    id: m.id,
+    autorId: m.autorId,
+    autorNombre: m.autorNombre,
+    texto: m.texto,
+    creadoEn: m.enviadoEn,
+  }));
+  const ultimo = delHilo[delHilo.length - 1] ?? null;
+
+  async function enviar(texto: string): Promise<boolean> {
+    setAviso(null);
+    setEnviando(true);
+    try {
+      const fallo = await onEnviar(conversacion.id, texto);
+      setAviso(fallo);
+      return !fallo;
+    } finally {
+      setEnviando(false);
+    }
   }
 
+  const cuerpo =
+    delHilo.length === 0 ? (
+      <View style={styles.centrado}>
+        <ThemedText type="small" themeColor="textSecondary">
+          Todavía no hay mensajes. Escribe el primero.
+        </ThemedText>
+      </View>
+    ) : (
+      <ListaMensajes mensajes={delHilo} yoId={usuario.id} />
+    );
+
   return (
-    <View style={styles.conversacion}>
-      <View style={styles.burbujas}>
-        {delHilo.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Todavía no hay mensajes. Escribe el primero.
+    <View style={conScroll ? styles.flex : undefined}>
+      <View style={[styles.cabecera, { borderBottomColor: theme.border }]}>
+        <Avatar nombre={conversacion.titulo} />
+        <View style={styles.textoFila}>
+          <ThemedText type="smallBold" accessibilityRole="header" numberOfLines={1}>
+            {conversacion.titulo}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {TEXTO_ROL_CHAT[conversacion.rol]} · {conversacion.etiqueta}
+          </ThemedText>
+        </View>
+        {ultimo ? (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.meta}>
+            Último {horaDe(ultimo.creadoEn)}
           </ThemedText>
         ) : null}
-        {delHilo.map((m) => {
-          const mio = m.autorId === usuario.id;
-          return (
-            <View
-              key={m.id}
-              style={[
-                styles.burbuja,
-                mio
-                  ? { alignSelf: 'flex-end', backgroundColor: theme.primary }
-                  : { alignSelf: 'flex-start', backgroundColor: theme.subtle },
-              ]}>
-              {mio ? null : <ThemedText type="smallBold">{m.autorNombre}</ThemedText>}
-              <ThemedText type="small" style={mio ? { color: theme.onPrimary } : undefined}>
-                {m.texto}
-              </ThemedText>
-              <ThemedText
-                type="small"
-                style={[styles.hora, { color: mio ? theme.onPrimary : theme.textSecondary }]}>
-                {horaDe(m.enviadoEn)}
-              </ThemedText>
-            </View>
-          );
-        })}
       </View>
-      <Campo
-        etiqueta="Escribe un mensaje"
-        multiline
-        value={texto}
-        onChangeText={setTexto}
-        placeholder={`Mensaje para ${conversacion.titulo}`}
-      />
-      <Boton texto="Enviar" onPress={enviar} desactivado={!texto.trim()} />
+      {conScroll ? (
+        <ScrollView
+          ref={scroll}
+          style={styles.flex}
+          contentContainerStyle={styles.cuerpo}
+          onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}>
+          {cuerpo}
+        </ScrollView>
+      ) : (
+        <View style={styles.cuerpo}>{cuerpo}</View>
+      )}
+      <View style={styles.pie}>
+        {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
+        <Compositor onEnviar={enviar} enviando={enviando} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
-  lateral: { flex: 1, maxWidth: 380 },
-  principal: { flex: 1.6 },
-  lista: { gap: Spacing.two },
-  fila: {
-    gap: Spacing.one,
-    padding: Spacing.three,
-    borderRadius: Radius.button,
-    borderWidth: 1,
-    minHeight: 72,
-  },
-  filaTexto: { flex: 1, gap: Spacing.half },
-  filaArriba: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },
-  conversacion: { gap: Spacing.three },
-  burbujas: { gap: Spacing.two },
-  burbuja: { maxWidth: '85%', padding: Spacing.three, borderRadius: Radius.card, gap: 2 },
-  hora: { fontSize: 11, lineHeight: 16 },
   flex: { flex: 1 },
+  filas: { gap: Spacing.half },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three - 4,
+    paddingVertical: Spacing.two + 2,
+    borderRadius: Radius.button,
+    minHeight: 64,
+  },
+  textoFila: { flex: 1, gap: 1 },
+  lineaFila: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  meta: { fontSize: 12, lineHeight: 16 },
+  insignia: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: Spacing.one + 2,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paneles: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
+  },
+  panelLista: { width: 360, flexGrow: 0, borderRightWidth: 1 },
+  contenidoPanelLista: { padding: Spacing.two },
+  centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.four },
+  cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 4,
+    padding: Spacing.three,
+    borderBottomWidth: 1,
+  },
+  cuerpo: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.three, flexGrow: 1 },
+  pie: { gap: Spacing.two, padding: Spacing.three, paddingTop: 0 },
+  tarjetaMovil: { borderWidth: 1, borderRadius: Radius.card, overflow: 'hidden' },
 });

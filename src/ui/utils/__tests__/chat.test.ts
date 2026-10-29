@@ -68,14 +68,7 @@ describe('chat de empresa', () => {
 
     const conversaciones = conversacionesDe(dossiers, 'empresa-1');
 
-    expect(conversaciones.map((c) => c.id)).toEqual([
-      'alumno:a1',
-      'alumno:a3',
-      'alumno:a2',
-      'alumno:a5',
-      'profe:profe-1',
-      'profe:profe-2',
-    ]);
+    expect(conversaciones.map((c) => c.id)).toEqual(['a1', 'a3', 'a2', 'a5', 'profe-1', 'profe-2']);
     // Solo la etiqueta del alumno lleva ciclo y centro; la del profe, a quién sigue.
     expect(conversaciones[0]).toMatchObject({
       titulo: 'Alumno Demo',
@@ -99,27 +92,27 @@ describe('chat de empresa', () => {
       'empresa-1',
     );
     const mensajes = [
-      mensaje('m1', 'alumno:a1', 'a1', '2026-10-27T09:00:00.000Z'),
-      mensaje('m2', 'alumno:a1', 'empresa-1', '2026-10-27T10:00:00.000Z'),
-      mensaje('m3', 'alumno:a2', 'a2', '2026-10-28T08:00:00.000Z'),
+      mensaje('m1', 'a1', 'a1', '2026-10-27T09:00:00.000Z'),
+      mensaje('m2', 'a1', 'empresa-1', '2026-10-27T10:00:00.000Z'),
+      mensaje('m3', 'a2', 'a2', '2026-10-28T08:00:00.000Z'),
     ];
 
     expect(porRecientes(conversaciones, mensajes).map((c) => c.id)).toEqual([
-      'alumno:a2',
-      'alumno:a1',
-      'alumno:a3',
-      'profe:profe-1',
+      'a2',
+      'a1',
+      'a3',
+      'profe-1',
     ]);
   });
 
   it('deja los mensajes del hilo del más antiguo al más reciente', () => {
     const mensajes = [
-      mensaje('m2', 'alumno:a1', 'empresa-1', '2026-10-27T10:00:00.000Z'),
-      mensaje('m1', 'alumno:a1', 'a1', '2026-10-27T09:00:00.000Z'),
-      mensaje('m3', 'alumno:a2', 'a2', '2026-10-27T11:00:00.000Z'),
+      mensaje('m2', 'a1', 'empresa-1', '2026-10-27T10:00:00.000Z'),
+      mensaje('m1', 'a1', 'a1', '2026-10-27T09:00:00.000Z'),
+      mensaje('m3', 'a2', 'a2', '2026-10-27T11:00:00.000Z'),
     ];
 
-    expect(mensajesDe(mensajes, 'alumno:a1').map((m) => m.id)).toEqual(['m1', 'm2']);
+    expect(mensajesDe(mensajes, 'a1').map((m) => m.id)).toEqual(['m1', 'm2']);
   });
 
   it('no cuenta como no leídos ni los míos ni los de antes de abrir el hilo', () => {
