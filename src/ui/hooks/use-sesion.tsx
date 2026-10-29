@@ -11,6 +11,8 @@ interface Sesion {
   salir(): Promise<void>;
   /** Tras cambiar el nombre en el perfil, para que se vea en toda la app. */
   renombrar(nombre: string): void;
+  /** Tras cambiar el correo en el perfil, para que se vea en toda la app. */
+  cambiarCorreo(email: string): void;
 }
 
 const SesionContext = createContext<Sesion | null>(null);
@@ -39,8 +41,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     setUsuario((actual) => (actual ? { ...actual, nombre } : actual));
   }, []);
 
+  const cambiarCorreo = useCallback((email: string) => {
+    setUsuario((actual) => (actual ? { ...actual, email } : actual));
+  }, []);
+
   return (
-    <SesionContext.Provider value={{ usuario, cargando, entrar, salir, renombrar }}>
+    <SesionContext.Provider value={{ usuario, cargando, entrar, salir, renombrar, cambiarCorreo }}>
       {children}
     </SesionContext.Provider>
   );

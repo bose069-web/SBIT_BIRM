@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { DATOS_PERSONALES_VACIOS, type DatosPersonales, type Idioma } from '@/core/domain/perfil';
+import {
+  DATOS_PERSONALES_VACIOS,
+  type DatosPersonales,
+  type Idioma,
+  type ResultadoCambioEmail,
+} from '@/core/domain/perfil';
 import type { PerfilPort } from '@/core/ports/perfil-port';
 
 interface FilaDatosPersonales {
@@ -83,5 +88,13 @@ export class PerfilSupabase implements PerfilPort {
   async cambiarNombre(nombre: string) {
     const { error } = await this.cliente.rpc('cambiar_mi_nombre', { nuevo: nombre });
     if (error) throw new Error(error.message);
+  }
+
+  // Con la confirmación por correo activada, Supabase manda un enlace al buzón nuevo y el
+  // correo de la sesión sigue siendo el anterior hasta que se confirme.
+  async cambiarEmail(email: string): Promise<ResultadoCambioEmail> {
+    const { data, error } = await this.cliente.auth.updateUser({ email });
+    if (error) throw new Error(error.message);
+    return data.user?.email?.toLowerCase() === email ? 'cambiado' : 'pendiente';
   }
 }

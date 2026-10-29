@@ -48,4 +48,12 @@ export class PerfilMemory implements PerfilPort {
     if (!usuario) throw new Error('No hay sesión');
     usuario.nombre = nombre;
   }
+
+  async cambiarEmail(email: string) {
+    // Sin proveedor de correo no hay nada que confirmar: el cambio vale al momento.
+    const usuario = sesionMemory();
+    if (!usuario) throw new Error('No hay sesión');
+    usuario.email = email;
+    return 'cambiado' as const;
+  }
 }

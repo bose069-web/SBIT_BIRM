@@ -1,8 +1,11 @@
 import {
+  comprobarEmail,
   comprobarNombre,
+  puedeCambiarSuEmail,
   puedeCambiarSuNombre,
   limpiarDatosPersonales,
   type DatosPersonales,
+  type ResultadoCambioEmail,
 } from '../domain/perfil';
 import { SinPermisoError } from '../domain/errores';
 import type { Usuario } from '../domain/usuario';
@@ -32,4 +35,18 @@ export async function cambiarNombre(
   const limpio = comprobarNombre(nombre);
   await perfil.cambiarNombre(limpio);
   return limpio;
+}
+
+/**
+ * El correo de acceso solo lo cambia quien no depende de un centro (el tutor de empresa).
+ * Devuelve el correo limpio y si el cambio ya vale o hay que confirmarlo desde el buzón.
+ */
+export async function cambiarEmail(
+  perfil: PerfilPort,
+  usuario: Usuario,
+  email: string,
+): Promise<{ email: string; estado: ResultadoCambioEmail }> {
+  if (!puedeCambiarSuEmail(usuario.rol)) throw new SinPermisoError('cambiar tu correo');
+  const limpio = comprobarEmail(email);
+  return { email: limpio, estado: await perfil.cambiarEmail(limpio) };
 }

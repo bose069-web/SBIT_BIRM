@@ -3,12 +3,18 @@ import { StyleSheet, Switch, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
+  cambiarEmail,
   cambiarNombre,
   guardarDatosPersonales,
   obtenerDatosPersonales,
 } from '@/core/application/perfil';
 import type { Dossier } from '@/core/domain/dossier';
-import { puedeCambiarSuNombre, type DatosPersonales, type Idioma } from '@/core/domain/perfil';
+import {
+  puedeCambiarSuEmail,
+  puedeCambiarSuNombre,
+  type DatosPersonales,
+  type Idioma,
+} from '@/core/domain/perfil';
 import type { Rol, Usuario } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
@@ -122,10 +128,12 @@ function Cabecera({ usuario, dossier }: { usuario: Usuario; dossier: Dossier | n
 }
 
 function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPersonales }) {
-  const { renombrar } = useSesion();
+  const { renombrar, cambiarCorreo } = useSesion();
   const [nombre, setNombre] = useState(usuario.nombre);
+  const [email, setEmail] = useState(usuario.email);
   const [datos, setDatos] = useState(inicial);
   const editaNombre = puedeCambiarSuNombre(usuario.rol);
+  const editaEmail = puedeCambiarSuEmail(usuario.rol);
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
@@ -145,8 +153,20 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
       if (editaNombre && nombre.trim() !== usuario.nombre) {
         renombrar(await cambiarNombre(container.perfil, usuario, nombre));
       }
+      let mensaje = 'Cambios guardados';
+      // El correo solo se pide si ha cambiado de verdad.
+      if (editaEmail && email.trim().toLowerCase() !== usuario.email.toLowerCase()) {
+        const cambio = await cambiarEmail(container.perfil, usuario, email);
+        setEmail(cambio.email);
+        if (cambio.estado === 'cambiado') {
+          cambiarCorreo(cambio.email);
+          mensaje = 'Correo actualizado';
+        } else {
+          mensaje = `Te hemos enviado un enlace a ${cambio.email} para confirmar el cambio. Hasta que lo confirmes, entra con el de siempre.`;
+        }
+      }
       setDatos(guardados);
-      setAviso({ tipo: 'ok', texto: 'Cambios guardados' });
+      setAviso({ tipo: 'ok', texto: mensaje });
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo guardar' });
     } finally {
@@ -171,9 +191,20 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
         />
         <Campo
           etiqueta="Correo"
-          value={usuario.email}
-          editable={false}
-          ayuda="Es tu usuario para entrar; lo cambia tu centro."
+          value={editaEmail ? email : usuario.email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setAviso(null);
+          }}
+          editable={editaEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          ayuda={
+            editaEmail
+              ? 'Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón.'
+              : 'Es tu usuario para entrar; lo cambia tu centro.'
+          }
         />
         <Campo
           etiqueta="Teléfono"
