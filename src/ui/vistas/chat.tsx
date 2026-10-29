@@ -3,14 +3,17 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
+import { useUsuario } from '@/ui/hooks/use-sesion';
 
+import { ChatEmpresa } from './chat-empresa';
 import { BandejaIncidencias, DetalleIncidencia } from './incidencias';
 
 /**
- * Pestaña Chat. De momento, las incidencias con su conversación; el chat por alumno (alumno,
- * profe, tutor de empresa e instituto) llega cuando PC 2 y PC 3 lo tengan.
+ * Pestaña Chat. La empresa habla aquí con sus alumnos y con sus profes; los demás roles siguen
+ * viendo las incidencias con su conversación.
  */
 export function VistaChat() {
+  const usuario = useUsuario();
   const { incidencia } = useLocalSearchParams<{ incidencia?: string }>();
   if (incidencia) {
     return (
@@ -21,6 +24,7 @@ export function VistaChat() {
       />
     );
   }
+  if (usuario.rol === 'empresa') return <ChatEmpresa />;
   return (
     <Pantalla titulo="Chat" subtitulo="Incidencias y conversaciones">
       <BandejaIncidencias />
