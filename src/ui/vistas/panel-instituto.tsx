@@ -1,8 +1,9 @@
+import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { listarDossiers } from '@/core/application/dossier';
+import { listarDossiers, obtenerResumenHoras } from '@/core/application/dossier';
 import {
   asignarProfe,
   darDeAltaEmpresa,
@@ -12,6 +13,8 @@ import {
   quitarConvenio,
   type PanelCentro,
 } from '@/core/application/centro';
+import { listarRegistros } from '@/core/application/registro-diario';
+import { obtenerSeguimiento } from '@/core/application/valoracion';
 import type { Persona } from '@/core/domain/centro';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
@@ -27,13 +30,21 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
-import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
+import { alumnosSinApuntar } from '@/ui/utils/avisos-profe';
+import {
+  avisosSeguimiento,
+  type AvisoSeguimiento,
+  type TipoAvisoSeguimiento,
+} from '@/ui/utils/avisos-seguimiento';
+import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
 type Aviso = { tipo: 'error' | 'ok'; texto: string } | null;
 const SIN_PROFE = 'sin-profe';
+/** Días hacia atrás que se cargan de registros para contar a quién le falta apuntar. */
+const DIAS_ATRAS = 45;
 
 /**
  * El instituto gestiona su centro: a qué profe va cada alumno, cuentas nuevas y convenios.
@@ -56,10 +67,50 @@ export function PanelInstituto() {
   }, [esGeneralitat]);
   const centroId = esGeneralitat ? (elegido ?? institutos?.[0]?.valor ?? null) : usuario.centroId;
   const [aviso, setAviso] = useState<Aviso>(null);
-  const { datos, error, cargando, recargar } = useDatos(
-    async () => (centroId ? obtenerPanelCentro(container.centros, usuario, centroId) : null),
-    [centroId, usuario.id],
-  );
+  const hoy = hoyISO();
+  // El panel de gestión y, con los dossiers del centro, los avisos de seguimiento.
+  const { datos, error, cargando, recargar } = useDatos(async () => {
+    if (!centroId) return null;
+    const panel = await obtenerPanelCentro(container.centros, usuario, centroId);
+    // El adaptador ya deja solo los visibles para el rol; la generalitat elige centro.
+    const dossiers = (await listarDossiers(container.dossiers)).filter(
+      (d) => d.centroId === centroId,
+    );
+    const desde = sumarDias(hoy, -DIAS_ATRAS);
+    const detalles = await Promise.all(
+      dossiers.map(async (d) => {
+        const [resumen, seguimiento, registros] = await Promise.all([
+          obtenerResumenHoras(d, container.registros),
+          obtenerSeguimiento(container.valoraciones, d, hoy),
+          listarRegistros(container.registros, d.id, desde, hoy),
+        ]);
+        return { d, resumen, seguimiento, registros };
+      }),
+    );
+    const diasPorDossier = new Map(
+      alumnosSinApuntar(
+        detalles.map(({ d, registros }) => ({
+          dossierId: d.id,
+          nombre: d.alumnoNombre,
+          fechaInicio: d.fechaInicio,
+          fechaFin: d.fechaFin,
+          fechas: registros.map((r) => r.fecha),
+        })),
+        hoy,
+      ).map((a) => [a.dossierId, a.dias]),
+    );
+    const avisos = avisosSeguimiento(
+      detalles.map(({ d, resumen, seguimiento }) => ({
+        alumno: d.alumnoNombre,
+        diasSinApuntar: diasPorDossier.get(d.id) ?? 0,
+        mesesSinValorar: seguimiento.sinValorar,
+        porcentaje: resumen.porcentaje,
+        terminado: hoy > d.fechaFin,
+        tieneFinal: !!seguimiento.final,
+      })),
+    );
+    return { panel, avisos };
+  }, [centroId, usuario.id, hoy]);
 
   // Ejecuta una acción, muestra el resultado y recarga el panel.
   async function hacer(accion: () => Promise<unknown>, ok: string) {
@@ -120,7 +171,7 @@ export function PanelInstituto() {
 
   return (
     <Pantalla
-      titulo={datos?.centro.nombre ?? 'Centro'}
+      titulo={datos?.panel.centro.nombre ?? 'Centro'}
       subtitulo={
         esGeneralitat ? 'Gestión del instituto como Generalitat' : 'Alumnos, profes y convenios'
       }
@@ -141,10 +192,11 @@ export function PanelInstituto() {
           ancho={ancho}
           izquierda={
             <>
-              <CifrasCentro datos={datos} />
-              <TarjetaAlumnos datos={datos} hacer={hacer} />
-              <TarjetaCuentasNuevas datos={datos} hacer={hacer} />
-              <TarjetaConvenios datos={datos} hacer={hacer} />
+              <CifrasCentro datos={datos.panel} />
+              <TarjetaAvisos avisos={datos.avisos} />
+              <TarjetaAlumnos datos={datos.panel} hacer={hacer} />
+              <TarjetaCuentasNuevas datos={datos.panel} hacer={hacer} />
+              <TarjetaConvenios datos={datos.panel} hacer={hacer} />
             </>
           }
           derecha={fechasGenerales}
@@ -183,6 +235,36 @@ function CifrasCentro({ datos }: { datos: PanelCentro }) {
 }
 
 type Hacer = (accion: () => Promise<unknown>, ok: string) => Promise<void>;
+
+const ETIQUETA_AVISO: Record<TipoAvisoSeguimiento, string> = {
+  'sin-apuntar': 'Sin apuntar',
+  'sin-valorar': 'Sin valorar',
+  atrasado: 'Atrasado',
+  'sin-final': 'Sin final',
+};
+
+/**
+ * Lo que conviene atender de un vistazo. Siempre visible: si no hay avisos, lo dice para que
+ * el instituto sepa que está mirando; al final, atajo al seguimiento completo del centro.
+ */
+function TarjetaAvisos({ avisos }: { avisos: AvisoSeguimiento[] }) {
+  return (
+    <Tarjeta titulo="Qué necesita tu atención">
+      {avisos.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Todo en orden: ningún alumno necesita tu atención ahora mismo.
+        </ThemedText>
+      ) : (
+        avisos.map((a, i) => (
+          <Fila key={`${a.tipo}-${a.alumno}-${i}`} titulo={a.alumno} detalle={a.motivo}>
+            <Chip texto={ETIQUETA_AVISO[a.tipo]} color={a.color} />
+          </Fila>
+        ))
+      )}
+      <Boton texto="Ver seguimiento" variante="secundario" onPress={() => router.push('/')} />
+    </Tarjeta>
+  );
+}
 
 function TarjetaAlumnos({ datos, hacer }: { datos: PanelCentro; hacer: Hacer }) {
   const usuario = useUsuario();
