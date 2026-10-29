@@ -3,6 +3,7 @@ import type { Dossier } from '@/core/domain/dossier';
 import {
   conversacionesDe,
   conversacionesDelAlumno,
+  conversacionesDelProfesor,
   hace,
   horaDe,
   mensajesDe,
@@ -248,6 +249,21 @@ describe('contactos directos del alumno', () => {
     expect(contactos).toEqual([
       { id: 'empresa-1', titulo: 'Tutor de empresa', rol: 'empresa', etiqueta: 'DAM' },
       { id: 'profe-1', titulo: 'Profe del centro', rol: 'profe', etiqueta: 'DAM' },
+    ]);
+  });
+});
+
+describe('contactos del profesor', () => {
+  it('incluye alumnos y empresas asignados, sin duplicar ni mostrar dossiers ajenos', () => {
+    const propios = [
+      dossier({ id: '1', alumnoNombre: 'Uno' }),
+      dossier({ id: '2', alumnoNombre: 'Dos' }),
+    ];
+    const ajeno = dossier({ id: '3', alumnoNombre: 'Ajeno', tutorId: 'otro' });
+    expect(conversacionesDelProfesor([...propios, ajeno], 'profe-1').map((c) => c.id)).toEqual([
+      'alumno-1',
+      'empresa-1',
+      'alumno-2',
     ]);
   });
 });

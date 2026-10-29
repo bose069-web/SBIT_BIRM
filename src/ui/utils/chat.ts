@@ -172,3 +172,24 @@ export function hace(iso: string, ahora: Date = new Date()): string {
   if (dias < 7) return `hace ${dias} días`;
   return fechaCorta(iso.slice(0, 10));
 }
+
+/** Alumnos y tutores de empresa asignados al profesor. */
+export function conversacionesDelProfesor(dossiers: Dossier[], profesorId: string): Conversacion[] {
+  const contactos = new Map<string, Conversacion>();
+  for (const d of dossiers.filter((dossier) => dossier.tutorId === profesorId)) {
+    contactos.set(d.alumnoId, {
+      id: d.alumnoId,
+      titulo: d.alumnoNombre,
+      etiqueta: d.ciclo,
+      rol: 'alumno',
+    });
+    if (d.tutorEmpresaId)
+      contactos.set(d.tutorEmpresaId, {
+        id: d.tutorEmpresaId,
+        titulo: d.tutorEmpresaNombre || 'Tutor de empresa',
+        etiqueta: d.empresa ?? '',
+        rol: 'empresa',
+      });
+  }
+  return [...contactos.values()];
+}

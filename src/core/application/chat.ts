@@ -32,3 +32,8 @@ export function marcarHiloLeido(
 ): Promise<void> {
   return chat.marcarLeido(otroId, hasta);
 }
+
+/** La UI escucha el puerto sin conocer el transporte. */
+export function observarChat(chat: ChatPort, alCambiar: () => void): () => void {
+  return chat.suscribir(alCambiar);
+}

@@ -75,6 +75,14 @@ export class ChatMemory implements ChatPort {
     [empresa, { [alumno]: new Date().toISOString(), [profe]: haceMinutos(120) }],
   ]);
   private contador = 0;
+  private oyentes = new Set<() => void>();
+
+  suscribir(alCambiar: () => void): () => void {
+    this.oyentes.add(alCambiar);
+    return () => {
+      this.oyentes.delete(alCambiar);
+    };
+  }
 
   private actual() {
     const usuario = sesionMemory();
@@ -102,6 +110,7 @@ export class ChatMemory implements ChatPort {
       enviadoEn: new Date().toISOString(),
     };
     this.mensajes.push(mensaje);
+    this.oyentes.forEach((oyente) => oyente());
     return { ...mensaje };
   }
 

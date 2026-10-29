@@ -11,18 +11,19 @@ export class AuthSupabase implements AuthPort {
 
   // Nombre y rol salen de la tabla perfiles (el usuario no puede cambiar su propio rol).
   private async aUsuario(user: User): Promise<Usuario> {
-    const { data } = await this.cliente
+    const { data, error } = await this.cliente
       .from('perfiles')
       .select('nombre, rol, centro_id')
       .eq('id', user.id)
       .maybeSingle<{ nombre: string; rol: unknown; centro_id: string | null }>();
+    if (error) throw new Error('No se pudo cargar tu perfil. Inténtalo de nuevo.');
+    if (!data || !esRol(data.rol)) throw new Error('Tu cuenta todavía no tiene un perfil válido.');
     return {
       id: user.id,
       email: user.email ?? '',
-      nombre: data?.nombre ?? user.email ?? '',
-      // Sin perfil o con un rol desconocido nunca hay más permisos: se trata como alumno.
-      rol: esRol(data?.rol) ? data.rol : 'alumno',
-      centroId: data?.centro_id ?? null,
+      nombre: data.nombre,
+      rol: data.rol,
+      centroId: data.centro_id,
     };
   }
 
@@ -41,11 +42,13 @@ export class AuthSupabase implements AuthPort {
   }
 
   async cerrarSesion() {
-    await this.cliente.auth.signOut();
+    const { error } = await this.cliente.auth.signOut();
+    if (error) throw error;
   }
 
   async usuarioActual() {
-    const { data } = await this.cliente.auth.getSession();
+    const { data, error } = await this.cliente.auth.getSession();
+    if (error) throw error;
     return data.session ? this.aUsuario(data.session.user) : null;
   }
 }

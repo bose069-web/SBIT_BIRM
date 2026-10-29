@@ -34,6 +34,7 @@ import { BottomTabInset, Radius, Spacing, TopTabInset } from '@/ui/theme/theme';
 import {
   conversacionesDe,
   conversacionesDelAlumno,
+  conversacionesDelProfesor,
   hace,
   horaDe,
   mensajesDe,
@@ -71,7 +72,9 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
 
   const contactos = esAlumno
     ? conversacionesDelAlumno(datos ?? [], usuario.id)
-    : conversacionesDe(datos ?? [], usuario.id);
+    : usuario.rol === 'profe'
+      ? conversacionesDelProfesor(datos ?? [], usuario.id)
+      : conversacionesDe(datos ?? [], usuario.id);
   const conversaciones = porRecientes(contactos, mensajes);
   const seleccionada = conversaciones.find((c) => c.id === elegida) ?? null;
   const seleccionadaId = seleccionada?.id;

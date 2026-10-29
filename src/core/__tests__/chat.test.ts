@@ -5,6 +5,9 @@ import type { ChatPort } from '../ports/chat-port';
 import { alumno, empresa } from '../__fixtures__/datos';
 
 class ChatFalso implements ChatPort {
+  suscribir() {
+    return () => undefined;
+  }
   mensajes: MensajeDirecto[] = [];
   leido: LeidoHasta = {};
   async listar() {

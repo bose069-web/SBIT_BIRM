@@ -33,6 +33,25 @@ function aMensaje(f: FilaMensaje): MensajeDirecto {
 export class ChatSupabase implements ChatPort {
   constructor(private readonly cliente: SupabaseClient) {}
 
+  suscribir(alCambiar: () => void): () => void {
+    const canal = this.cliente
+      .channel(`chat-${Math.random().toString(36).slice(2)}`)
+      // Las políticas RLS limitan los eventos al usuario autenticado.
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_mensajes' },
+        alCambiar,
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_lecturas' }, alCambiar)
+      .subscribe((estado) => {
+        // Recupera también los mensajes enviados durante una desconexión.
+        if (estado === 'SUBSCRIBED') alCambiar();
+      });
+    return () => {
+      void this.cliente.removeChannel(canal);
+    };
+  }
+
   private async idActual(): Promise<string> {
     const { data } = await this.cliente.auth.getUser();
     if (!data.user) throw new Error('No hay sesión');

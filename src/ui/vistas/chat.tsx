@@ -52,11 +52,11 @@ import {
 export function VistaChat() {
   const usuario = useUsuario();
   if (usuario.rol === 'empresa') return <ChatEmpresa />;
-  if (usuario.rol === 'alumno') return <ChatAlumno />;
+  if (usuario.rol === 'alumno' || usuario.rol === 'profe') return <ChatConIncidencias />;
   return <ChatIncidencias />;
 }
 
-function ChatAlumno() {
+function ChatConIncidencias() {
   const { incidencia } = useLocalSearchParams<{ incidencia?: string }>();
   const [verIncidencias, setVerIncidencias] = useState(false);
   if (incidencia || verIncidencias) {

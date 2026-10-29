@@ -7,6 +7,8 @@ import { container } from '@/config/container';
 interface Sesion {
   usuario: Usuario | null;
   cargando: boolean;
+  error: string | null;
+  reintentar(): void;
   entrar(email: string, contrasena: string): Promise<void>;
   salir(): Promise<void>;
   /** Tras cambiar el nombre en el perfil, para que se vea en toda la app. */
@@ -22,11 +24,31 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    obtenerUsuarioActual(container.auth)
-      .then(setUsuario)
-      .finally(() => setCargando(false));
+  const [error, setError] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
+  const reintentar = useCallback(() => {
+    setCargando(true);
+    setError(null);
+    setIntento((actual) => actual + 1);
   }, []);
+
+  useEffect(() => {
+    let vigente = true;
+    obtenerUsuarioActual(container.auth)
+      .then((actual) => {
+        if (vigente) setUsuario(actual);
+      })
+      .catch(() => {
+        if (vigente)
+          setError('No se pudo recuperar la sesión. Comprueba la conexión y vuelve a intentarlo.');
+      })
+      .finally(() => {
+        if (vigente) setCargando(false);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [intento]);
 
   const entrar = useCallback(async (email: string, contrasena: string) => {
     setUsuario(await iniciarSesion(container.auth, email, contrasena));
@@ -46,7 +68,8 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SesionContext.Provider value={{ usuario, cargando, entrar, salir, renombrar, cambiarCorreo }}>
+    <SesionContext.Provider
+      value={{ usuario, cargando, error, reintentar, entrar, salir, renombrar, cambiarCorreo }}>
       {children}
     </SesionContext.Provider>
   );
