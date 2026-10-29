@@ -10,13 +10,15 @@ import { BottomTabInset, MaxContentWidth, Spacing, TopTabInset } from '@/ui/them
 interface Props {
   titulo: string;
   subtitulo?: string;
+  /** Junto al título, a la derecha (en la web ancha): un estado o una acción. */
+  accion?: ReactNode;
   children: ReactNode;
   /** En la web ancha la pantalla usa más anchura (paneles en columnas). */
   amplia?: boolean;
 }
 
 /** Contenedor común de las pantallas: scroll, ancho máximo y hueco para las pestañas. */
-export function Pantalla({ titulo, subtitulo, children, amplia }: Props) {
+export function Pantalla({ titulo, subtitulo, accion, children, amplia }: Props) {
   const theme = useTheme();
   const web = Platform.OS === 'web';
   // Cada pantalla empieza arriba: la cabecera de la web vuelve a mostrar el logotipo entero.
@@ -32,11 +34,14 @@ export function Pantalla({ titulo, subtitulo, children, amplia }: Props) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag">
         <View style={[styles.contenido, amplia && styles.amplia]}>
-          <View style={styles.cabecera}>
-            <ThemedText accessibilityRole="header" type="title">
-              {titulo}
-            </ThemedText>
-            {subtitulo ? <ThemedText themeColor="textSecondary">{subtitulo}</ThemedText> : null}
+          <View style={[styles.cabecera, accion ? styles.conAccion : null]}>
+            <View style={styles.titulos}>
+              <ThemedText accessibilityRole="header" type="title">
+                {titulo}
+              </ThemedText>
+              {subtitulo ? <ThemedText themeColor="textSecondary">{subtitulo}</ThemedText> : null}
+            </View>
+            {accion}
           </View>
           {children}
         </View>
@@ -55,5 +60,12 @@ const styles = StyleSheet.create({
   },
   contenido: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.three },
   amplia: { maxWidth: 1200 },
-  cabecera: { gap: Spacing.one, marginBottom: Spacing.two },
+  cabecera: { gap: Spacing.three, marginBottom: Spacing.two },
+  conAccion: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  titulos: { gap: Spacing.one },
 });
