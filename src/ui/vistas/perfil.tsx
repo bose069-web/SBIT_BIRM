@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, View, type ViewStyle } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
@@ -19,6 +19,8 @@ import type { Rol, Usuario } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
+import { Chip } from '@/ui/components/chip';
+import { FilaDato } from '@/ui/components/fila-dato';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Selector } from '@/ui/components/selector';
@@ -28,7 +30,7 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useSesion, useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Spacing } from '@/ui/theme/theme';
+import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 
 import { ErrorCarga, EsqueletoPanel } from './comun';
@@ -74,16 +76,21 @@ export function VistaPerfil() {
       {datos ? (
         <Columnas
           ancho={ancho}
-          izquierda={<Formulario usuario={usuario} inicial={datos.personales} />}
+          izquierda={
+            <Formulario
+              key={usuario.id}
+              usuario={usuario}
+              inicial={datos.personales}
+              ancho={ancho}
+            />
+          }
           derecha={
-            <>
-              <Tarjeta titulo="App">
-                <ThemedText type="small" themeColor="textSecondary">
-                  Datos: {container.auth.nombre}
-                </ThemedText>
-              </Tarjeta>
+            <Tarjeta titulo="Sesión">
+              <ThemedText type="small" themeColor="textSecondary">
+                Datos: {container.auth.nombre}
+              </ThemedText>
               <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
-            </>
+            </Tarjeta>
           }
         />
       ) : null}
@@ -112,30 +119,70 @@ function Cabecera({ usuario, dossier }: { usuario: Usuario; dossier: Dossier | n
         </View>
         <View style={styles.flex}>
           <ThemedText type="subtitle">{usuario.nombre}</ThemedText>
-          <ThemedText themeColor="textSecondary">{usuario.email}</ThemedText>
-          <ThemedText type="smallBold">{NOMBRE_ROL[usuario.rol]}</ThemedText>
+          <Chip texto={NOMBRE_ROL[usuario.rol]} color="primary" />
+          <ThemedText type="small" themeColor="textSecondary">
+            {usuario.email}
+          </ThemedText>
         </View>
       </View>
-      {/* Lo asigna el centro: aquí solo se consulta. */}
-      {dossier ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {dossier.ciclo} · {dossier.centro ?? 'Sin centro'} · {dossier.empresa ?? 'Sin empresa'}
-          {'\n'}Prácticas del {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
-        </ThemedText>
+      {usuario.rol === 'alumno' ? (
+        <View style={[styles.practicas, { borderTopColor: theme.border }]}>
+          <View style={styles.datoPracticas}>
+            <FilaDato vertical etiqueta="Ciclo" valor={dossier?.ciclo ?? 'Sin asignar'} />
+          </View>
+          <View style={styles.datoPracticas}>
+            <FilaDato vertical etiqueta="Centro" valor={dossier?.centro ?? 'Sin asignar'} />
+          </View>
+          <View style={styles.datoPracticas}>
+            <FilaDato vertical etiqueta="Empresa" valor={dossier?.empresa ?? 'Sin asignar'} />
+          </View>
+          <View style={styles.datoPracticas}>
+            <FilaDato
+              vertical
+              etiqueta="Periodo"
+              valor={
+                dossier
+                  ? `${fechaCorta(dossier.fechaInicio)} – ${fechaCorta(dossier.fechaFin)}`
+                  : 'Sin asignar'
+              }
+            />
+          </View>
+        </View>
       ) : null}
     </Tarjeta>
   );
 }
 
-function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPersonales }) {
+function Formulario({
+  usuario,
+  inicial,
+  ancho,
+}: {
+  usuario: Usuario;
+  inicial: DatosPersonales;
+  ancho: boolean;
+}) {
+  const theme = useTheme();
   const { renombrar, cambiarCorreo } = useSesion();
   const [nombre, setNombre] = useState(usuario.nombre);
   const [email, setEmail] = useState(usuario.email);
   const [datos, setDatos] = useState(inicial);
+  const [guardado, setGuardado] = useState({
+    nombre: usuario.nombre,
+    datos: inicial,
+    email: usuario.email,
+  });
   const editaNombre = puedeCambiarSuNombre(usuario.rol);
   const editaEmail = puedeCambiarSuEmail(usuario.rol);
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+
+  const hayCambios =
+    (editaNombre && nombre !== guardado.nombre) ||
+    (editaEmail && email.trim().toLowerCase() !== guardado.email.toLowerCase()) ||
+    (Object.keys(datos) as (keyof DatosPersonales)[]).some(
+      (campo) => (datos[campo] ?? '') !== (guardado.datos[campo] ?? ''),
+    );
 
   const cambiar = <K extends keyof DatosPersonales>(campo: K, valor: DatosPersonales[K]) => {
     setDatos((d) => ({ ...d, [campo]: valor }));
@@ -150,13 +197,17 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
     setGuardando(true);
     try {
       const guardados = await guardarDatosPersonales(container.perfil, usuario, datos);
+      let nombreGuardado = usuario.nombre;
       if (editaNombre && nombre.trim() !== usuario.nombre) {
-        renombrar(await cambiarNombre(container.perfil, usuario, nombre));
+        nombreGuardado = await cambiarNombre(container.perfil, usuario, nombre);
+        renombrar(nombreGuardado);
       }
       let mensaje = 'Cambios guardados';
+      let emailGuardado = guardado.email;
       // El correo solo se pide si ha cambiado de verdad.
-      if (editaEmail && email.trim().toLowerCase() !== usuario.email.toLowerCase()) {
+      if (editaEmail && email.trim().toLowerCase() !== guardado.email.toLowerCase()) {
         const cambio = await cambiarEmail(container.perfil, usuario, email);
+        emailGuardado = cambio.email;
         setEmail(cambio.email);
         if (cambio.estado === 'cambiado') {
           cambiarCorreo(cambio.email);
@@ -166,6 +217,8 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
         }
       }
       setDatos(guardados);
+      setNombre(nombreGuardado);
+      setGuardado({ nombre: nombreGuardado, datos: guardados, email: emailGuardado });
       setAviso({ tipo: 'ok', texto: mensaje });
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo guardar' });
@@ -177,35 +230,45 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
   const tituloRol = TITULO_ROL[usuario.rol];
   return (
     <>
-      <Tarjeta titulo="Datos personales">
-        <Campo
-          etiqueta="Nombre y apellidos"
-          value={nombre}
-          onChangeText={(v) => {
-            setNombre(v);
-            setAviso(null);
-          }}
-          autoComplete="name"
-          editable={editaNombre}
-          ayuda={editaNombre ? undefined : 'Lo gestiona tu tutor: pídeselo si hay un error.'}
-        />
-        <Campo
-          etiqueta="Correo"
-          value={editaEmail ? email : usuario.email}
-          onChangeText={(v) => {
-            setEmail(v);
-            setAviso(null);
-          }}
-          editable={editaEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          ayuda={
-            editaEmail
-              ? 'Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón.'
-              : 'Es tu usuario para entrar; lo cambia tu centro.'
-          }
-        />
+      <Tarjeta titulo="Cuenta">
+        {!editaNombre ? (
+          <FilaDato
+            etiqueta="Nombre y apellidos"
+            valor={usuario.nombre}
+            ayuda="Lo gestiona tu centro"
+          />
+        ) : null}
+        {editaEmail ? (
+          <Campo
+            etiqueta="Correo"
+            value={email}
+            onChangeText={(v) => {
+              setEmail(v);
+              setAviso(null);
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
+          />
+        ) : (
+          <FilaDato etiqueta="Correo" valor={usuario.email} ayuda="Lo gestiona tu centro" />
+        )}
+        <FilaDato etiqueta="Rol" valor={NOMBRE_ROL[usuario.rol]} ayuda="Lo gestiona tu centro" />
+      </Tarjeta>
+
+      <Tarjeta titulo="Contacto">
+        {editaNombre ? (
+          <Campo
+            etiqueta="Nombre y apellidos"
+            value={nombre}
+            onChangeText={(v) => {
+              setNombre(v);
+              setAviso(null);
+            }}
+            autoComplete="name"
+          />
+        ) : null}
         <Campo
           etiqueta="Teléfono"
           value={texto('telefono')}
@@ -232,6 +295,9 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
                 onChangeText={(v) => cambiar('emergenciaTelefono', v)}
                 keyboardType="phone-pad"
               />
+              <ThemedText type="small" themeColor="textSecondary">
+                Pendiente de validar por tu tutor
+              </ThemedText>
             </>
           ) : null}
           {usuario.rol === 'profe' ? (
@@ -293,8 +359,30 @@ function Formulario({ usuario, inicial }: { usuario: Usuario; inicial: DatosPers
         />
       </Tarjeta>
 
-      {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-      <Boton texto="Guardar cambios" onPress={guardar} cargando={guardando} />
+      <View
+        style={[
+          styles.barraGuardado,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          ancho && barraFijaWeb,
+          ancho && styles.barraGuardadoAncha,
+        ]}>
+        <View style={styles.estadoGuardado}>
+          {aviso ? (
+            <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
+              {hayCambios ? 'Tienes cambios sin guardar' : 'Tu perfil está al día'}
+            </ThemedText>
+          )}
+        </View>
+        <Boton
+          texto={hayCambios ? 'Guardar cambios' : 'Sin cambios'}
+          variante={hayCambios ? 'primario' : 'secundario'}
+          desactivado={!hayCambios}
+          onPress={guardar}
+          cargando={guardando}
+        />
+      </View>
     </>
   );
 }
@@ -310,18 +398,42 @@ function Interruptor({
 }) {
   const theme = useTheme();
   return (
-    <View style={styles.interruptor}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={texto}
+      accessibilityState={{ checked: valor }}
+      aria-checked={valor}
+      onPress={() => onCambio(!valor)}
+      onKeyDown={
+        Platform.OS === 'web'
+          ? (evento) => {
+              // Pressable maneja Intro; el rol switch también debe responder a Espacio.
+              if (evento.nativeEvent.key === ' ') {
+                evento.preventDefault();
+                if (!evento.nativeEvent.repeat) onCambio(!valor);
+              }
+            }
+          : undefined
+      }
+      style={styles.interruptor}>
       <ThemedText type="small" style={styles.flex}>
         {texto}
       </ThemedText>
-      <Switch
-        accessibilityLabel={texto}
-        value={valor}
-        onValueChange={onCambio}
-        trackColor={{ true: theme.primary, false: theme.border }}
-        thumbColor="#FFFFFF"
-      />
-    </View>
+      {/* Toda la fila es pulsable; el control interior solo representa el estado. */}
+      <View
+        pointerEvents="none"
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.areaInterruptor}>
+        <Switch
+          disabled
+          value={valor}
+          trackColor={{ true: theme.primary, false: theme.borderStrong }}
+          thumbColor={theme.onPrimary}
+        />
+      </View>
+    </Pressable>
   );
 }
 
@@ -334,34 +446,48 @@ function Columnas({
   izquierda: ReactNode;
   derecha: ReactNode;
 }) {
-  if (!ancho) {
-    return (
-      <>
-        {izquierda}
-        {derecha}
-      </>
-    );
-  }
   return (
-    <View style={styles.columnas}>
-      <View style={styles.principal}>{izquierda}</View>
-      <View style={styles.lateral}>{derecha}</View>
+    <View style={ancho ? styles.columnas : styles.columna}>
+      <View style={[styles.columna, ancho && styles.principal]}>{izquierda}</View>
+      <View style={[styles.columna, ancho && styles.lateral]}>{derecha}</View>
     </View>
   );
 }
 
+// useWebAncha solo activa este estilo CSS en web; queda dentro de la columna del formulario.
+const barraFijaWeb = { position: 'sticky', bottom: 0 } as ViewStyle;
+
 const styles = StyleSheet.create({
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  practicas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.three,
+  },
+  datoPracticas: { flexGrow: 1, flexBasis: 200, minWidth: 0 },
   avatar: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radius.pill,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flex: { flex: 1, gap: Spacing.one },
+  flex: { flex: 1, minWidth: 0, gap: Spacing.two },
+  areaInterruptor: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  barraGuardado: {
+    gap: Spacing.three,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderRadius: Radius.card,
+  },
+  barraGuardadoAncha: { flexDirection: 'row', alignItems: 'center', zIndex: 1 },
+  estadoGuardado: { flex: 1, minWidth: 0 },
   interruptor: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
+  columna: { minWidth: 0, gap: Spacing.three },
   columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
-  principal: { flex: 1.7, gap: Spacing.three },
-  lateral: { flex: 1, gap: Spacing.three },
+  principal: { flex: 1.7 },
+  lateral: { flex: 1, maxWidth: 320 },
 });
