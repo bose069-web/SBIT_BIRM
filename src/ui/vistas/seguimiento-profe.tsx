@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import {
@@ -40,7 +40,6 @@ import {
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { TareasDossier } from './tareas';
 import {
-  CabeceraAlumno,
   ErrorCarga,
   EsqueletoPanel,
   EstadoVacio,
@@ -95,25 +94,37 @@ export function SeguimientoProfe() {
     tieneFinal: !!d.seguimiento.final,
   }));
 
+  const acciones =
+    administra || creaDossiers ? (
+      <View style={ancho ? styles.acciones : styles.accionesMovil}>
+        {administra ? (
+          <Boton
+            texto={rol === 'generalitat' ? 'Gestionar institutos' : 'Gestionar el centro'}
+            variante="secundario"
+            onPress={() => router.push('/centro')}
+          />
+        ) : null}
+        {creaDossiers ? (
+          <Boton
+            texto="+ Nuevo dossier"
+            onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
+          />
+        ) : null}
+      </View>
+    ) : null;
+  // Del que va más atrasado al más avanzado: lo primero que ve el profe es a quién atender.
+  const ordenados = [...(datos ?? [])].sort(
+    (a, b) => a.datos.resumen.porcentaje - b.datos.resumen.porcentaje,
+  );
+
   return (
-    <Pantalla titulo="Seguimiento" subtitulo={SUBTITULO[rol]} amplia={ancho}>
-      {administra || creaDossiers ? (
-        <View style={ancho ? styles.acciones : styles.accionesMovil}>
-          {administra ? (
-            <Boton
-              texto={rol === 'generalitat' ? 'Gestionar institutos' : 'Gestionar el centro'}
-              variante="secundario"
-              onPress={() => router.push('/centro')}
-            />
-          ) : null}
-          {creaDossiers ? (
-            <Boton
-              texto="+ Nuevo dossier"
-              onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
-            />
-          ) : null}
-        </View>
-      ) : null}
+    <Pantalla
+      titulo="Seguimiento"
+      subtitulo={SUBTITULO[rol]}
+      // En la web, las acciones junto al título, como el estado del mes en el Inicio del alumno.
+      accion={ancho ? acciones : undefined}
+      amplia={ancho}>
+      {ancho ? null : acciones}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
@@ -126,9 +137,21 @@ export function SeguimientoProfe() {
       {datos && datos.length > 0 ? (
         <Columnas
           ancho={ancho}
-          izquierda={datos.map(({ dossier, datos: d }) => (
-            <SeguimientoDossier key={dossier.id} dossier={dossier} datos={d} onCambio={recargar} />
-          ))}
+          izquierda={
+            <Tarjeta titulo={`Alumnos (${datos.length})`}>
+              <View>
+                {ordenados.map(({ dossier, datos: d }, i) => (
+                  <FilaAlumno
+                    key={dossier.id}
+                    primera={i === 0}
+                    dossier={dossier}
+                    datos={d}
+                    onCambio={recargar}
+                  />
+                ))}
+              </View>
+            </Tarjeta>
+          }
           derecha={
             <>
               <ResumenAlumnos alumnos={alumnos} />
@@ -148,7 +171,7 @@ function ResumenAlumnos({ alumnos }: { alumnos: AlumnoSeguido[] }) {
   const theme = useTheme();
   const r = resumirSeguimiento(alumnos);
   return (
-    <Tarjeta titulo="Tus alumnos">
+    <Tarjeta titulo="Resumen">
       <View style={styles.quesito}>
         <Quesito porcentaje={r.mediaPorcentaje} etiqueta="Progreso medio de horas" />
         <View style={styles.flex}>
@@ -160,11 +183,11 @@ function ResumenAlumnos({ alumnos }: { alumnos: AlumnoSeguido[] }) {
       </View>
       <View style={[styles.cifras, styles.separado, { borderTopColor: theme.border }]}>
         <Cifra
+          etiqueta="Falta valorar la empresa"
           valor={r.pendientesEmpresa}
-          texto="con meses sin valorar"
-          color={r.pendientesEmpresa ? 'estadoPendiente' : 'textSecondary'}
+          color={r.pendientesEmpresa ? 'estadoPendiente' : undefined}
         />
-        <Cifra valor={r.conFinal} texto="con valoración final" color="estadoValidado" />
+        <Cifra etiqueta="Con valoración final" valor={r.conFinal} />
       </View>
       {alumnos.length > 1 ? (
         <View style={[styles.separado, styles.grafico, { borderTopColor: theme.border }]}>
@@ -187,22 +210,23 @@ function ResumenAlumnos({ alumnos }: { alumnos: AlumnoSeguido[] }) {
   );
 }
 
+/** Como las cifras del Inicio del alumno: etiqueta pequeña arriba y el número debajo. */
 function Cifra({
+  etiqueta,
   valor,
-  texto,
   color,
 }: {
+  etiqueta: string;
   valor: number;
-  texto: string;
-  color: 'estadoPendiente' | 'estadoValidado' | 'textSecondary';
+  color?: 'estadoPendiente';
 }) {
   return (
-    <View style={styles.cifra} accessible accessibilityLabel={`${valor} ${texto}`}>
-      <ThemedText type="subtitle" themeColor={color}>
-        {valor}
-      </ThemedText>
+    <View style={styles.cifra} accessible accessibilityLabel={`${etiqueta}: ${valor}`}>
       <ThemedText type="small" themeColor="textSecondary">
-        {texto}
+        {etiqueta}
+      </ThemedText>
+      <ThemedText type="subtitle" themeColor={color ?? 'text'}>
+        {valor}
       </ThemedText>
     </View>
   );
@@ -234,23 +258,32 @@ function Columnas({
   );
 }
 
-function SeguimientoDossier({
+/**
+ * Una línea por alumno (quesito pequeño, nombre, empresa y horas). Al tocarla se despliega su
+ * detalle: valoraciones de la empresa, valoración final y tareas.
+ */
+function FilaAlumno({
   dossier,
   datos,
+  primera,
   onCambio,
 }: {
   dossier: Dossier;
   datos: DatosAlumno;
+  primera: boolean;
   onCambio: () => void;
 }) {
   const usuario = useUsuario();
   const theme = useTheme();
+  const [abierto, setAbierto] = useState(false);
   const [resultado, setResultado] = useState<ResultadoFinal | null>(null);
   const [comentario, setComentario] = useState('');
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verTareas, setVerTareas] = useState(false);
   const [verFinal, setVerFinal] = useState(false);
+  const gestiona = gestionaDossier(usuario, dossier);
+  const { resumen, seguimiento } = datos;
 
   async function guardar() {
     if (!resultado) {
@@ -275,88 +308,123 @@ function SeguimientoDossier({
   }
 
   return (
-    <Tarjeta>
-      <CabeceraAlumno
-        onAbrir={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
-        nombre={dossier.alumnoNombre}
-        detalle={[
-          `${dossier.ciclo} · ${dossier.empresa ?? 'Sin empresa'}`,
-          `Tutor de empresa: ${dossier.tutorEmpresaNombre ?? 'sin asignar'}`,
-          `Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`,
-        ]}
-      />
-      <View style={[styles.quesito, styles.separado, { borderTopColor: theme.border }]}>
+    <View style={[styles.alumno, !primera && { borderTopWidth: 1, borderColor: theme.border }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: abierto }}
+        accessibilityLabel={`${dossier.alumnoNombre}, ${resumen.porcentaje}% de las horas. ${abierto ? 'Plegar' : 'Ver detalle'}`}
+        onPress={() => setAbierto((v) => !v)}
+        style={({ pressed }) => [styles.fila, pressed && { opacity: 0.6 }]}>
         <Quesito
-          porcentaje={datos.resumen.porcentaje}
-          tamano={72}
+          porcentaje={resumen.porcentaje}
+          tamano={44}
           etiqueta={`Horas de ${dossier.alumnoNombre}`}
         />
         <View style={styles.flex}>
-          <ThemedText type="smallBold">
-            {formatoHoras(datos.resumen.realizadas)} de {formatoHoras(datos.resumen.totales)}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {datos.resumen.porcentaje}% completado
+          <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {dossier.ciclo} · {dossier.empresa ?? 'Sin empresa'}
           </ThemedText>
         </View>
-      </View>
-      {datos.seguimiento.sinValorar.length > 0 ? (
+        <View style={styles.derecha}>
+          <ThemedText type="smallBold">{resumen.porcentaje}%</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {formatoHoras(resumen.realizadas)} de {formatoHoras(resumen.totales)}
+          </ThemedText>
+        </View>
+        <ThemedText type="small" themeColor="textSecondary">
+          {abierto ? '⌃' : '⌄'}
+        </ThemedText>
+      </Pressable>
+      {seguimiento.final ? (
         <Chip
-          texto={`La empresa no ha valorado: ${datos.seguimiento.sinValorar.map(nombreMes).join(', ')}`}
+          texto={`Final: ${TEXTO_RESULTADO[seguimiento.final.resultado]}`}
+          color={seguimiento.final.resultado === 'apto' ? 'estadoValidado' : 'danger'}
+        />
+      ) : seguimiento.sinValorar.length > 0 ? (
+        <Chip
+          texto={`La empresa no ha valorado: ${seguimiento.sinValorar.map(nombreMes).join(', ')}`}
           color="estadoPendiente"
         />
       ) : null}
-      <ListaValoraciones mensuales={datos.seguimiento.mensuales} final={datos.seguimiento.final} />
 
-      {/* Valoración final y tareas plegadas para que la lista de alumnos no sea eterna. */}
-      <View style={styles.botones}>
-        {gestionaDossier(usuario, dossier) ? (
-          <Boton
-            texto={
-              verFinal
-                ? 'Cerrar valoración final'
-                : datos.seguimiento.final
-                  ? 'Cambiar valoración final'
-                  : 'Valoración final'
-            }
-            variante="secundario"
-            onPress={() => setVerFinal((v) => !v)}
-          />
-        ) : null}
-        <Boton
-          texto={verTareas ? 'Ocultar tareas y fechas' : 'Tareas y fechas'}
-          variante="secundario"
-          onPress={() => setVerTareas((v) => !v)}
-        />
-      </View>
-      {verFinal && gestionaDossier(usuario, dossier) ? (
-        <>
-          <Selector
-            etiqueta={datos.seguimiento.final ? 'Cambiar valoración final' : 'Valoración final'}
-            opciones={RESULTADOS_FINALES.map((r) => ({ valor: r, texto: TEXTO_RESULTADO[r] }))}
-            valor={resultado}
-            onCambio={setResultado}
-          />
-          <Campo
-            etiqueta="Comentario"
-            multiline
-            value={comentario}
-            onChangeText={setComentario}
-            ayuda="Obligatorio si no es apto. Cierra todos los meses del alumno."
-          />
-          {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-          <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
-        </>
-      ) : aviso ? (
-        <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
+      {abierto ? (
+        <View style={styles.detalle}>
+          <View style={styles.cabeceraDetalle}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+              Tutor de empresa: {dossier.tutorEmpresaNombre ?? 'sin asignar'} · del{' '}
+              {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
+            </ThemedText>
+            <Enlace
+              texto="Ficha ›"
+              onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
+            />
+          </View>
+          <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
+          <View style={styles.botones}>
+            {gestiona ? (
+              <Boton
+                texto={
+                  verFinal
+                    ? 'Cerrar valoración final'
+                    : seguimiento.final
+                      ? 'Cambiar valoración final'
+                      : 'Valoración final'
+                }
+                variante="secundario"
+                onPress={() => setVerFinal((v) => !v)}
+              />
+            ) : null}
+            <Boton
+              texto={verTareas ? 'Ocultar tareas y fechas' : 'Tareas y fechas'}
+              variante="secundario"
+              onPress={() => setVerTareas((v) => !v)}
+            />
+          </View>
+          {verFinal && gestiona ? (
+            <>
+              <Selector
+                etiqueta={seguimiento.final ? 'Cambiar valoración final' : 'Valoración final'}
+                opciones={RESULTADOS_FINALES.map((r) => ({ valor: r, texto: TEXTO_RESULTADO[r] }))}
+                valor={resultado}
+                onCambio={setResultado}
+              />
+              <Campo
+                etiqueta="Comentario"
+                multiline
+                value={comentario}
+                onChangeText={setComentario}
+                ayuda="Obligatorio si no es apto. Cierra todos los meses del alumno."
+              />
+              {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+              <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
+            </>
+          ) : aviso ? (
+            <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
+          ) : null}
+          {verTareas ? (
+            <>
+              <TareasDossier dossier={dossier} />
+              {gestiona ? <NuevoEvento dossier={dossier} /> : null}
+            </>
+          ) : null}
+        </View>
       ) : null}
-      {verTareas ? (
-        <>
-          <TareasDossier dossier={dossier} />
-          {gestionaDossier(usuario, dossier) ? <NuevoEvento dossier={dossier} /> : null}
-        </>
-      ) : null}
-    </Tarjeta>
+    </View>
+  );
+}
+
+function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <ThemedText type="small" themeColor="textSecondary">
+        {texto}
+      </ThemedText>
+    </Pressable>
   );
 }
 
@@ -373,4 +441,9 @@ const styles = StyleSheet.create({
   cifra: { flex: 1, gap: Spacing.half },
   grafico: { gap: Spacing.two },
   botones: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  alumno: { gap: Spacing.two, paddingVertical: Spacing.two },
+  fila: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
+  derecha: { alignItems: 'flex-end', gap: Spacing.half },
+  detalle: { gap: Spacing.three, paddingTop: Spacing.one },
+  cabeceraDetalle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
 });
