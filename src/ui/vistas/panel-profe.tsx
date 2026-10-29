@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { listarDossiers, obtenerResumenHoras } from '@/core/application/dossier';
+import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import { obtenerSeguimiento, ponerValoracionFinal } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
 import { gestionaDossier, type Rol } from '@/core/domain/usuario';
@@ -47,7 +47,9 @@ const SUBTITULO: Partial<Record<Rol, string>> = {
  * sus alumnos; el instituto, los de su centro; la generalitat, todos.
  */
 export function PanelProfe() {
-  const { rol } = useUsuario();
+  const usuario = useUsuario();
+  const { rol } = usuario;
+  const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
   const administra = rol === 'instituto' || rol === 'generalitat';
   const { datos, error, cargando, recargar } = useDatos(
     () => listarDossiers(container.dossiers),
@@ -61,6 +63,12 @@ export function PanelProfe() {
           texto={rol === 'generalitat' ? 'Gestionar institutos' : 'Gestionar el centro'}
           variante="secundario"
           onPress={() => router.push('/centro')}
+        />
+      ) : null}
+      {creaDossiers ? (
+        <Boton
+          texto="+ Nuevo dossier"
+          onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
         />
       ) : null}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}

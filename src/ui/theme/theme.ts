@@ -2,20 +2,30 @@ import '@/ui/theme/global.css';
 
 import { Platform } from 'react-native';
 
-// Sistema de diseño monocromo de Kampus (vault: 03 - Diseño/Sistema de diseño).
-// Negro para lo importante, grises para el resto; el color solo marca estados y siempre va con texto.
+// Sistema de diseño de Kampus (vault: 03 - Diseño/Sistema de diseño).
+// Monocromo con un único acento azul (`primary`): botón principal, selección, hoy, progreso y
+// pestaña activa. El resto del color solo marca estados y siempre va con texto.
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    textSecondary: '#52525B',
-    background: '#FAFAFA',
-    surface: '#FFFFFF',
-    subtle: '#F4F4F5',
-    border: '#E4E4E7',
-    borderStrong: '#71717A',
-    primary: '#0A0A0A',
+    // Neutros cálidos tipo marfil (como anthropic.com): fondo crema y texto casi negro.
+    text: '#141413',
+    textSecondary: '#5E5D59',
+    background: '#F5F4EE',
+    surface: '#FAF9F5',
+    subtle: '#F0EEE6',
+    border: '#E8E6DC',
+    borderStrong: '#87867F',
+    // #2563EB sobre blanco: 5.2:1.
+    primary: '#2563EB',
     onPrimary: '#FFFFFF',
+    primarySuave: '#DBEAFE',
+    // Superficies de cristal (Liquid Glass): translúcidas sobre el fondo.
+    cristal: 'rgba(250,249,245,0.72)',
+    cristalBorde: 'rgba(232,230,220,0.9)',
     danger: '#B91C1C',
+    // Avisos por días sin apuntar: amarillo y naranja oscurecidos para leerse sobre blanco (4.5:1).
+    avisoLeve: '#A16207',
+    avisoMedio: '#C2410C',
     estadoValidado: '#15803D',
     // Un punto más oscuro que antes para pasar 4.5:1 también sobre `subtle`.
     estadoPendiente: '#9D5F06',
@@ -24,16 +34,23 @@ export const Colors = {
     estadoFestivo: '#6B6B75',
   },
   dark: {
-    text: '#FAFAFA',
-    textSecondary: '#A1A1AA',
-    background: '#09090B',
-    surface: '#18181B',
-    subtle: '#27272A',
-    border: '#27272A',
-    borderStrong: '#A1A1AA',
-    primary: '#FAFAFA',
-    onPrimary: '#0A0A0A',
+    // Grises «carbón cálido»: fondo menos negro y un tinte cálido suave.
+    text: '#F5F3F0',
+    textSecondary: '#A8A39C',
+    background: '#141312',
+    surface: '#1E1D1B',
+    subtle: '#2A2826',
+    border: '#3A3734',
+    borderStrong: '#A8A39C',
+    // El mismo azul que en claro, con texto blanco encima.
+    primary: '#2563EB',
+    onPrimary: '#FFFFFF',
+    primarySuave: '#172554',
+    cristal: 'rgba(30,29,27,0.72)',
+    cristalBorde: 'rgba(255,255,255,0.08)',
     danger: '#F87171',
+    avisoLeve: '#FACC15',
+    avisoMedio: '#FB923C',
     estadoValidado: '#4ADE80',
     estadoPendiente: '#FACC15',
     estadoAusencia: '#F87171',
@@ -58,8 +75,8 @@ export const Fonts = {
 
 export const Radius = {
   control: 8,
-  button: 10,
-  card: 14,
+  button: 12,
+  card: 18,
   pill: 999,
 } as const;
 
@@ -71,6 +88,14 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+// Duraciones de animación (ms). Salir siempre más rápido que entrar; con "reducir movimiento"
+// activado no se anima.
+export const Movimiento = {
+  rapido: 150,
+  normal: 250,
+  entrada: 350,
 } as const;
 
 // Fondo de marca: el arranque es negro tanto en claro como en oscuro, igual que el icono.

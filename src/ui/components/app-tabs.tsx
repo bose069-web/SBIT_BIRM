@@ -1,5 +1,5 @@
 import { NativeTabs } from 'expo-router/native-tabs';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 
 import type { Rol } from '@/core/domain/usuario';
 import { Colors } from '@/ui/theme/theme';
@@ -7,7 +7,7 @@ import { Colors } from '@/ui/theme/theme';
 // Iconos de sistema: SF Symbols en iOS y Material Symbols en Android (expo-symbols ya viene con
 // Expo, así que no hace falta ningún archivo ni dependencia nueva). El nombre de la pestaña es
 // la etiqueta accesible; el icono solo acompaña.
-export default function AppTabs({ rol }: { rol: Rol }) {
+export default function AppTabs(_props: { rol: Rol }) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
@@ -21,19 +21,25 @@ export default function AppTabs({ rol }: { rol: Rol }) {
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="registro" hidden={rol !== 'alumno'}>
-        <NativeTabs.Trigger.Label>Registrar</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="square.and.pencil" md="edit_square" />
+      <NativeTabs.Trigger name="calendario">
+        <NativeTabs.Trigger.Label>Calendario</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
       </NativeTabs.Trigger>
 
-      {/* El instituto gestiona el suyo y la generalitat, el que elija: los dos ven la pestaña. */}
-      <NativeTabs.Trigger name="centro" hidden={rol !== 'instituto' && rol !== 'generalitat'}>
-        <NativeTabs.Trigger.Label>Centro</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="chat">
+        <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'building.2', selected: 'building.2.fill' }}
-          md="business"
+          sf={{
+            default: 'bubble.left.and.bubble.right',
+            selected: 'bubble.left.and.bubble.right.fill',
+          }}
+          md="forum"
         />
       </NativeTabs.Trigger>
+
+      {/* Registrar y Centro siguen siendo rutas, pero se abren desde Inicio, no desde la barra. */}
+      <NativeTabs.Trigger name="registro" hidden />
+      <NativeTabs.Trigger name="centro" hidden />
 
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>

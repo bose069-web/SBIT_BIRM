@@ -115,7 +115,7 @@ export function AnimatedIcon() {
     <View style={styles.iconContainer}>
       <Animated.View
         entering={reducirMovimiento ? undefined : keyframe.duration(DURATION)}
-        style={[styles.background, { backgroundColor: theme.primary }]}
+        style={[styles.background, { backgroundColor: theme.text }]}
       />
       <Animated.View
         style={styles.imageContainer}

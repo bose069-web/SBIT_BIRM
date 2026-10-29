@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
 
-/**
- * To support static rendering, this value needs to be re-calculated on the client side for web
- */
+import { useEsquemaWeb } from '@/ui/estado/preferencias-web';
+
+/** En la web manda lo que elige la persona (claro por defecto), no el sistema. */
 export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -13,11 +12,11 @@ export function useColorScheme() {
     setHasHydrated(true);
   }, []);
 
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
-  }
-
-  return 'light';
+  const esquema = useEsquemaWeb();
+  const actual = hasHydrated ? esquema : 'light';
+  // Que el navegador pinte también en ese modo sus partes (barras de scroll, campos, fondo).
+  useEffect(() => {
+    document.documentElement.style.colorScheme = actual;
+  }, [actual]);
+  return hasHydrated ? esquema : 'light';
 }

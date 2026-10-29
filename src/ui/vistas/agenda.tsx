@@ -9,6 +9,7 @@ import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
+import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { Selector } from '@/ui/components/selector';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -141,13 +142,7 @@ export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado
         value={titulo}
         onChangeText={setTitulo}
       />
-      <Campo
-        etiqueta="Día"
-        placeholder="31/10/2026"
-        value={fecha}
-        onChangeText={setFecha}
-        autoCapitalize="none"
-      />
+      <SelectorFecha etiqueta="Día" valor={fecha} onCambio={setFecha} />
       {leida.tipo === 'error' ? (
         <ThemedText type="small" themeColor="danger">
           {leida.motivo}

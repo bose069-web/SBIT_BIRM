@@ -1,6 +1,11 @@
-import { fechaCorta, formatoHoras, limitesMes, nombreMes, sumarDias } from '../fechas';
+import { fechaCorta, fechaLarga, formatoHoras, limitesMes, nombreMes, sumarDias } from '../fechas';
 
 describe('fechas', () => {
+  it('escribe la fecha larga con el día de la semana', () => {
+    expect(fechaLarga('2026-10-27')).toBe('martes 27 de octubre');
+    expect(fechaLarga('2027-01-03')).toBe('domingo 3 de enero');
+  });
+
   it('suma días cambiando de mes y de año', () => {
     expect(sumarDias('2026-10-31', 1)).toBe('2026-11-01');
     expect(sumarDias('2027-01-01', -1)).toBe('2026-12-31');
