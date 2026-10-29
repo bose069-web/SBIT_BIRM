@@ -48,6 +48,8 @@ const transicion = (propiedad: string): ViewStyle & ImageStyle =>
   }) as unknown as ViewStyle & ImageStyle;
 
 export default function AppTabs({ rol }: { rol: Rol }) {
+  // El profe no usa calendario: en esa pestaña tiene el seguimiento de su clase.
+  const profe = rol === 'profe';
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -57,7 +59,7 @@ export default function AppTabs({ rol }: { rol: Rol }) {
             <TabButton>Inicio</TabButton>
           </TabTrigger>
           <TabTrigger name="calendario" href="/calendario" asChild>
-            <TabButton>Calendario</TabButton>
+            <TabButton>{profe ? 'Seguimiento' : 'Calendario'}</TabButton>
           </TabTrigger>
           <TabTrigger name="chat" href="/chat" asChild>
             <TabButton>Chat</TabButton>

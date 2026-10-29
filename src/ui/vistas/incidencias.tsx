@@ -45,12 +45,12 @@ export const TEXTO_CATEGORIA: Record<CategoriaIncidencia, string> = {
   app: 'La app',
   otra: 'Otra',
 };
-const TEXTO_ESTADO: Record<EstadoIncidencia, string> = {
+export const TEXTO_ESTADO: Record<EstadoIncidencia, string> = {
   abierta: 'Abierta',
   en_curso: 'En curso',
   resuelta: 'Resuelta',
 };
-const COLOR_ESTADO: Record<EstadoIncidencia, ThemeColor> = {
+export const COLOR_ESTADO: Record<EstadoIncidencia, ThemeColor> = {
   abierta: 'estadoPendiente',
   en_curso: 'primary',
   resuelta: 'estadoValidado',
