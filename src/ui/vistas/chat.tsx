@@ -53,7 +53,7 @@ export function VistaChat() {
 
   if (ancha) {
     return (
-      <Pantalla titulo="Chat" subtitulo="Incidencias y conversaciones" amplia>
+      <Pantalla titulo="Chat" amplia compacta>
         <DosPaneles lista={lista} abierta={incidencia ?? null} />
       </Pantalla>
     );
@@ -62,7 +62,7 @@ export function VistaChat() {
     return <ConversacionMovil key={incidencia} id={incidencia} onCambio={lista.recargar} />;
   }
   return (
-    <Pantalla titulo="Chat" subtitulo="Incidencias y conversaciones">
+    <Pantalla titulo="Chat" compacta>
       <ListaConversaciones lista={lista} abierta={null} onAbrir={abrirEnPantalla} />
     </Pantalla>
   );
@@ -451,15 +451,13 @@ function ConversacionMovil({ id, onCambio }: { id: string; onCambio: () => void 
   );
   if (!c.datos) {
     return (
-      <Pantalla titulo="Conversación">
-        {volver}
+      <Pantalla titulo="Conversación" accion={volver} compacta>
         <SinConversacion error={c.error} cargando={c.cargando} onReintentar={c.recargar} />
       </Pantalla>
     );
   }
   return (
-    <Pantalla titulo="Conversación">
-      {volver}
+    <Pantalla titulo="Conversación" accion={volver} compacta>
       <View
         style={[
           styles.tarjetaMovil,
