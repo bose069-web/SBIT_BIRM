@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import {
@@ -27,6 +27,7 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
+import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
@@ -84,9 +85,8 @@ export function SeguimientoProfe() {
     return detalles;
   }, [hoy]);
   useRecargarAlVolver(recargar);
-  const { width } = useWindowDimensions();
   // En la web horizontal, alumnos a la izquierda y resumen a la derecha; en el móvil, seguido.
-  const ancho = Platform.OS === 'web' && width >= 1000;
+  const ancho = useWebAncha();
 
   const alumnos: AlumnoSeguido[] = (datos ?? []).map(({ dossier, datos: d }) => ({
     nombre: dossier.alumnoNombre,
