@@ -23,7 +23,6 @@ import { container } from '@/config/container';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
-import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
@@ -48,6 +47,7 @@ const TIPOS: { valor: TipoDia; texto: string }[] = [
 
 /** El alumno apunta lo que ha hecho un día y las horas por actividad. */
 export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
+  const theme = useTheme();
   const usuario = useUsuario();
   const ancha = useWebAncha();
   const [fecha, setFecha] = useState(fechaInicial ?? hoyISO());
@@ -75,7 +75,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
 
   if (!datos) {
     return (
-      <Pantalla titulo="Registrar día">
+      <Pantalla titulo="Registrar día" compacta>
         {error ? (
           <>
             <Mensaje tipo="error" texto={error} />
@@ -147,16 +147,14 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       .filter((d) => d.tipo === 'trabajo' && d.fecha < fecha)
       .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
 
-  const estado = fueraDePeriodo
-    ? { texto: 'Fuera del periodo', color: 'estadoFestivo' as const }
+  // El chip usa los mismos colores que las celdas del calendario.
+  const estado: { texto: string; estado: EstadoChip } = fueraDePeriodo
+    ? { texto: 'Fuera del periodo', estado: 'festivo' }
     : cerrado
-      ? { texto: 'Mes valorado: solo lectura', color: 'estadoFestivo' as const }
+      ? { texto: 'Mes valorado: solo lectura', estado: 'festivo' }
       : existente
-        ? {
-            texto: ESTADOS_DIA[existente.tipo].texto,
-            color: ESTADOS_DIA[existente.tipo].color ?? 'textSecondary',
-          }
-        : { texto: ESTADOS_DIA.pendiente.texto, color: 'estadoPendiente' as const };
+        ? { texto: ESTADOS_DIA[existente.tipo].texto, estado: existente.tipo }
+        : { texto: ESTADOS_DIA.pendiente.texto, estado: 'pendiente' };
 
   const calendario = (
     <CalendarioMes
@@ -178,15 +176,33 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const navegacion = (
     <Tarjeta>
       <View style={styles.navFecha}>
-        <BotonIcono texto="‹" etiqueta="Día anterior" onPress={() => irA(sumarDias(fecha, -1))} />
         <View style={styles.centro}>
-          <ThemedText type="subtitle">{fechaCorta(fecha)}</ThemedText>
-          <Chip texto={estado.texto} color={estado.color} />
+          <ThemedText type="small" themeColor="textSecondary" style={styles.diaSemana}>
+            {diaSemana(fecha)}
+          </ThemedText>
+          <ThemedText type="subtitle" accessibilityRole="header">
+            {fechaCorta(fecha)}
+          </ThemedText>
         </View>
-        <BotonIcono texto="›" etiqueta="Día siguiente" onPress={() => irA(sumarDias(fecha, 1))} />
+        {/* Las flechas van juntas, como un único control de paso. */}
+        <View style={[styles.flechas, { borderColor: theme.border }]}>
+          <BotonFlecha
+            texto="‹"
+            etiqueta="Día anterior"
+            onPress={() => irA(sumarDias(fecha, -1))}
+          />
+          <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
+          <BotonFlecha
+            texto="›"
+            etiqueta="Día siguiente"
+            onPress={() => irA(sumarDias(fecha, 1))}
+          />
+        </View>
       </View>
       <View style={styles.enlaces}>
-        {fecha !== hoy ? <Enlace texto="Ir a hoy" onPress={() => irA(hoy)} /> : null}
+        <ChipEstado texto={estado.texto} estado={estado.estado} />
+        <View style={styles.hueco} />
+        {fecha !== hoy ? <BotonHoy onPress={() => irA(hoy)} /> : null}
         {/* En la web ancha el calendario va siempre a la vista en su columna. */}
         {!ancha ? (
           <Enlace
@@ -233,7 +249,8 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       <Pantalla
         titulo="Registrar día"
         subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}
-        amplia={ancha}>
+        amplia={ancha}
+        compacta>
         {ancha ? (
           <View style={styles.columnas}>
             <View style={styles.izquierda}>
@@ -289,6 +306,88 @@ function BotonIcono({
   );
 }
 
+/** Flecha sutil de 44 px, sin borde propio: el grupo pone el marco. */
+function BotonFlecha({
+  texto,
+  etiqueta,
+  onPress,
+}: {
+  texto: string;
+  etiqueta: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      onPress={onPress}
+      style={({ pressed }) => [styles.flecha, pressed && { backgroundColor: theme.subtle }]}>
+      <ThemedText type="subtitle" themeColor="textSecondary" style={styles.textoIcono}>
+        {texto}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+/** Píldora pequeña para volver a hoy. */
+function BotonHoy({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ir a hoy"
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.hoy,
+        { borderColor: theme.primary, backgroundColor: theme.primarySuave },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <ThemedText type="smallBold" themeColor="primary">
+        Hoy
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+type EstadoChip = 'trabajo' | 'ausencia' | 'festivo' | 'pendiente';
+
+/** Chip de estado con el relleno y la tinta de las celdas del calendario. */
+function ChipEstado({ texto, estado }: { texto: string; estado: EstadoChip }) {
+  const theme = useTheme();
+  const { fondo, tinta } = ESTADOS_DIA[estado];
+  const pendiente = estado === 'pendiente';
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Estado: ${texto}`}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: theme[fondo ?? 'subtle'],
+          borderColor: pendiente ? theme.bordePendiente : 'transparent',
+          borderStyle: pendiente ? 'dashed' : 'solid',
+        },
+      ]}>
+      <ThemedText
+        type="smallBold"
+        numberOfLines={1}
+        style={[styles.textoChip, { color: theme[tinta ?? 'text'] }]}>
+        {texto}
+      </ThemedText>
+    </View>
+  );
+}
+
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/** `2026-10-22` → `jueves` */
+function diaSemana(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  return DIAS_SEMANA[new Date(a, m - 1, d).getDay()];
+}
+
 function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={styles.enlace}>
@@ -305,8 +404,35 @@ const styles = StyleSheet.create({
   izquierda: { flex: 5, gap: Spacing.three },
   derecha: { flex: 6, gap: Spacing.three },
   navFecha: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  centro: { flex: 1, alignItems: 'center', gap: Spacing.one },
-  enlaces: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.four },
+  centro: { flex: 1, gap: 2 },
+  diaSemana: { textTransform: 'capitalize' },
+  flechas: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: Radius.button,
+    overflow: 'hidden',
+  },
+  flecha: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  separadorFlechas: { width: 1, height: 24 },
+  enlaces: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  hueco: { flex: 1 },
+  chip: {
+    flexShrink: 1,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: 3,
+  },
+  textoChip: { fontSize: 13 },
+  hoy: {
+    minHeight: 32,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   enlace: { minHeight: 32, justifyContent: 'center' },
   icono: {
     width: 44,
@@ -340,7 +466,7 @@ const styles = StyleSheet.create({
   totalNumero: { fontSize: 28, lineHeight: 34 },
   botones: { gap: Spacing.two },
   separador: { height: StyleSheet.hairlineWidth },
-  punto: { width: 8, height: 8, borderRadius: 4 },
+  punto: { width: 10, height: 10, borderRadius: 5, borderWidth: 1 },
 });
 
 interface ValoresDia {
@@ -418,7 +544,7 @@ function FormularioDia({
         <View style={styles.tipos} accessibilityRole="radiogroup">
           {TIPOS.map((t) => {
             const elegido = t.valor === tipo;
-            const color = ESTADOS_DIA[t.valor].color ?? 'textSecondary';
+            const { fondo, tinta } = ESTADOS_DIA[t.valor];
             return (
               <Pressable
                 key={t.valor}
@@ -438,7 +564,13 @@ function FormularioDia({
                 <View
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                  style={[styles.punto, { backgroundColor: theme[color] }]}
+                  style={[
+                    styles.punto,
+                    {
+                      backgroundColor: theme[fondo ?? 'subtle'],
+                      borderColor: theme[tinta ?? 'textSecondary'],
+                    },
+                  ]}
                 />
                 <ThemedText type={elegido ? 'smallBold' : 'small'}>{t.texto}</ThemedText>
               </Pressable>
@@ -487,7 +619,7 @@ function FormularioDia({
                 return (
                   <View key={a.id}>
                     {i > 0 ? (
-                      <View style={[styles.separador, { backgroundColor: theme.border }]} />
+                      <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
                     ) : null}
                     <View style={styles.fila}>
                       <ThemedText
