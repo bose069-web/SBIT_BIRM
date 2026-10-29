@@ -2,6 +2,7 @@ import type { Dossier } from '@/core/domain/dossier';
 
 import {
   conversacionesDe,
+  conversacionesDelAlumno,
   hace,
   horaDe,
   mensajesDe,
@@ -136,5 +137,117 @@ describe('chat de empresa', () => {
     expect(hace('2026-10-26T11:00:00.000Z', ahora)).toBe('hace 3 días');
     expect(hace('2026-10-01T11:00:00.000Z', ahora)).toBe('1 oct 2026');
     expect(horaDe('2026-10-27T14:05:00.000Z')).toMatch(/^\d{2}:\d{2}$/);
+  });
+});
+
+describe('contactos directos del alumno', () => {
+  it('ofrece su tutor de empresa y su profe con el id de cada persona', () => {
+    const contactos = conversacionesDelAlumno(
+      [
+        dossier({ id: 'd1', alumnoNombre: 'Ana', alumnoId: 'a1' }),
+        dossier({
+          id: 'd2',
+          alumnoNombre: 'Otro',
+          alumnoId: 'a2',
+          tutorId: 'profe-ajeno',
+          tutorEmpresaId: 'empresa-ajena',
+        }),
+      ],
+      'a1',
+    );
+
+    expect(contactos).toEqual([
+      { id: 'empresa-1', titulo: 'Tutora Demo', rol: 'empresa', etiqueta: 'DAM · Empresa Demo SL' },
+      { id: 'profe-1', titulo: 'Profe Demo', rol: 'profe', etiqueta: 'DAM · Institut Demo' },
+    ]);
+  });
+
+  it('agrupa tutores repetidos y toma el dossier más reciente sin modificar la entrada', () => {
+    const antiguo = dossier({
+      id: 'd1',
+      alumnoNombre: 'Ana',
+      alumnoId: 'a1',
+      ciclo: 'ASIX',
+      fechaInicio: '2025-09-15',
+    });
+    const reciente = dossier({ id: 'd2', alumnoNombre: 'Ana', alumnoId: 'a1', ciclo: 'DAM' });
+    const entrada = [antiguo, reciente];
+    const contactos = conversacionesDelAlumno(entrada, 'a1');
+
+    expect(contactos).toHaveLength(2);
+    expect(contactos.map((c) => c.etiqueta)).toEqual([
+      'DAM · Empresa Demo SL',
+      'DAM · Institut Demo',
+    ]);
+    expect(entrada).toEqual([antiguo, reciente]);
+  });
+
+  it('mantiene los distintos tutores de todos los dossiers del alumno', () => {
+    const contactos = conversacionesDelAlumno(
+      [
+        dossier({ id: 'd1', alumnoNombre: 'Ana', alumnoId: 'a1' }),
+        dossier({
+          id: 'd2',
+          alumnoNombre: 'Ana',
+          alumnoId: 'a1',
+          tutorEmpresaId: 'empresa-2',
+          tutorEmpresaNombre: 'Otro tutor',
+          tutorId: 'profe-2',
+          tutorNombre: 'Otra profe',
+        }),
+      ],
+      'a1',
+    );
+
+    expect(contactos.map((c) => c.id)).toEqual(['empresa-1', 'profe-1', 'empresa-2', 'profe-2']);
+  });
+
+  it('omite tutores sin asignar y evita una conversación consigo mismo', () => {
+    const contactos = conversacionesDelAlumno(
+      [
+        dossier({
+          id: 'd1',
+          alumnoNombre: 'Ana',
+          alumnoId: 'a1',
+          tutorId: null,
+          tutorNombre: null,
+          tutorEmpresaId: null,
+          tutorEmpresaNombre: null,
+        }),
+        dossier({
+          id: 'd2',
+          alumnoNombre: 'Ana',
+          alumnoId: 'a1',
+          tutorId: 'a1',
+          tutorEmpresaId: null,
+        }),
+      ],
+      'a1',
+    );
+
+    expect(contactos).toEqual([]);
+    expect(conversacionesDelAlumno([], 'a1')).toEqual([]);
+  });
+
+  it('permite contactar con un tutor asignado aunque su nombre o entidad no estén disponibles', () => {
+    const contactos = conversacionesDelAlumno(
+      [
+        dossier({
+          id: 'd1',
+          alumnoNombre: 'Ana',
+          alumnoId: 'a1',
+          tutorNombre: null,
+          tutorEmpresaNombre: ' ',
+          centro: null,
+          empresa: null,
+        }),
+      ],
+      'a1',
+    );
+
+    expect(contactos).toEqual([
+      { id: 'empresa-1', titulo: 'Tutor de empresa', rol: 'empresa', etiqueta: 'DAM' },
+      { id: 'profe-1', titulo: 'Profe del centro', rol: 'profe', etiqueta: 'DAM' },
+    ]);
   });
 });

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -36,6 +36,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
+import { ChatDirecto } from './chat-directo';
 import { ChatEmpresa } from './chat-empresa';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import {
@@ -47,33 +48,66 @@ import {
   TEXTO_PRIORIDAD,
 } from './incidencias';
 
-/**
- * Pestaña Chat: cada incidencia es una conversación. En la web ancha, lista a la izquierda y
- * conversación a la derecha; en móvil, la lista abre la conversación en su propia pantalla.
- * La empresa tiene su propio chat con sus alumnos y sus profes; el chat por dossier del resto de
- * roles llega cuando PC 2 y PC 3 lo tengan.
- */
+/** La empresa y el alumno tienen chat directo; el alumno conserva también sus incidencias. */
 export function VistaChat() {
   const usuario = useUsuario();
+  if (usuario.rol === 'empresa') return <ChatEmpresa />;
+  if (usuario.rol === 'alumno') return <ChatAlumno />;
+  return <ChatIncidencias />;
+}
+
+function ChatAlumno() {
+  const { incidencia } = useLocalSearchParams<{ incidencia?: string }>();
+  const [verIncidencias, setVerIncidencias] = useState(false);
+  if (incidencia || verIncidencias) {
+    return (
+      <ChatIncidencias
+        accion={
+          <Boton
+            texto="Mensajes directos"
+            variante="secundario"
+            onPress={() => {
+              setVerIncidencias(false);
+              router.setParams({ incidencia: undefined });
+            }}
+          />
+        }
+      />
+    );
+  }
+  return (
+    <ChatDirecto
+      accion={
+        <Boton texto="Incidencias" variante="secundario" onPress={() => setVerIncidencias(true)} />
+      }
+    />
+  );
+}
+
+function ChatIncidencias({ accion }: { accion?: ReactNode }) {
   const ancha = useWebAncha();
   const { incidencia } = useLocalSearchParams<{ incidencia?: string }>();
   const lista = useListaConversaciones();
 
-  // La empresa habla con sus alumnos y con sus profes, no por incidencias.
-  if (usuario.rol === 'empresa') return <ChatEmpresa />;
-
   if (ancha) {
     return (
-      <Pantalla titulo="Chat" amplia compacta>
+      <Pantalla titulo="Chat" accion={accion} amplia compacta>
         <DosPaneles lista={lista} abierta={incidencia ?? null} />
       </Pantalla>
     );
   }
   if (incidencia) {
-    return <ConversacionMovil key={incidencia} id={incidencia} onCambio={lista.recargar} />;
+    return (
+      <ConversacionMovil
+        key={incidencia}
+        id={incidencia}
+        onCambio={lista.recargar}
+        accion={accion}
+      />
+    );
   }
   return (
-    <Pantalla titulo="Chat" compacta>
+    <Pantalla titulo="Chat" accion={accion} compacta>
       <ListaConversaciones lista={lista} abierta={null} onAbrir={abrirEnPantalla} />
     </Pantalla>
   );
@@ -452,12 +486,27 @@ function PanelConversacion({ id, onCambio }: { id: string; onCambio: () => void 
 }
 
 /** Conversación a pantalla completa en móvil y en la web estrecha. */
-function ConversacionMovil({ id, onCambio }: { id: string; onCambio: () => void }) {
+function ConversacionMovil({
+  id,
+  onCambio,
+  accion,
+}: {
+  id: string;
+  onCambio: () => void;
+  accion?: ReactNode;
+}) {
   const usuario = useUsuario();
   const theme = useTheme();
   const c = useConversacion(id, onCambio);
   const volver = (
-    <Boton texto="‹ Conversaciones" variante="secundario" onPress={() => router.replace('/chat')} />
+    <View style={styles.acciones}>
+      <Boton
+        texto="‹ Conversaciones"
+        variante="secundario"
+        onPress={() => router.replace('/chat')}
+      />
+      {accion}
+    </View>
   );
   if (!c.datos) {
     return (
@@ -494,6 +543,7 @@ function ConversacionMovil({ id, onCambio }: { id: string; onCambio: () => void 
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   columnaLista: { gap: Spacing.three },
   resumen: { flexDirection: 'row' },
   filas: { gap: Spacing.half },
