@@ -64,6 +64,68 @@ jest.mock('@/config/container', () => ({
     eventos: { listar: jest.fn() },
   },
 }));
+jest.mock('react-native-reanimated', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    __esModule: true,
+    default: { View: 'ReanimatedView', call: () => 0, createAnimatedComponent: (c: unknown) => c },
+    View: 'ReanimatedView',
+    useSharedValue: (v: unknown) => ({ value: v }),
+    useAnimatedStyle: () => ({}),
+    withTiming: (v: unknown) => v,
+    withSpring: (v: unknown) => v,
+    withDelay: (_d: number, v: unknown) => v,
+    withRepeat: (v: unknown) => v,
+    Easing: { linear: (t: number) => t, out: (t: number) => t, in: (t: number) => t, inOut: (t: number) => t },
+    runOnJS: (f: unknown) => f,
+    createAnimatedComponent: (c: unknown) => c,
+    FadeIn: { duration: () => ({}) },
+    FadeInDown: { duration: () => ({}) },
+    FadeInUp: { duration: () => ({}) },
+    SlideInDown: { duration: () => ({}) },
+    Layout: { duration: () => ({}) },
+    LayoutTransition: {},
+    React: Object.keys(React),
+  };
+});
+jest.mock('react-native-svg', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const hacer = (nombre: string) =>
+    function SvgMock(props: Record<string, unknown>) {
+      return React.createElement(nombre, props, props.children as React.ReactNode);
+    };
+  return {
+    __esModule: true,
+    default: hacer('Svg'),
+    Svg: hacer('Svg'),
+    Circle: hacer('Circle'),
+    Path: hacer('Path'),
+    Rect: hacer('Rect'),
+    G: hacer('G'),
+    Text: hacer('Text'),
+    Line: hacer('Line'),
+    Polyline: hacer('Polyline'),
+    Polygon: hacer('Polygon'),
+    Ellipse: hacer('Ellipse'),
+    LinearGradient: hacer('LinearGradient'),
+    Stop: hacer('Stop'),
+  };
+});
+jest.mock('@/ui/components/quesito', () => ({
+  Quesito: () => null,
+}));
+jest.mock('@/ui/components/leyenda', () => ({
+  Leyenda: () => null,
+}));
+jest.mock('@/ui/vistas/mini-calendario', () => ({
+  MiniCalendario: () => null,
+}));
+jest.mock('@/ui/vistas/estado-mes', () => ({
+  EstadoMes: () => null,
+}));
+jest.mock('@/ui/hooks/use-web-ancha', () => ({
+  useWebAncha: () => false,
+}));
 jest.mock('@/ui/hooks/use-sesion', () => ({ useUsuario: () => mockUsuario }));
 jest.mock('@/ui/hooks/use-theme', () => ({
   useTheme: () => ({
@@ -76,8 +138,11 @@ jest.mock('@/ui/hooks/use-theme', () => ({
   }),
 }));
 jest.mock('@/ui/theme/theme', () => ({
-  Spacing: { half: 2, one: 4, two: 8, three: 12, four: 16, five: 20 },
-  Radius: { control: 4, card: 8 },
+  Spacing: { half: 2, one: 4, two: 8, three: 16, four: 24, five: 32, six: 64 },
+  Radius: { control: 8, button: 12, card: 18, pill: 999 },
+  FontFamily: { regular: 'Inter_400Regular', medium: 'Inter_500Medium', semibold: 'Inter_600SemiBold' },
+  Fonts: { mono: 'monospace' },
+  Movimiento: { rapido: 150, normal: 250, entrada: 350 },
 }));
 jest.mock('react-native', () => ({
   StyleSheet: { create: (estilos: unknown) => estilos, hairlineWidth: 1 },
@@ -92,6 +157,7 @@ jest.mock('react-native', () => ({
   KeyboardAvoidingView: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Keyboard: { dismiss: jest.fn() },
   Platform: { OS: 'web' },
+  useWindowDimensions: () => ({ width: 1280, height: 800, scale: 1, fontScale: 1 }),
   Animated: {
     Value: class {
       setValue() {}
