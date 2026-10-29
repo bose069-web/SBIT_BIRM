@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -24,11 +25,12 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
-import { Cargando, estilosComunes } from './comun';
+import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
 type Aviso = { tipo: 'error' | 'ok'; texto: string } | null;
 const SIN_PROFE = 'sin-profe';
@@ -36,10 +38,12 @@ const SIN_PROFE = 'sin-profe';
 /**
  * El instituto gestiona su centro: a qué profe va cada alumno, cuentas nuevas y convenios.
  * La generalitat elige primero qué instituto quiere gestionar.
+ * En la web ancha, gestión a la izquierda y agenda a la derecha, como el alumno.
  */
 export function PanelInstituto() {
   const usuario = useUsuario();
   const esGeneralitat = usuario.rol === 'generalitat';
+  const ancho = useWebAncha();
   const [elegido, setElegido] = useState<string | null>(null);
   // La generalitat ve todos los dossiers: de ahí salen los institutos que tienen alumnos.
   const { datos: institutos } = useDatos(async () => {
@@ -95,17 +99,19 @@ export function PanelInstituto() {
 
   if (!centroId) {
     return (
-      <Pantalla titulo={esGeneralitat ? 'Institutos' : 'Centro'}>
+      <Pantalla titulo={esGeneralitat ? 'Institutos' : 'Centro'} amplia={ancho}>
         {esGeneralitat ? (
           institutos ? (
-            <ThemedText themeColor="textSecondary">
-              Todavía no hay institutos con alumnos en prácticas.
-            </ThemedText>
+            <EstadoVacio
+              titulo="Todavía no hay institutos con alumnos"
+              texto="Cuando haya dossiers en algún centro, aparecerá aquí para poder gestionarlo."
+              accion={{ texto: 'Volver a mirar', onPress: () => setElegido(null) }}
+            />
           ) : (
-            <Cargando />
+            <EsqueletoPanel tarjetas={1} />
           )
         ) : (
-          <Mensaje tipo="error" texto="Tu cuenta no está asociada a ningún centro." />
+          <ErrorCarga texto="Tu cuenta no está asociada a ningún centro." onReintentar={recargar} />
         )}
         {esGeneralitat ? fechasGenerales : null}
       </Pantalla>
@@ -117,20 +123,62 @@ export function PanelInstituto() {
       titulo={datos?.centro.nombre ?? 'Centro'}
       subtitulo={
         esGeneralitat ? 'Gestión del instituto como Generalitat' : 'Alumnos, profes y convenios'
-      }>
+      }
+      amplia={ancho}>
       {selectorInstituto}
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
+      {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-      {cargando && !datos ? <Cargando /> : null}
+      {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
+      {!cargando && !datos && !error ? (
+        <EstadoVacio
+          titulo="No se pudo cargar el centro"
+          texto="Revisa la conexión y vuelve a intentarlo."
+          accion={{ texto: 'Reintentar', onPress: recargar }}
+        />
+      ) : null}
       {datos ? (
-        <>
-          <TarjetaAlumnos datos={datos} hacer={hacer} />
-          <TarjetaCuentasNuevas datos={datos} hacer={hacer} />
-          <TarjetaConvenios datos={datos} hacer={hacer} />
-          {fechasGenerales}
-        </>
+        <Columnas
+          ancho={ancho}
+          izquierda={
+            <>
+              <CifrasCentro datos={datos} />
+              <TarjetaAlumnos datos={datos} hacer={hacer} />
+              <TarjetaCuentasNuevas datos={datos} hacer={hacer} />
+              <TarjetaConvenios datos={datos} hacer={hacer} />
+            </>
+          }
+          derecha={fechasGenerales}
+        />
       ) : null}
     </Pantalla>
+  );
+}
+
+/** Resumen del centro: cifras de un vistazo, como el progreso del alumno. */
+function CifrasCentro({ datos }: { datos: PanelCentro }) {
+  const sinProfe = datos.alumnos.filter((a) => !a.profeId).length;
+  const cifras = [
+    { valor: datos.alumnos.length, etiqueta: 'alumnos' },
+    { valor: datos.profes.length, etiqueta: 'profes' },
+    { valor: datos.convenios.length, etiqueta: 'convenios' },
+    { valor: datos.cuentasNuevas.length, etiqueta: 'cuentas nuevas' },
+  ];
+  return (
+    <Tarjeta titulo="El centro en cifras">
+      <View style={styles.cifras}>
+        {cifras.map((c) => (
+          <View key={c.etiqueta} style={styles.cifra}>
+            <ThemedText type="title">{c.valor}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {c.etiqueta}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+      {sinProfe > 0 ? (
+        <Chip texto={`${sinProfe} alumnos sin profe asignado`} color="estadoPendiente" />
+      ) : null}
+    </Tarjeta>
   );
 }
 
@@ -283,13 +331,11 @@ function TarjetaConvenios({ datos, hacer }: { datos: PanelCentro; hacer: Hacer }
           placeholder="Opcional"
           autoCapitalize="characters"
         />
-        <View style={estilosComunes.fila}>
-          <Boton
-            texto="Dar de alta y firmar convenio"
-            desactivado={nombre.trim().length < 2}
-            onPress={nuevaEmpresa}
-          />
-        </View>
+        <Boton
+          texto="Dar de alta y firmar convenio"
+          desactivado={nombre.trim().length < 2}
+          onPress={nuevaEmpresa}
+        />
       </View>
     </Tarjeta>
   );
@@ -307,7 +353,7 @@ function Fila({
   const theme = useTheme();
   return (
     <View style={[styles.fila, { borderColor: theme.border }]}>
-      <View>
+      <View style={styles.filaTexto}>
         <ThemedText type="smallBold">{titulo}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {detalle}
@@ -318,7 +364,48 @@ function Fila({
   );
 }
 
+/** Dos columnas en la web ancha (la principal más ancha); en el móvil, todo seguido. */
+function Columnas({
+  ancho,
+  izquierda,
+  derecha,
+}: {
+  ancho: boolean;
+  izquierda: ReactNode;
+  derecha: ReactNode;
+}) {
+  if (!ancho) {
+    return (
+      <>
+        {izquierda}
+        {derecha}
+      </>
+    );
+  }
+  return (
+    <View style={styles.columnas}>
+      <View style={styles.principal}>{izquierda}</View>
+      <View style={styles.lateral}>{derecha}</View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  fila: { borderWidth: 1, borderRadius: Radius.control, padding: Spacing.three, gap: Spacing.two },
+  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  principal: { flex: 1.7, gap: Spacing.three },
+  lateral: { flex: 1, gap: Spacing.three },
+  cifras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.four },
+  cifra: { alignItems: 'center', gap: 2, minWidth: 64 },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    borderWidth: 1,
+    borderRadius: Radius.control,
+    padding: Spacing.three,
+  },
+  filaTexto: { flex: 1, gap: 2 },
   bloque: { gap: Spacing.two, marginTop: Spacing.two },
 });
