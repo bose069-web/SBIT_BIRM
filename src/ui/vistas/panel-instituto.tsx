@@ -13,8 +13,10 @@ import {
   quitarConvenio,
   type PanelCentro,
 } from '@/core/application/centro';
+import { obtenerBandeja } from '@/core/application/incidencias';
 import { listarRegistros } from '@/core/application/registro-diario';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
+import type { Incidencia } from '@/core/domain/incidencia';
 import type { Persona } from '@/core/domain/centro';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
@@ -40,6 +42,7 @@ import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
 
 type Aviso = { tipo: 'error' | 'ok'; texto: string } | null;
 const SIN_PROFE = 'sin-profe';
@@ -71,7 +74,11 @@ export function PanelInstituto() {
   // El panel de gestión y, con los dossiers del centro, los avisos de seguimiento.
   const { datos, error, cargando, recargar } = useDatos(async () => {
     if (!centroId) return null;
-    const panel = await obtenerPanelCentro(container.centros, usuario, centroId);
+    const [panel, bandeja] = await Promise.all([
+      obtenerPanelCentro(container.centros, usuario, centroId),
+      // Incidencias del centro: las que atiende el instituto (la generalitat ve las suyas).
+      obtenerBandeja(container.incidencias, usuario),
+    ]);
     // El adaptador ya deja solo los visibles para el rol; la generalitat elige centro.
     const dossiers = (await listarDossiers(container.dossiers)).filter(
       (d) => d.centroId === centroId,
@@ -109,7 +116,7 @@ export function PanelInstituto() {
         tieneFinal: !!seguimiento.final,
       })),
     );
-    return { panel, avisos };
+    return { panel, avisos, incidencias: bandeja.porAtender, pendientes: bandeja.pendientes };
   }, [centroId, usuario.id, hoy]);
 
   // Ejecuta una acción, muestra el resultado y recarga el panel.
@@ -199,7 +206,12 @@ export function PanelInstituto() {
               <TarjetaConvenios datos={datos.panel} hacer={hacer} />
             </>
           }
-          derecha={fechasGenerales}
+          derecha={
+            <>
+              <TarjetaIncidencias incidencias={datos.incidencias} pendientes={datos.pendientes} />
+              {fechasGenerales}
+            </>
+          }
         />
       ) : null}
     </Pantalla>
@@ -262,6 +274,40 @@ function TarjetaAvisos({ avisos }: { avisos: AvisoSeguimiento[] }) {
         ))
       )}
       <Boton texto="Ver seguimiento" variante="secundario" onPress={() => router.push('/')} />
+    </Tarjeta>
+  );
+}
+
+/** Las abiertas del centro (porAtender) sin perderlas: contador y acceso al chat con el detalle. */
+function TarjetaIncidencias({
+  incidencias,
+  pendientes,
+}: {
+  incidencias: Incidencia[];
+  pendientes: number;
+}) {
+  const recientes = incidencias.slice(0, 4);
+  return (
+    <Tarjeta
+      titulo="Incidencias"
+      accion={
+        pendientes > 0 ? <Chip texto={`${pendientes} pendientes`} color="estadoPendiente" /> : null
+      }>
+      {recientes.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Sin incidencias abiertas en el centro.
+        </ThemedText>
+      ) : (
+        recientes.map((i) => (
+          <Fila
+            key={i.id}
+            titulo={i.titulo}
+            detalle={`${i.creadaPorNombre ?? 'Alguien'} · ${fechaCorta(i.creadaEn.slice(0, 10))}${i.escalada ? ' · escalada a generalitat' : ''}`}>
+            <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
+          </Fila>
+        ))
+      )}
+      <Boton texto="Abrir chat" variante="secundario" onPress={() => router.push('/chat')} />
     </Tarjeta>
   );
 }
