@@ -21,7 +21,7 @@ describe('estadoEnvio', () => {
 
 describe('estadoMes', () => {
   it('distingue validado de pendiente y no afirma nada sin día guardado', () => {
-    expect(estadoMes({ cerrado: true, enServidor: false })?.texto).toBe('Mes validado');
+    expect(estadoMes({ cerrado: true, enServidor: false })?.texto).toBe('Mes valorado');
     expect(estadoMes({ cerrado: false, enServidor: true })?.texto).toBe(
       'Mes pendiente de validación',
     );

@@ -18,7 +18,7 @@ export function estadoEnvio(dia: {
 }
 
 export function estadoMes(mes: { cerrado: boolean; enServidor: boolean }): EstadoRegistro | null {
-  if (mes.cerrado) return { texto: 'Mes validado', tono: 'trabajo' };
+  if (mes.cerrado) return { texto: 'Mes valorado', tono: 'trabajo' };
   if (mes.enServidor) return { texto: 'Mes pendiente de validación', tono: 'festivo' };
   return null;
 }
