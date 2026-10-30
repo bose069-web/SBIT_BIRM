@@ -1,8 +1,12 @@
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { incorporarAlumno, type PanelCentro } from '@/core/application/centro';
+import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import { listarMensajes, obtenerBandeja } from '@/core/application/incidencias';
+import { listarRegistros } from '@/core/application/registro-diario';
+import { obtenerSeguimiento } from '@/core/application/valoracion';
 import type { Centro } from '@/core/domain/centro';
 import type { Incidencia, MensajeIncidencia } from '@/core/domain/incidencia';
 import { container } from '@/config/container';
@@ -23,8 +27,10 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
+import { alumnosSinApuntar } from '@/ui/utils/avisos-profe';
+import { avisosSeguimiento, ETIQUETA_AVISO } from '@/ui/utils/avisos-seguimiento';
 import { hace } from '@/ui/utils/chat';
-import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
+import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 import { pendientesCentro } from '@/ui/utils/pendientes';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
@@ -36,6 +42,8 @@ const MAXIMO_TARJETAS_CENTRO = 6;
 const CUENTAS_EN_INICIO = 3;
 const CONVENIOS_EN_INICIO = 4;
 const INCIDENCIAS_EN_INICIO = 4;
+/** Días hacia atrás que se cargan de registros para contar a quién le falta apuntar. */
+const DIAS_ATRAS = 45;
 
 interface ConversacionReciente {
   incidencia: Incidencia;
@@ -73,6 +81,52 @@ function useIncidenciasCentro(centroId: string | null) {
   return resultado;
 }
 
+/** El seguimiento pendiente de cada alumno del centro para hoy. */
+function useAvisosCentro(centroId: string | null) {
+  const hoy = hoyISO();
+  const resultado = useDatos(async () => {
+    if (!centroId) return [];
+    const dossiers = (await listarDossiers(container.dossiers)).filter(
+      (d) => d.centroId === centroId,
+    );
+    const desde = sumarDias(hoy, -DIAS_ATRAS);
+    const detalles = await Promise.all(
+      dossiers.map(async (d) => {
+        const [resumen, seguimiento, registros] = await Promise.all([
+          obtenerResumenHoras(d, container.registros),
+          obtenerSeguimiento(container.valoraciones, d, hoy),
+          listarRegistros(container.registros, d.id, desde, hoy),
+        ]);
+        return { d, resumen, seguimiento, registros };
+      }),
+    );
+    const diasPorDossier = new Map(
+      alumnosSinApuntar(
+        detalles.map(({ d, registros }) => ({
+          dossierId: d.id,
+          nombre: d.alumnoNombre,
+          fechaInicio: d.fechaInicio,
+          fechaFin: d.fechaFin,
+          fechas: registros.map((r) => r.fecha),
+        })),
+        hoy,
+      ).map((a) => [a.dossierId, a.dias]),
+    );
+    return avisosSeguimiento(
+      detalles.map(({ d, resumen, seguimiento }) => ({
+        alumno: d.alumnoNombre,
+        diasSinApuntar: diasPorDossier.get(d.id) ?? 0,
+        mesesSinValorar: seguimiento.sinValorar,
+        porcentaje: resumen.porcentaje,
+        terminado: hoy > d.fechaFin,
+        tieneFinal: !!seguimiento.final,
+      })),
+    );
+  }, [centroId, hoy]);
+  useRecargarAlVolver(resultado.recargar);
+  return resultado;
+}
+
 /**
  * Inicio del instituto y de la generalitat: el panel de gestión del centro. Primero el centro y lo
  * que pide una acción; después incidencias y convenios. Los alumnos se gestionan en segundo nivel.
@@ -97,6 +151,15 @@ export function PanelInstituto() {
   const subtitulo = esGeneralitat ? 'Gestión de los institutos' : 'Gestión de tu centro';
   const estiloTarjeta = ancho ? styles.tarjetaAncha : undefined;
   const hoy = hoyISO();
+  const avisos = useAvisosCentro(centroId);
+  // El instituto crea dossiers desde aquí; la generalitat no tiene centro propio.
+  const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
+  const acciones = creaDossiers ? (
+    <Boton
+      texto="+ Nuevo dossier"
+      onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
+    />
+  ) : null;
 
   const fechasGenerales = (
     <Tarjeta titulo="Fechas para todos" style={estiloTarjeta}>
@@ -165,6 +228,28 @@ export function PanelInstituto() {
     </>
   ) : null;
 
+  const bloqueAvisos = (
+    <Tarjeta titulo="Seguimiento de los alumnos" style={estiloTarjeta}>
+      {avisos.error && !avisos.datos ? (
+        <ErrorCarga texto={avisos.error} onReintentar={avisos.recargar} />
+      ) : !avisos.datos ? (
+        <EsqueletoPanel tarjetas={1} />
+      ) : avisos.datos.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Todo en orden: ningún alumno necesita tu atención ahora mismo.
+        </ThemedText>
+      ) : (
+        <View style={styles.lista}>
+          {avisos.datos.map((a, i) => (
+            <Fila key={`${a.tipo}-${a.alumno}-${i}`} titulo={a.alumno} detalle={a.motivo}>
+              <Chip texto={ETIQUETA_AVISO[a.tipo]} color={a.color} />
+            </Fila>
+          ))}
+        </View>
+      )}
+    </Tarjeta>
+  );
+
   const bloqueIncidencias = (
     <Tarjeta
       titulo="Incidencias recientes"
@@ -196,7 +281,13 @@ export function PanelInstituto() {
   ) : null;
 
   return (
-    <Pantalla titulo={titulo} subtitulo={subtitulo} amplia={ancho}>
+    <Pantalla
+      titulo={titulo}
+      subtitulo={subtitulo}
+      // En la web, la acción junto al título; en el móvil, arriba del contenido.
+      accion={ancho ? acciones : undefined}
+      amplia={ancho}>
+      {ancho ? null : acciones}
       {centros.error ? <ErrorCarga texto={centros.error} onReintentar={centros.recargar} /> : null}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
@@ -214,6 +305,7 @@ export function PanelInstituto() {
             <View style={styles.principal}>
               {bloqueCentro}
               {cuerpo}
+              {bloqueAvisos}
               {bloqueIncidencias}
             </View>
             <View style={styles.lateral}>
@@ -226,6 +318,7 @@ export function PanelInstituto() {
           <View style={styles.bloques}>
             {bloqueCentro}
             {cuerpo}
+            {bloqueAvisos}
             {bloqueIncidencias}
             {bloqueConvenios}
             {bloqueAlumnos}
@@ -420,6 +513,30 @@ function RequiereAccion({
   );
 }
 
+/** Fila con su texto a la izquierda y, a la derecha, lo que la resume (el chip del aviso). */
+function Fila({
+  titulo,
+  detalle,
+  children,
+}: {
+  titulo: string;
+  detalle: string;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.fila, { borderColor: theme.border }]}>
+      <View style={styles.filaTexto}>
+        <ThemedText type="smallBold">{titulo}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {detalle}
+        </ThemedText>
+      </View>
+      {children}
+    </View>
+  );
+}
+
 function FilaIncidencia({ conversacion }: { conversacion: ConversacionReciente }) {
   const { incidencia: i, ultimo, fecha } = conversacion;
   const autor = ultimo?.autorNombre ?? i.creadaPorNombre ?? 'Alguien';
@@ -560,6 +677,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
   },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    borderWidth: 1,
+    borderRadius: Radius.control,
+    padding: Spacing.three,
+  },
+  filaTexto: { flex: 1, gap: 2 },
   filaAccion: {
     flexDirection: 'row',
     alignItems: 'center',
