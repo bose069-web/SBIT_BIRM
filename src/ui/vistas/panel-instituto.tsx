@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { listarDossiers, obtenerResumenHoras } from '@/core/application/dossier';
+import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import {
   asignarProfe,
   darDeAltaEmpresa,
@@ -50,8 +50,8 @@ const SIN_PROFE = 'sin-profe';
 const DIAS_ATRAS = 45;
 
 /**
- * El instituto gestiona su centro: a qué profe va cada alumno, cuentas nuevas y convenios.
- * La generalitat elige primero qué instituto quiere gestionar.
+ * El inicio del instituto: gestiona su centro — a qué profe va cada alumno, cuentas nuevas y
+ * convenios. La generalitat llega desde su seguimiento y elige primero qué instituto gestionar.
  * En la web ancha, gestión a la izquierda y agenda a la derecha, como el alumno.
  */
 export function PanelInstituto() {
@@ -71,6 +71,14 @@ export function PanelInstituto() {
   const centroId = esGeneralitat ? (elegido ?? institutos?.[0]?.valor ?? null) : usuario.centroId;
   const [aviso, setAviso] = useState<Aviso>(null);
   const hoy = hoyISO();
+  // El instituto crea dossiers desde aquí; la generalitat, desde su seguimiento (sin centro propio).
+  const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
+  const acciones = creaDossiers ? (
+    <Boton
+      texto="+ Nuevo dossier"
+      onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
+    />
+  ) : null;
   // El panel de gestión y, con los dossiers del centro, los avisos de seguimiento.
   const { datos, error, cargando, recargar } = useDatos(async () => {
     if (!centroId) return null;
@@ -182,7 +190,10 @@ export function PanelInstituto() {
       subtitulo={
         esGeneralitat ? 'Gestión del instituto como Generalitat' : 'Alumnos, profes y convenios'
       }
+      // En la web, la acción junto al título; en el móvil, arriba del contenido.
+      accion={ancho ? acciones : undefined}
       amplia={ancho}>
+      {ancho ? null : acciones}
       {selectorInstituto}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
@@ -200,7 +211,7 @@ export function PanelInstituto() {
           izquierda={
             <>
               <CifrasCentro datos={datos.panel} />
-              <TarjetaAvisos avisos={datos.avisos} />
+              <TarjetaAvisos avisos={datos.avisos} verSeguimiento={esGeneralitat} />
               <TarjetaAlumnos datos={datos.panel} hacer={hacer} />
               <TarjetaCuentasNuevas datos={datos.panel} hacer={hacer} />
               <TarjetaConvenios datos={datos.panel} hacer={hacer} />
@@ -250,9 +261,16 @@ type Hacer = (accion: () => Promise<unknown>, ok: string) => Promise<void>;
 
 /**
  * Lo que conviene atender de un vistazo. Siempre visible: si no hay avisos, lo dice para que
- * el instituto sepa que está mirando; al final, atajo al seguimiento completo del centro.
+ * el instituto sepa que está mirando. El atajo al seguimiento es solo para la generalitat, cuyo
+ * inicio es ese seguimiento; para el instituto, esta pantalla ya es su inicio.
  */
-function TarjetaAvisos({ avisos }: { avisos: AvisoSeguimiento[] }) {
+function TarjetaAvisos({
+  avisos,
+  verSeguimiento,
+}: {
+  avisos: AvisoSeguimiento[];
+  verSeguimiento: boolean;
+}) {
   return (
     <Tarjeta titulo="Qué necesita tu atención">
       {avisos.length === 0 ? (
@@ -266,7 +284,9 @@ function TarjetaAvisos({ avisos }: { avisos: AvisoSeguimiento[] }) {
           </Fila>
         ))
       )}
-      <Boton texto="Ver seguimiento" variante="secundario" onPress={() => router.push('/')} />
+      {verSeguimiento ? (
+        <Boton texto="Ver seguimiento" variante="secundario" onPress={() => router.push('/')} />
+      ) : null}
     </Tarjeta>
   );
 }
