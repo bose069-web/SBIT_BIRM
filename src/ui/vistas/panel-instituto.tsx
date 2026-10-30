@@ -99,7 +99,7 @@ export function PanelInstituto() {
 
   if (!centroId) {
     return (
-      <Pantalla titulo={esGeneralitat ? 'Institutos' : 'Centro'} amplia={ancho}>
+      <Pantalla titulo={esGeneralitat ? 'Institutos' : 'Centro'} amplia={ancho} bajoCabecera>
         {esGeneralitat ? (
           institutos ? (
             <EstadoVacio
@@ -124,7 +124,8 @@ export function PanelInstituto() {
       subtitulo={
         esGeneralitat ? 'Gestión del instituto como Generalitat' : 'Alumnos, profes y convenios'
       }
-      amplia={ancho}>
+      amplia={ancho}
+      bajoCabecera>
       {selectorInstituto}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}

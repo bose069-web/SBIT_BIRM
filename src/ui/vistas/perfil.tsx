@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
@@ -47,7 +47,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
 };
 
 const TITULO_ROL: Record<Rol, string | null> = {
-  alumno: 'Contacto de emergencia',
+  alumno: null,
   profe: 'Tutoría',
   empresa: 'Datos de empresa',
   instituto: 'Cargo en el centro',
@@ -73,33 +73,47 @@ export function VistaPerfil() {
     return { personales, dossier, dni: identidad.dni };
   }, [usuario.id]);
 
+  const cabecera = <Cabecera usuario={usuario} dossier={datos?.dossier ?? null} ancho={ancho} />;
+
+  if (datos) {
+    return (
+      <Formulario
+        key={usuario.id}
+        usuario={usuario}
+        inicial={datos.personales}
+        dni={datos.dni}
+        ancho={ancho}
+        cabecera={cabecera}
+        sesion={
+          <Tarjeta titulo="Sesión">
+            <ThemedText type="small" themeColor="textSecondary">
+              Datos: {container.auth.nombre}
+            </ThemedText>
+            <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
+          </Tarjeta>
+        }
+      />
+    );
+  }
+
   return (
     <Pantalla titulo="Perfil" amplia={ancho} compacta>
-      <Cabecera usuario={usuario} dossier={datos?.dossier ?? null} />
+      {cabecera}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
-      {datos ? (
-        <Formulario
-          key={usuario.id}
-          usuario={usuario}
-          inicial={datos.personales}
-          dni={datos.dni}
-          ancho={ancho}
-          sesion={
-            <Tarjeta titulo="Sesión">
-              <ThemedText type="small" themeColor="textSecondary">
-                Datos: {container.auth.nombre}
-              </ThemedText>
-              <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
-            </Tarjeta>
-          }
-        />
-      ) : null}
     </Pantalla>
   );
 }
 
-function Cabecera({ usuario, dossier }: { usuario: Usuario; dossier: Dossier | null }) {
+function Cabecera({
+  usuario,
+  dossier,
+  ancho,
+}: {
+  usuario: Usuario;
+  dossier: Dossier | null;
+  ancho: boolean;
+}) {
   const theme = useTheme();
   const iniciales = usuario.nombre
     .split(' ')
@@ -128,16 +142,16 @@ function Cabecera({ usuario, dossier }: { usuario: Usuario; dossier: Dossier | n
       </View>
       {usuario.rol === 'alumno' ? (
         <View style={[styles.practicas, { borderTopColor: theme.border }]}>
-          <View style={styles.datoPracticas}>
+          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
             <FilaDato vertical etiqueta="Ciclo" valor={dossier?.ciclo ?? 'Sin asignar'} />
           </View>
-          <View style={styles.datoPracticas}>
+          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
             <FilaDato vertical etiqueta="Centro" valor={dossier?.centro ?? 'Sin asignar'} />
           </View>
-          <View style={styles.datoPracticas}>
+          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
             <FilaDato vertical etiqueta="Empresa" valor={dossier?.empresa ?? 'Sin asignar'} />
           </View>
-          <View style={styles.datoPracticas}>
+          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
             <FilaDato
               vertical
               etiqueta="Periodo"
@@ -159,12 +173,14 @@ function Formulario({
   inicial,
   dni,
   ancho,
+  cabecera,
   sesion,
 }: {
   usuario: Usuario;
   inicial: DatosPersonales;
   dni: string | null;
   ancho: boolean;
+  cabecera: ReactNode;
   sesion: ReactNode;
 }) {
   const theme = useTheme();
@@ -237,7 +253,9 @@ function Formulario({
   // Datos de identidad: solo consulta, con una única nota sobre quién los gestiona.
   const cuenta = (
     <Tarjeta titulo="Cuenta">
-      {!editaNombre ? <FilaDato etiqueta="Nombre y apellidos" valor={usuario.nombre} /> : null}
+      {!editaNombre ? (
+        <FilaDato vertical={!ancho} etiqueta="Nombre y apellidos" valor={usuario.nombre} />
+      ) : null}
       {editaEmail ? (
         <Campo
           etiqueta="Correo"
@@ -252,9 +270,9 @@ function Formulario({
           ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
         />
       ) : (
-        <FilaDato etiqueta="Correo" valor={usuario.email} />
+        <FilaDato vertical={!ancho} etiqueta="Correo" valor={usuario.email} />
       )}
-      {usuario.rol === 'alumno' ? <FilaDni dni={dni} /> : null}
+      {usuario.rol === 'alumno' ? <FilaDni dni={dni} vertical={!ancho} /> : null}
       {/* La empresa gestiona su propia cuenta; al resto se la gestiona su centro. */}
       {editaEmail ? null : (
         <ThemedText type="small" themeColor="textSecondary">
@@ -293,13 +311,9 @@ function Formulario({
         keyboardType="phone-pad"
         autoComplete="tel"
       />
-    </Tarjeta>
-  );
-
-  const tarjetaRol = tituloRol ? (
-    <Tarjeta titulo={tituloRol}>
       {usuario.rol === 'alumno' ? (
-        <>
+        <View style={[styles.emergencia, { borderTopColor: theme.border }]}>
+          <ThemedText type="smallBold">En caso de emergencia</ThemedText>
           <Campo
             etiqueta="Nombre del contacto"
             value={texto('emergenciaNombre')}
@@ -315,8 +329,13 @@ function Formulario({
           <ThemedText type="small" themeColor="textSecondary">
             Pendiente de validar por tu tutor
           </ThemedText>
-        </>
+        </View>
       ) : null}
+    </Tarjeta>
+  );
+
+  const tarjetaRol = tituloRol ? (
+    <Tarjeta titulo={tituloRol}>
       {usuario.rol === 'profe' ? (
         <>
           <Campo
@@ -376,73 +395,61 @@ function Formulario({
     </Tarjeta>
   );
 
-  const barra = (
-    <View
-      style={[
-        styles.barraGuardado,
-        { backgroundColor: theme.background, borderTopColor: theme.border },
-        ancho && barraFijaWeb,
-        ancho && styles.barraGuardadoAncha,
-      ]}>
+  const barra = hayCambios ? (
+    <View style={styles.barraGuardado}>
       <View style={styles.estadoGuardado}>
         {aviso ? (
           <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
         ) : (
           <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-            {hayCambios ? 'Tienes cambios sin guardar' : 'Tu perfil está al día'}
+            Tienes cambios sin guardar
           </ThemedText>
         )}
       </View>
-      <Boton
-        texto={hayCambios ? 'Guardar cambios' : 'Sin cambios'}
-        variante={hayCambios ? 'primario' : 'secundario'}
-        desactivado={!hayCambios}
-        onPress={guardar}
-        cargando={guardando}
-      />
+      <Boton texto="Guardar cambios" onPress={guardar} cargando={guardando} />
     </View>
-  );
-
-  if (!ancho) {
-    return (
-      <>
-        {cuenta}
-        {contacto}
-        {tarjetaRol}
-        {preferencias}
-        {barra}
-        {sesion}
-      </>
-    );
-  }
+  ) : null;
 
   // Web ancha: lo editable a la izquierda (contacto y rol en paralelo) y la cuenta a la derecha.
   return (
-    <View style={styles.columnas}>
-      <View style={[styles.columna, styles.principal]}>
-        <View style={styles.pareja}>
-          <View style={styles.mitad}>{contacto}</View>
-          {tarjetaRol ? <View style={styles.mitad}>{tarjetaRol}</View> : null}
+    <Pantalla titulo="Perfil" amplia={ancho} compacta pie={barra}>
+      {cabecera}
+      {!hayCambios && aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+      {ancho ? (
+        <View style={styles.columnas}>
+          <View style={[styles.columna, styles.principal]}>
+            <View style={styles.pareja}>
+              <View style={styles.mitad}>{contacto}</View>
+              {tarjetaRol ? <View style={styles.mitad}>{tarjetaRol}</View> : null}
+            </View>
+            {preferencias}
+          </View>
+          <View style={[styles.columna, styles.lateral]}>
+            {cuenta}
+            {sesion}
+          </View>
         </View>
-        {preferencias}
-        {barra}
-      </View>
-      <View style={[styles.columna, styles.lateral]}>
-        {cuenta}
-        {sesion}
-      </View>
-    </View>
+      ) : (
+        <>
+          {cuenta}
+          {contacto}
+          {tarjetaRol}
+          {preferencias}
+          {sesion}
+        </>
+      )}
+    </Pantalla>
   );
 }
 
 /** DNI enmascarado por defecto; el alumno puede mostrarlo pero nunca editarlo. */
-function FilaDni({ dni }: { dni: string | null }) {
+function FilaDni({ dni, vertical }: { dni: string | null; vertical: boolean }) {
   const [visible, setVisible] = useState(false);
-  if (!dni) return <FilaDato etiqueta="DNI" valor="Sin registrar" />;
+  if (!dni) return <FilaDato vertical={vertical} etiqueta="DNI" valor="Sin registrar" />;
   return (
     <View style={styles.filaDni}>
       <View style={styles.flex}>
-        <FilaDato etiqueta="DNI" valor={visible ? dni : enmascararDni(dni)} />
+        <FilaDato vertical={vertical} etiqueta="DNI" valor={visible ? dni : enmascararDni(dni)} />
       </View>
       <Pressable
         accessibilityRole="button"
@@ -497,18 +504,15 @@ function Interruptor({
         importantForAccessibility="no-hide-descendants"
         style={styles.areaInterruptor}>
         <Switch
-          disabled
           value={valor}
           trackColor={{ true: theme.primary, false: theme.borderStrong }}
-          thumbColor={theme.onPrimary}
+          thumbColor={valor ? theme.onPrimary : theme.surface}
+          ios_backgroundColor={theme.borderStrong}
         />
       </View>
     </Pressable>
   );
 }
-
-// useWebAncha solo activa este estilo CSS en web; queda dentro de la columna del formulario.
-const barraFijaWeb = { position: 'sticky', bottom: 0 } as ViewStyle;
 
 const styles = StyleSheet.create({
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
@@ -519,7 +523,13 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.three,
   },
-  datoPracticas: { flexGrow: 1, flexBasis: 200, minWidth: 0 },
+  datoPracticas: { flexGrow: 1, flexBasis: '45%', minWidth: 0 },
+  datoPracticasAncho: { flexBasis: 0 },
+  emergencia: {
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   avatar: {
     width: 64,
     height: 64,
@@ -531,11 +541,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0, gap: Spacing.two },
   areaInterruptor: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   barraGuardado: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.two,
   },
-  barraGuardadoAncha: { flexDirection: 'row', alignItems: 'center', zIndex: 1 },
   estadoGuardado: { flex: 1, minWidth: 0 },
   interruptor: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
   columna: { minWidth: 0, gap: Spacing.three },
