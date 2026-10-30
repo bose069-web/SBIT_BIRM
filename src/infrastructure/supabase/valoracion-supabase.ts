@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { SinPermisoError, ValoracionYaExisteError } from '@/core/domain/errores';
 import type {
   BorradorValoracionFinal,
   BorradorValoracionMensual,
@@ -90,6 +91,27 @@ export class ValoracionSupabase implements ValoracionPort {
       )
       .select(COLUMNAS_MENSUAL)
       .single<FilaMensual>();
+    if (error) throw new Error(error.message);
+    return aMensual(data);
+  }
+
+  async crearMensual(b: BorradorValoracionMensual) {
+    // Insert y no upsert: la restricción única (dossier, mes) impide pisar otra valoración, también
+    // si alguien la ha guardado después de cargar la pantalla.
+    const { data, error } = await this.cliente
+      .from('valoraciones_mensuales')
+      .insert({
+        dossier_id: b.dossierId,
+        mes: `${b.mes}-01`,
+        valoracion: b.valoracion,
+        comentario: b.comentario,
+        valorada_por: await this.quienValora(),
+        valorada_en: new Date().toISOString(),
+      })
+      .select(COLUMNAS_MENSUAL)
+      .single<FilaMensual>();
+    if (error?.code === '23505') throw new ValoracionYaExisteError();
+    if (error?.code === '42501') throw new SinPermisoError('valorar este dossier');
     if (error) throw new Error(error.message);
     return aMensual(data);
   }

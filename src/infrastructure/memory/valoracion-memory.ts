@@ -1,3 +1,4 @@
+import { ValoracionYaExisteError } from '@/core/domain/errores';
 import type {
   BorradorValoracionFinal,
   BorradorValoracionMensual,
@@ -39,6 +40,13 @@ export class ValoracionMemory implements ValoracionPort {
     };
     this.mensuales = [...this.mensuales.filter((v) => v.id !== valoracion.id), valoracion];
     return valoracion;
+  }
+
+  async crearMensual(b: BorradorValoracionMensual) {
+    if (this.mensuales.some((v) => v.dossierId === b.dossierId && v.mes === b.mes)) {
+      throw new ValoracionYaExisteError();
+    }
+    return this.guardarMensual(b);
   }
 
   async obtenerFinal(dossierId: string) {

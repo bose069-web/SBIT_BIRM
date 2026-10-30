@@ -1,9 +1,15 @@
 import type { Seguimiento } from '@/core/application/valoracion';
 import { crearDossier } from '@/core/__fixtures__/datos';
 import type { Dossier } from '@/core/domain/dossier';
+import type { RegistroDiario } from '@/core/domain/registro-diario';
 import type { ValoracionMensual } from '@/core/domain/valoracion';
 
-import { informesPorValidar, mesesPorValidar, valoracionesConAlumno } from '../validaciones';
+import {
+  informesPorValidar,
+  mesesPorValidar,
+  resumirBloque,
+  valoracionesConAlumno,
+} from '../validaciones';
 
 const HOY = '2026-12-10';
 
@@ -93,5 +99,30 @@ describe('valoracionesConAlumno', () => {
       '2026-10',
       '2026-09',
     ]);
+  });
+});
+
+describe('resumirBloque', () => {
+  const dossier = (id: string) => crearDossier({ id });
+  const registro = (fecha: string, horas: number): RegistroDiario => ({
+    id: fecha,
+    dossierId: 'a',
+    fecha,
+    tipo: 'trabajo',
+    observaciones: null,
+    horas: [{ actividadId: 'x', horas }],
+  });
+
+  it('cuenta alumnos distintos, meses y horas de esos meses, y avisa de lo delicado', () => {
+    const resumen = resumirBloque(
+      [
+        { dossier: dossier('a'), mes: '2026-10' },
+        { dossier: dossier('a'), mes: '2026-12' },
+        { dossier: dossier('b'), mes: '2026-10' },
+      ],
+      (id) => (id === 'a' ? [registro('2026-10-05', 6), registro('2026-11-05', 99)] : []),
+      '2026-12-10',
+    );
+    expect(resumen).toEqual({ alumnos: 2, informes: 3, horas: 6, sinDias: 2, delMesEnCurso: 1 });
   });
 });

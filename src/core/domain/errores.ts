@@ -19,6 +19,13 @@ export class ValoracionInvalidaError extends Error {
   }
 }
 
+export class ValoracionYaExisteError extends Error {
+  constructor() {
+    super('Este mes ya está valorado');
+    this.name = 'ValoracionYaExisteError';
+  }
+}
+
 export class SinPermisoError extends Error {
   constructor(accion: string) {
     super(`No tienes permiso para ${accion}`);

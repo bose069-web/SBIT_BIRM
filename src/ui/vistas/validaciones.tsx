@@ -1,13 +1,24 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { listarDossiers } from '@/core/application/dossier';
 import { listarRegistros } from '@/core/application/registro-diario';
-import { obtenerSeguimiento } from '@/core/application/valoracion';
-import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
+import {
+  obtenerSeguimiento,
+  valorarEnBloque,
+  type ResultadoValoracionEnBloque,
+} from '@/core/application/valoracion';
+import type { RegistroDiario } from '@/core/domain/registro-diario';
+import { VALORACIONES_MES, type ValoracionMes } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
+import { Boton } from '@/ui/components/boton';
+import { Campo } from '@/ui/components/campo';
+import { CasillaTarea } from '@/ui/components/casilla-tarea';
 import { Chip } from '@/ui/components/chip';
+import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
+import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -15,9 +26,12 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
-import { fechaCorta, formatoHoras, hoyISO, limitesMes, nombreMes } from '@/ui/utils/fechas';
+import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 import {
+  claveInforme,
   informesPorValidar,
+  resumenMes,
+  resumirBloque,
   valoracionesConAlumno,
   type CargaSeguimiento,
   type InformePendiente,
@@ -63,6 +77,40 @@ export function VistaValidaciones() {
   const cargas = datos ?? [];
   const pendientes = informesPorValidar(cargas, hoy);
   const validadas = valoracionesConAlumno(cargas);
+  const registrosDe = (dossierId: string) =>
+    cargas.find((c) => c.dossier.id === dossierId)?.registros ?? [];
+
+  const [marcados, setMarcados] = useState<ReadonlySet<string>>(new Set());
+  const [resultados, setResultados] = useState<ResultadoConNombre[] | null>(null);
+  // Tras cada envío el formulario empieza de cero, aunque queden fallidos seleccionados.
+  const [ronda, setRonda] = useState(0);
+  // Solo cuenta lo que sigue pendiente: un mes que ya no lo está deja de estar seleccionado.
+  const seleccionados = pendientes.filter((i) => marcados.has(claveInforme(i)));
+  const todosMarcados = pendientes.length > 0 && seleccionados.length === pendientes.length;
+
+  function alternar(clave: string) {
+    setMarcados((actuales) => {
+      const nuevos = new Set(actuales);
+      if (!nuevos.delete(clave)) nuevos.add(clave);
+      return nuevos;
+    });
+  }
+
+  async function aplicar(valoracion: ValoracionMes, comentario: string) {
+    const informes = seleccionados;
+    const lista = await valorarEnBloque(
+      container.valoraciones,
+      usuario,
+      informes,
+      { valoracion, comentario },
+      hoy,
+    );
+    setResultados(lista.map((r, i) => ({ ...r, alumnoNombre: informes[i].dossier.alumnoNombre })));
+    // Se quedan marcados los que han fallado, para reintentarlos o revisarlos.
+    setMarcados(new Set(lista.filter((r) => !r.ok).map((r) => `${r.dossierId}|${r.mes}`)));
+    setRonda((r) => r + 1);
+    recargar();
+  }
 
   const resumen = datos ? (
     <View style={styles.chips}>
@@ -109,19 +157,43 @@ export function VistaValidaciones() {
               </ThemedText>
             ) : (
               <View style={styles.lista}>
+                <Boton
+                  texto={todosMarcados ? 'Quitar la selección' : 'Seleccionar todos'}
+                  variante="secundario"
+                  onPress={() =>
+                    setMarcados(todosMarcados ? new Set() : new Set(pendientes.map(claveInforme)))
+                  }
+                />
                 {pendientes.map((informe) => (
-                  <FilaPendiente
-                    key={`${informe.dossier.id}-${informe.mes}`}
-                    informe={informe}
-                    registros={
-                      cargas.find((c) => c.dossier.id === informe.dossier.id)?.registros ?? []
-                    }
-                    onValidar={() => abrirValoracion(informe)}
-                  />
+                  <View key={claveInforme(informe)} style={styles.filaSeleccionable}>
+                    <CasillaTarea
+                      titulo={`Seleccionar ${informe.dossier.alumnoNombre}, ${nombreMes(informe.mes)}`}
+                      hecha={marcados.has(claveInforme(informe))}
+                      onPress={() => alternar(claveInforme(informe))}
+                    />
+                    <View style={styles.flex}>
+                      <FilaPendiente
+                        informe={informe}
+                        registros={registrosDe(informe.dossier.id)}
+                        onValidar={() => abrirValoracion(informe)}
+                      />
+                    </View>
+                  </View>
                 ))}
               </View>
             )}
           </Tarjeta>
+
+          {resultados ? (
+            <ResultadoBloque resultados={resultados} onCerrar={() => setResultados(null)} />
+          ) : null}
+          {seleccionados.length > 0 ? (
+            <ValoracionEnBloque
+              key={ronda}
+              resumen={resumirBloque(seleccionados, registrosDe, hoy)}
+              onConfirmar={aplicar}
+            />
+          ) : null}
 
           <Tarjeta
             titulo="Ya validadas"
@@ -148,6 +220,148 @@ export function VistaValidaciones() {
   );
 }
 
+type ResultadoConNombre = ResultadoValoracionEnBloque & { alumnoNombre: string };
+
+/** Una sola valoración para todo lo seleccionado; nada se guarda sin ver antes el resumen. */
+function ValoracionEnBloque({
+  resumen,
+  onConfirmar,
+}: {
+  resumen: ReturnType<typeof resumirBloque>;
+  onConfirmar: (valoracion: ValoracionMes, comentario: string) => Promise<void>;
+}) {
+  const [valoracion, setValoracion] = useState<ValoracionMes | null>(null);
+  const [comentario, setComentario] = useState('');
+  const [revisando, setRevisando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const faltaComentario = valoracion !== 'positiva' && !comentario.trim();
+
+  function revisar() {
+    if (!valoracion) {
+      setAviso('Elige la valoración');
+    } else if (faltaComentario) {
+      setAviso('Explica qué tiene que mejorar el alumno');
+    } else {
+      setAviso(null);
+      setRevisando(true);
+    }
+  }
+
+  async function confirmar() {
+    if (!valoracion) return;
+    setEnviando(true);
+    setAviso(null);
+    try {
+      await onConfirmar(valoracion, comentario);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : String(e));
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Tarjeta titulo="Valorar la selección">
+      {revisando && valoracion ? (
+        <>
+          <ThemedText type="smallBold">Revisa antes de confirmar</ThemedText>
+          <ThemedText type="small">
+            {resumen.alumnos} {resumen.alumnos === 1 ? 'alumno' : 'alumnos'} · {resumen.informes}{' '}
+            {resumen.informes === 1 ? 'mes' : 'meses'} · {formatoHoras(resumen.horas)}
+          </ThemedText>
+          <ThemedText type="small">Valoración: {TEXTO_VALORACION[valoracion]}</ThemedText>
+          <ThemedText type="small">
+            {comentario.trim() ? `Comentario: ${comentario.trim()}` : 'Sin comentario'}
+          </ThemedText>
+          {resumen.sinDias > 0 ? (
+            <ThemedText type="smallBold" themeColor="estadoPendiente">
+              {resumen.sinDias} {resumen.sinDias === 1 ? 'informe no tiene' : 'informes no tienen'}{' '}
+              ningún día de trabajo apuntado.
+            </ThemedText>
+          ) : null}
+          {resumen.delMesEnCurso > 0 ? (
+            <ThemedText type="smallBold" themeColor="estadoPendiente">
+              Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.
+            </ThemedText>
+          ) : null}
+          <ThemedText type="small" themeColor="textSecondary">
+            Cada alumno verá esta valoración y este comentario, y su mes se cerrará.
+          </ThemedText>
+          {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
+          <Boton texto="Confirmar valoración" onPress={confirmar} cargando={enviando} />
+          <Boton
+            texto="Volver"
+            variante="secundario"
+            desactivado={enviando}
+            onPress={() => setRevisando(false)}
+          />
+        </>
+      ) : (
+        <>
+          <Selector
+            etiqueta="Valoración"
+            opciones={VALORACIONES_MES.map((v) => ({ valor: v, texto: TEXTO_VALORACION[v] }))}
+            valor={valoracion}
+            onCambio={setValoracion}
+          />
+          <Campo
+            etiqueta="Comentario"
+            multiline
+            value={comentario}
+            onChangeText={setComentario}
+            ayuda="Opcional si la valoración es positiva; si no, hay que explicar qué mejorar. Es el mismo para todos."
+          />
+          {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
+          <Boton texto="Revisar y confirmar" onPress={revisar} />
+        </>
+      )}
+    </Tarjeta>
+  );
+}
+
+function ResultadoBloque({
+  resultados,
+  onCerrar,
+}: {
+  resultados: ResultadoConNombre[];
+  onCerrar: () => void;
+}) {
+  const hechos = resultados.filter((r) => r.ok);
+  const fallidos = resultados.filter((r) => !r.ok);
+  return (
+    <Tarjeta titulo="Resultado de la valoración">
+      {hechos.length > 0 ? (
+        <>
+          <Mensaje
+            tipo="ok"
+            texto={`${hechos.length} ${hechos.length === 1 ? 'mes valorado' : 'meses valorados'}`}
+          />
+          {hechos.map((r) => (
+            <ThemedText key={`${r.dossierId}|${r.mes}`} type="small">
+              {r.alumnoNombre} · {nombreMes(r.mes)}
+            </ThemedText>
+          ))}
+        </>
+      ) : null}
+      {fallidos.length > 0 ? (
+        <>
+          <Mensaje
+            tipo="error"
+            texto={`${fallidos.length} ${fallidos.length === 1 ? 'requiere' : 'requieren'} atención. Los que siguen pendientes quedan seleccionados.`}
+          />
+          {fallidos.map((r) => (
+            <ThemedText key={`${r.dossierId}|${r.mes}`} type="small">
+              {r.alumnoNombre} · {nombreMes(r.mes)}: {r.ok ? '' : r.motivo}
+            </ThemedText>
+          ))}
+        </>
+      ) : null}
+      <Boton texto="Cerrar" variante="secundario" onPress={onCerrar} />
+    </Tarjeta>
+  );
+}
+
 /** Validar es una subparte de Inicio: se abre allí con el dossier y el mes ya elegidos. */
 function abrirValoracion({ dossier, mes }: InformePendiente) {
   router.push({ pathname: '/', params: { valorar: dossier.id, mes } });
@@ -164,10 +378,7 @@ function FilaPendiente({
 }) {
   const theme = useTheme();
   const { dossier, mes } = informe;
-  const [desde, hasta] = limitesMes(`${mes}-01`);
-  const delMes = registros.filter((r) => r.fecha >= desde && r.fecha <= hasta);
-  const dias = delMes.filter((r) => r.tipo === 'trabajo').length;
-  const horas = delMes.reduce((suma, r) => suma + totalHoras(r), 0);
+  const { dias, horas } = resumenMes(registros, mes);
 
   return (
     <Pressable
@@ -258,6 +469,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.control,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  filaSeleccionable: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   filaArriba: {
     flexDirection: 'row',
     flexWrap: 'wrap',
