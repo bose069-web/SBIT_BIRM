@@ -1,4 +1,9 @@
-import { CorreoYaRegistradoError, ValoracionYaExisteError } from '../domain/errores';
+import { huellaRegistro, valoresDeRegistro, valoresDiaIguales } from '../domain/registro-diario';
+import {
+  ConflictoRegistroError,
+  CorreoYaRegistradoError,
+  ValoracionYaExisteError,
+} from '../domain/errores';
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
@@ -140,7 +145,16 @@ export class RegistrosFalsos implements RegistroDiarioPort {
   async obtenerPorFecha(dossierId: string, fecha: string) {
     return this.dias.find((d) => d.dossierId === dossierId && d.fecha === fecha) ?? null;
   }
-  async guardar(b: BorradorRegistro) {
+  async guardar(b: BorradorRegistro, huellaEsperada?: string | null) {
+    const actual =
+      this.dias.find((r) => r.dossierId === b.dossierId && r.fecha === b.fecha) ?? null;
+    if (
+      actual &&
+      valoresDiaIguales(valoresDeRegistro(actual), { ...b, observaciones: b.observaciones ?? '' })
+    )
+      return actual;
+    if (huellaEsperada !== undefined && huellaRegistro(actual) !== huellaEsperada)
+      throw new ConflictoRegistroError(actual);
     const dia: RegistroDiario = { ...b, id: `r-${b.fecha}` };
     this.dias = [...this.dias.filter((d) => d.id !== dia.id), dia];
     return dia;

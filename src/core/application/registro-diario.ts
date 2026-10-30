@@ -1,6 +1,12 @@
+import type { DossierPort } from '../ports/dossier-port';
 import type { Dossier } from '../domain/dossier';
 import type { ClaveBorrador } from '../domain/borrador';
-import { esFalloDeRed, RegistroInvalidoError, SinPermisoError } from '../domain/errores';
+import {
+  ConflictoRegistroError,
+  esFalloDeRed,
+  RegistroInvalidoError,
+  SinPermisoError,
+} from '../domain/errores';
 import {
   comprobarBorrador,
   huellaRegistro,
@@ -71,7 +77,8 @@ export type ResultadoEnvio =
   /** El servidor cambió desde que se empezó el borrador: no se ha tocado nada. */
   | { resultado: 'conflicto'; servidor: RegistroDiario | null }
   /** No se llegó al servidor: el borrador queda marcado como pendiente en el dispositivo. */
-  | { resultado: 'sin-conexion'; guardadoEn: string };
+  | { resultado: 'sin-conexion'; guardadoEn: string }
+  | { resultado: 'sin-guardar-local' };
 
 /**
  * Envío explícito de un día. El borrador solo se borra si el servidor lo acepta; si se rechaza por
@@ -79,6 +86,7 @@ export type ResultadoEnvio =
  */
 export async function enviarDia(
   puertos: {
+    dossiers: DossierPort;
     registros: RegistroDiarioPort;
     valoraciones: ValoracionPort;
     borradores: BorradorPort;
@@ -91,13 +99,11 @@ export async function enviarDia(
     valores: ValoresDia;
     /** Versión del servidor en la que se basó el formulario. */
     huellaBase: string | null;
-    /** El alumno ha visto el conflicto y confirma que se quede el suyo. */
-    forzar?: boolean;
     /** Fecha y hora ISO, para el borrador pendiente. */
     ahora: string;
   },
 ): Promise<ResultadoEnvio> {
-  const { fecha, valores, huellaBase, forzar = false, ahora } = envio;
+  const { fecha, valores, huellaBase, ahora } = envio;
   const borrador: BorradorRegistro = {
     ...valores,
     dossierId: dossier.id,
@@ -107,28 +113,41 @@ export async function enviarDia(
   comprobarBorrador(borrador, dossier);
 
   try {
-    await comprobarMesAbierto(puertos.valoraciones, dossier, borrador.fecha);
+    const vigente = await puertos.dossiers.obtener(dossier.id);
+    if (!vigente || vigente.alumnoId !== usuario.id)
+      throw new SinPermisoError('registrar días en este dossier');
+    comprobarBorrador(borrador, vigente);
+    await comprobarMesAbierto(puertos.valoraciones, vigente, borrador.fecha);
     const servidor = await puertos.registros.obtenerPorFecha(dossier.id, borrador.fecha);
     const huellaServidor = huellaRegistro(servidor);
     // Si el servidor ya tiene justo esto (un reintento cuya respuesta se perdió), no hay conflicto.
     const yaIgual = servidor !== null && valoresDiaIguales(valoresDeRegistro(servidor), valores);
-    if (!forzar && !yaIgual && huellaServidor !== huellaBase) {
+    if (!yaIgual && huellaServidor !== huellaBase) {
       return { resultado: 'conflicto', servidor };
     }
-    const registro = await puertos.registros.guardar({
-      ...borrador,
-      observaciones: borrador.observaciones?.trim() || null,
-    });
+    const registro = await puertos.registros.guardar(
+      {
+        ...borrador,
+        observaciones: borrador.observaciones?.trim() || null,
+      },
+      huellaBase,
+    );
     await descartarBorrador(puertos.borradores, clave).catch(() => undefined);
     return { resultado: 'guardado', registro };
   } catch (e) {
+    if (e instanceof ConflictoRegistroError)
+      return { resultado: 'conflicto', servidor: e.servidor };
     if (!esFalloDeRed(e)) throw e;
-    await guardarBorrador(puertos.borradores, clave, {
+    const conservado = await guardarBorrador(puertos.borradores, clave, {
       valores,
       guardadoEn: ahora,
       huellaBase,
       pendienteEnvio: true,
-    }).catch(() => undefined);
+    }).then(
+      () => true,
+      () => false,
+    );
+    if (!conservado) return { resultado: 'sin-guardar-local' };
     return { resultado: 'sin-conexion', guardadoEn: ahora };
   }
 }

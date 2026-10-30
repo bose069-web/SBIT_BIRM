@@ -1,3 +1,4 @@
+import { CuentasMemory } from '@/infrastructure/memory/cuentas-memory';
 import type { AuthPort } from '@/core/ports/auth-port';
 import type { BorradorPort } from '@/core/ports/borrador-port';
 import type { ChatPort } from '@/core/ports/chat-port';
@@ -105,14 +106,15 @@ function crearContainer(): Container {
   }
 
   // Sin sesión al arrancar, para que se vea el login.
-  const auth = new AuthMemory(null);
+  const cuentas = new CuentasMemory();
+  const auth = new AuthMemory(null, cuentas);
   const historial = new HistorialMemory(auth);
   return {
     auth,
     dossiers: new DossierMemory(),
     registros: new RegistroDiarioMemory(undefined, historial),
     valoraciones: new ValoracionMemory(auth, historial),
-    centros: new GestionCentroMemory(),
+    centros: new GestionCentroMemory(cuentas),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
     incidencias: new IncidenciaMemory(),

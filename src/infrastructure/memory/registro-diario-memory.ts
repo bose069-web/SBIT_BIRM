@@ -1,3 +1,9 @@
+import { ConflictoRegistroError } from '@/core/domain/errores';
+import {
+  huellaRegistro,
+  valoresDeRegistro,
+  valoresDiaIguales,
+} from '@/core/domain/registro-diario';
 import type { BorradorRegistro, RegistroDiario } from '@/core/domain/registro-diario';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 
@@ -28,8 +34,19 @@ export class RegistroDiarioMemory implements RegistroDiarioPort {
     );
   }
 
-  async guardar(b: BorradorRegistro) {
-    const existente = await this.obtenerPorFecha(b.dossierId, b.fecha);
+  async guardar(b: BorradorRegistro, huellaEsperada?: string | null) {
+    const actual =
+      [...this.registros.values()].find(
+        (r) => r.dossierId === b.dossierId && r.fecha === b.fecha,
+      ) ?? null;
+    if (
+      actual &&
+      valoresDiaIguales(valoresDeRegistro(actual), { ...b, observaciones: b.observaciones ?? '' })
+    )
+      return actual;
+    if (huellaEsperada !== undefined && huellaRegistro(actual) !== huellaEsperada)
+      throw new ConflictoRegistroError(actual);
+    const existente = actual;
     const registro: RegistroDiario = {
       ...b,
       id: existente?.id ?? `registro-${this.siguienteId++}`,

@@ -1,3 +1,5 @@
+import { ConflictoRegistroError } from '@/core/domain/errores';
+import { huellaRegistro } from '@/core/domain/registro-diario';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { BorradorRegistro, RegistroDiario } from '@/core/domain/registro-diario';
@@ -53,47 +55,28 @@ export class RegistroDiarioSupabase implements RegistroDiarioPort {
     return data ? aRegistro(data) : null;
   }
 
-  private async obtener(id: string) {
-    const { data, error } = await this.cliente
-      .from('registros_diarios')
-      .select(COLUMNAS)
-      .eq('id', id)
-      .single<FilaRegistro>();
+  async guardar(b: BorradorRegistro, huellaEsperada?: string | null): Promise<RegistroDiario> {
+    const base =
+      huellaEsperada === undefined
+        ? huellaRegistro(await this.obtenerPorFecha(b.dossierId, b.fecha))
+        : huellaEsperada;
+    const { data, error } = await this.cliente.rpc('guardar_registro_atomico', {
+      p_dossier: b.dossierId,
+      p_fecha: b.fecha,
+      p_tipo: b.tipo,
+      p_observaciones: b.observaciones,
+      p_horas: b.horas,
+      p_base: base === null ? null : (JSON.parse(base) as unknown),
+    });
+    const respuesta = data as unknown as
+      | { resultado: 'guardado'; registro: FilaRegistro }
+      | { resultado: 'conflicto'; servidor: FilaRegistro | null }
+      | null;
     if (error) throw new Error(error.message);
-    return aRegistro(data);
-  }
-
-  async guardar(b: BorradorRegistro) {
-    const { data, error } = await this.cliente
-      .from('registros_diarios')
-      .upsert(
-        {
-          dossier_id: b.dossierId,
-          fecha: b.fecha,
-          tipo: b.tipo,
-          observaciones: b.observaciones,
-        },
-        { onConflict: 'dossier_id,fecha' },
-      )
-      .select('id')
-      .single<{ id: string }>();
-    if (error) throw new Error(error.message);
-
-    // Las horas se reemplazan enteras: más simple que calcular diferencias.
-    const borrado = await this.cliente.from('horas_actividad').delete().eq('registro_id', data.id);
-    if (borrado.error) throw new Error(borrado.error.message);
-    if (b.horas.length > 0) {
-      const { error: errorHoras } = await this.cliente.from('horas_actividad').insert(
-        b.horas.map((h) => ({
-          registro_id: data.id,
-          dossier_id: b.dossierId,
-          actividad_id: h.actividadId,
-          horas: h.horas,
-        })),
-      );
-      if (errorHoras) throw new Error(errorHoras.message);
-    }
-    return this.obtener(data.id);
+    if (!respuesta) throw new Error('El servidor no confirmó el guardado');
+    if (respuesta.resultado === 'conflicto')
+      throw new ConflictoRegistroError(respuesta.servidor ? aRegistro(respuesta.servidor) : null);
+    return aRegistro(respuesta.registro);
   }
 
   async eliminar(id: string) {
