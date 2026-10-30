@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentRef, type ReactNode, type RefObject } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +21,8 @@ interface Props {
   bajoCabecera?: boolean;
   /** Acción fija fuera del scroll, situada por encima de las pestañas en móvil. */
   pie?: ReactNode;
+  /** Para bajar por código hasta una parte de la pantalla. */
+  scrollRef?: RefObject<ComponentRef<typeof ScrollView> | null>;
 }
 
 /** Contenedor común de las pantallas: scroll, ancho máximo y hueco para las pestañas. */
@@ -33,6 +35,7 @@ export function Pantalla({
   compacta,
   bajoCabecera,
   pie,
+  scrollRef,
 }: Props) {
   const theme = useTheme();
   const web = Platform.OS === 'web';
@@ -53,6 +56,7 @@ export function Pantalla({
       edges={bajoCabecera ? [] : ['top']}
       style={[styles.fondo, { backgroundColor: theme.background }]}>
       <ScrollView
+        ref={scrollRef}
         style={styles.fondo}
         contentContainerStyle={[
           styles.scroll,

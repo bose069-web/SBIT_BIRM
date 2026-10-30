@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import { listarDossiers } from '@/core/application/dossier';
 import { listarRegistros } from '@/core/application/registro-diario';
@@ -27,10 +26,12 @@ import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
 import { Cifra } from '@/ui/components/cifra';
 import { Leyenda } from '@/ui/components/leyenda';
+import { Correcto } from '@/ui/components/correcto';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
+import { TarjetaPendientes } from '@/ui/components/tarjeta-pendientes';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useChat } from '@/ui/estado/chat-empresa';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -38,7 +39,7 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { FontFamily, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
+import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import {
   conversacionesDe,
   hace,
@@ -56,12 +57,12 @@ import {
   limitesMes,
   nombreMes,
 } from '@/ui/utils/fechas';
+import { pendientesEmpresa } from '@/ui/utils/pendientes';
 import { avisosAlumno, calcularRitmo, type EstadoRitmo, type Ritmo } from '@/ui/utils/ritmo';
 import {
   informesPorValidar,
   mesesPorValidar,
   valoracionesConAlumno,
-  type InformePendiente,
 } from '@/ui/utils/validaciones';
 
 import {
@@ -207,48 +208,12 @@ export function PanelEmpresa({
 
   // Cada bloque se define una vez: la web y el móvil solo cambian cómo se ordenan.
   const porValidar = (
-    <Tarjeta
-      style={{
-        ...tarjetaAncha,
-        ...(informes.length ? { borderColor: theme.primary } : null),
-      }}>
-      {informes.length === 0 ? (
-        <View style={styles.filaCentrada}>
-          <Correcto />
-          <View style={styles.flex}>
-            <ThemedText type="subtitle">Todo validado</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Todos los meses abiertos están valorados.
-            </ThemedText>
-          </View>
-        </View>
-      ) : (
-        <>
-          <View style={styles.filaCentrada}>
-            <ThemedText style={styles.cifraGrande} accessibilityRole="header">
-              {informes.length}
-            </ThemedText>
-            <View style={styles.flex}>
-              <ThemedText type="subtitle">
-                {informes.length === 1 ? 'Informe por validar' : 'Informes por validar'}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                Lo primero de hoy. El mes en curso cierra el {fechaCorta(finDeMes)}.
-              </ThemedText>
-            </View>
-          </View>
-          <View style={styles.lista}>
-            {informes.map((i) => (
-              <FilaInforme
-                key={`${i.dossier.id}-${i.mes}`}
-                informe={i}
-                onValidar={() => abrirValoracion(i.dossier.id, i.mes)}
-              />
-            ))}
-          </View>
-        </>
-      )}
-    </Tarjeta>
+    <TarjetaPendientes
+      pendientes={pendientesEmpresa(informes)}
+      textoAlDia="Todos los meses abiertos están valorados."
+      descripcion={`El mes en curso cierra el ${fechaCorta(finDeMes)}.`}
+      style={tarjetaAncha}
+    />
   );
 
   const cifras = (
@@ -449,63 +414,6 @@ function abrirValoracion(dossierId: string, mes: string | null) {
     pathname: '/',
     params: mes ? { valorar: dossierId, mes } : { valorar: dossierId },
   });
-}
-
-/** Marca de "todo en orden" para los estados sin pendientes. */
-export function Correcto() {
-  const theme = useTheme();
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={[styles.correcto, { backgroundColor: theme.subtle }]}>
-      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-        <Path
-          d="M5 12.5l4.5 4.5L19 7.5"
-          stroke={theme.estadoValidado}
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-    </View>
-  );
-}
-
-function FilaInforme({ informe, onValidar }: { informe: InformePendiente; onValidar: () => void }) {
-  const theme = useTheme();
-  const { dossier, mes } = informe;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Validar el informe de ${nombreMes(mes)} de ${dossier.alumnoNombre}`}
-      onPress={onValidar}
-      style={({ pressed }) => [
-        styles.filaPersona,
-        styles.filaInforme,
-        { backgroundColor: theme.subtle },
-        pressed && styles.pulsada,
-      ]}>
-      <Avatar nombre={dossier.alumnoNombre} />
-      <View style={styles.flex}>
-        <ThemedText type="smallBold" numberOfLines={1}>
-          {dossier.alumnoNombre}
-        </ThemedText>
-        <ThemedText
-          type="small"
-          themeColor="textSecondary"
-          numberOfLines={1}
-          style={estilosComunes.capital}>
-          {nombreMes(mes)}
-        </ThemedText>
-      </View>
-      <View style={[styles.pastilla, { backgroundColor: theme.primary }]}>
-        <ThemedText type="smallBold" themeColor="onPrimary">
-          Valorar
-        </ThemedText>
-      </View>
-    </Pressable>
-  );
 }
 
 const TEXTO_ESTADO_RITMO: Record<EstadoRitmo, string> = {
@@ -888,7 +796,6 @@ const styles = StyleSheet.create({
   bloques: { gap: Spacing.four },
   tarjetaAncha: { padding: Spacing.four },
   cifras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  cifraGrande: { fontFamily: FontFamily.semibold, fontSize: 52, lineHeight: 60, letterSpacing: -1 },
   lista: { gap: Spacing.two },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
   azulejo: {
@@ -909,21 +816,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     borderRadius: Radius.button,
   },
-  filaInforme: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   tactil: { minHeight: 44 },
-  pastilla: {
-    minHeight: 36,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.pill,
-  },
-  correcto: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.pill,
-  },
   datosAlumno: { gap: Spacing.two, alignItems: 'flex-start' },
   horas: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Spacing.one },
   cuenta: {
