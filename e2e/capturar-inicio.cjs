@@ -1,5 +1,6 @@
 // Capturas del Inicio del instituto (web ancha y móvil) para revisar los cambios.
 // No es un test: se ejecuta con `node capturar-inicio.cjs` desde e2e/ con el server ya arriba.
+// El scroll es interno y fullPage no lo sigue: la altura llega hasta la tarjeta de seguimiento.
 const { chromium } = require('playwright');
 const { entrarComo } = require('./tests/helpers.js');
 
@@ -19,8 +20,8 @@ async function capturar(viewport, archivo) {
 }
 
 (async () => {
-  await capturar({ width: 1280, height: 900 }, 'instituto-web.png');
-  await capturar({ width: 390, height: 844 }, 'instituto-movil.png');
+  await capturar({ width: 1280, height: 1400 }, 'instituto-web.png');
+  await capturar({ width: 390, height: 1900 }, 'instituto-movil.png');
 })().catch((e) => {
   console.error(e);
   process.exit(1);
