@@ -167,7 +167,8 @@ export function VistaValidaciones() {
                 {pendientes.map((informe) => (
                   <View key={claveInforme(informe)} style={styles.filaSeleccionable}>
                     <CasillaTarea
-                      titulo={`Seleccionar ${informe.dossier.alumnoNombre}, ${nombreMes(informe.mes)}`}
+                      titulo={`${informe.dossier.alumnoNombre}, ${nombreMes(informe.mes)}`}
+                      textos={TEXTOS_CASILLA}
                       hecha={marcados.has(claveInforme(informe))}
                       onPress={() => alternar(claveInforme(informe))}
                     />
@@ -219,6 +220,12 @@ export function VistaValidaciones() {
     </Pantalla>
   );
 }
+
+const TEXTOS_CASILLA = {
+  marcada: 'seleccionado',
+  sinMarcar: 'sin seleccionar',
+  pista: 'Añade o quita este informe de la valoración en bloque',
+};
 
 type ResultadoConNombre = ResultadoValoracionEnBloque & { alumnoNombre: string };
 
