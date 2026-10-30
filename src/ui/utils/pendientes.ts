@@ -1,6 +1,5 @@
 import type { Seguimiento } from '@/core/application/valoracion';
 import type { Incidencia } from '@/core/domain/incidencia';
-import { tareaVencida, type Tarea } from '@/core/domain/tarea';
 import { mesCerrado } from '@/core/domain/valoracion';
 
 import type { AlumnoSinApuntar } from './avisos-profe';
@@ -10,13 +9,10 @@ import type { InformePendiente } from './validaciones';
 // Qué tiene pendiente cada rol y adónde le lleva cada aviso. Solo traduce los datos que ya cargan
 // los paneles: aquí no se calcula ninguna métrica nueva.
 
-export type DestinoPendiente =
-  | {
-      pathname: '/' | '/alumnos' | '/centro' | '/chat' | '/registro';
-      params?: Record<string, string>;
-    }
-  /** Otra parte de la misma pantalla: la vista decide cómo llegar hasta ella. */
-  | { seccion: 'tareas' };
+export interface DestinoPendiente {
+  pathname: '/' | '/alumnos' | '/centro' | '/chat' | '/registro';
+  params?: Record<string, string>;
+}
 
 export interface Pendiente {
   id: string;
@@ -96,7 +92,6 @@ export interface DatosPendientesAlumno {
   sinApuntar: string[];
   seguimiento: Pick<Seguimiento, 'mensuales' | 'final'>;
   /** Null si no se han podido cargar. */
-  tareas: Pick<Tarea, 'titulo' | 'completada' | 'fechaLimite'>[] | null;
   incidencias: IncidenciaPendiente[] | null;
 }
 
@@ -130,19 +125,6 @@ export function pendientesAlumno(datos: DatosPendientesAlumno): Pendiente[] {
           : `Empieza por el ${fechaCorta(anteriores[0])}`,
       accion: 'Apuntar',
       destino: { pathname: '/registro', params: { fecha: anteriores[0] } },
-      prioridad: 'importante',
-    });
-  }
-  const tareas = (datos.tareas ?? []).filter((t) => !t.completada);
-  if (tareas.length > 0) {
-    const vencidas = tareas.filter((t) => tareaVencida(t, hoy)).length;
-    lista.push({
-      id: 'tareas',
-      titulo: tareas.length === 1 ? '1 tarea pendiente' : `${tareas.length} tareas pendientes`,
-      detalle: tareas[0].titulo,
-      accion: 'Ver tareas',
-      destino: { seccion: 'tareas' },
-      etiqueta: vencidas ? `${vencidas} ${plural(vencidas, 'vencida', 'vencidas')}` : undefined,
       prioridad: 'importante',
     });
   }

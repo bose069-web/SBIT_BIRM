@@ -23,7 +23,6 @@ const alumno = (cambios: Partial<DatosPendientesAlumno> = {}): DatosPendientesAl
   hoy: HOY,
   sinApuntar: [],
   seguimiento: { mensuales: [], final: null },
-  tareas: [],
   incidencias: [],
   ...cambios,
 });
@@ -60,21 +59,6 @@ describe('pendientesAlumno', () => {
     expect(lista).toEqual([]);
   });
 
-  it('cuenta las tareas sin hacer y resalta las vencidas', () => {
-    const [tareas] = pendientesAlumno(
-      alumno({
-        tareas: [
-          { titulo: 'Vieja', completada: false, fechaLimite: '2026-12-01' },
-          { titulo: 'Nueva', completada: false, fechaLimite: null },
-          { titulo: 'Hecha', completada: true, fechaLimite: '2026-12-01' },
-        ],
-      }),
-    );
-    expect(tareas.titulo).toBe('2 tareas pendientes');
-    expect(tareas.etiqueta).toBe('1 vencida');
-    expect(tareas.destino).toEqual({ seccion: 'tareas' });
-  });
-
   it('solo cuenta incidencias sin resolver y son secundarias: las atiende otro', () => {
     const lista = pendientesAlumno(
       alumno({ incidencias: [incidencia('a'), incidencia('b', 'resuelta')] }),
@@ -85,18 +69,13 @@ describe('pendientesAlumno', () => {
     expect(lista[0].prioridad).toBe('secundario');
   });
 
-  it('registrar y hacer tareas son obligaciones', () => {
-    const lista = pendientesAlumno(
-      alumno({
-        sinApuntar: ['2026-12-07', HOY],
-        tareas: [{ titulo: 'T', completada: false, fechaLimite: null }],
-      }),
-    );
-    expect(lista.map((p) => p.prioridad)).toEqual(['importante', 'importante', 'importante']);
+  it('registrar es una obligación', () => {
+    const lista = pendientesAlumno(alumno({ sinApuntar: ['2026-12-07', HOY] }));
+    expect(lista.map((p) => p.prioridad)).toEqual(['importante', 'importante']);
   });
 
-  it('tolera que tareas e incidencias no se hayan podido cargar', () => {
-    expect(pendientesAlumno(alumno({ tareas: null, incidencias: null }))).toEqual([]);
+  it('tolera que las incidencias no se hayan podido cargar', () => {
+    expect(pendientesAlumno(alumno({ incidencias: null }))).toEqual([]);
   });
 });
 

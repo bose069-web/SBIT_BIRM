@@ -24,7 +24,6 @@ interface Props {
   descripcion?: string;
   /** Pendientes que se resuelven dentro de la propia tarjeta (cuentas por incorporar…). */
   extra?: ReactNode;
-  onSeccion?: (seccion: 'tareas') => void;
   style?: ViewStyle;
 }
 
@@ -35,7 +34,6 @@ export function TarjetaPendientes({
   sinConfirmar,
   descripcion,
   extra,
-  onSeccion,
   style,
 }: Props) {
   const theme = useTheme();
@@ -54,8 +52,7 @@ export function TarjetaPendientes({
     : secundarios.slice(0, Math.max(0, MAXIMO_VISIBLES - visiblesImportantes.length));
 
   function abrir({ destino }: Pendiente) {
-    if ('seccion' in destino) onSeccion?.(destino.seccion);
-    else router.push({ pathname: destino.pathname, params: destino.params });
+    router.push({ pathname: destino.pathname, params: destino.params });
   }
 
   return (

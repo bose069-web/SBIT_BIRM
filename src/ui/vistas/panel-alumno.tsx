@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
-import { useRef, type ComponentRef, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { type ReactNode } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import { obtenerBandeja } from '@/core/application/incidencias';
 import { listarRegistros } from '@/core/application/registro-diario';
-import { listarTareas } from '@/core/application/tareas';
 import { resumirHoras, totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 import type { Dossier } from '@/core/domain/dossier';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
@@ -22,7 +21,7 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Radius, Spacing, TopTabInset, type ThemeColor } from '@/ui/theme/theme';
+import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 import { pendientesAlumno } from '@/ui/utils/pendientes';
 import {
@@ -47,11 +46,10 @@ export function PanelAlumno() {
   const { datos, error, cargando, recargar } = useDatos(async () => {
     const dossier = await obtenerDossierActual(container.dossiers, hoy);
     if (!dossier) return null;
-    // Si fallan las tareas o las incidencias, el resto del Inicio se sigue viendo.
-    const [registros, seguimiento, tareas, bandeja] = await Promise.all([
+    // Si fallan las incidencias, el resto del Inicio se sigue viendo.
+    const [registros, seguimiento, bandeja] = await Promise.all([
       listarRegistros(container.registros, dossier.id, dossier.fechaInicio, dossier.fechaFin),
       obtenerSeguimiento(container.valoraciones, dossier, hoy),
-      listarTareas(container.tareas, dossier.id).catch(() => null),
       obtenerBandeja(container.incidencias, usuario).catch(() => null),
     ]);
     return {
@@ -60,23 +58,12 @@ export function PanelAlumno() {
       resumen: resumirHoras(dossier, registros),
       progreso: calcularProgreso(dossier, registros, hoy),
       seguimiento,
-      tareas,
       incidencias: bandeja?.mias ?? null,
     };
   }, [hoy, usuario.id]);
   useRecargarAlVolver(recargar);
   // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
   const ancho = useWebAncha();
-  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  const tarjetaTareas = useRef<ComponentRef<typeof View>>(null);
-  // Las tareas no tienen pantalla propia: el aviso baja hasta su tarjeta.
-  function irATareas() {
-    const contenido = scroll.current?.getInnerViewRef();
-    if (!contenido) return;
-    tarjetaTareas.current?.measureLayout(contenido, (_x, y) =>
-      scroll.current?.scrollTo({ y: Math.max(0, y - TopTabInset - Spacing.three), animated: true }),
-    );
-  }
   const mes = hoy.slice(0, 7);
   const mesesValidados = datos?.seguimiento.mensuales.map((v) => v.mes) ?? [];
   const semana = datos ? semanaDePracticas(datos.dossier, hoy) : null;
@@ -96,8 +83,7 @@ export function PanelAlumno() {
       // En la web el estado del mes llena el hueco junto al saludo; el botón de registrar ya
       // está en la cabecera.
       accion={ancho && datos ? estadoMes : undefined}
-      amplia={ancho}
-      scrollRef={scroll}>
+      amplia={ancho}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
@@ -117,16 +103,12 @@ export function PanelAlumno() {
                   hoy,
                   sinApuntar: datos.progreso.sinApuntar,
                   seguimiento: datos.seguimiento,
-                  tareas: datos.tareas,
                   incidencias: datos.incidencias,
                 })}
-                textoAlDia="Tienes los días apuntados y no te queda ninguna tarea ni incidencia abierta."
+                textoAlDia="Tienes los días apuntados y ninguna incidencia abierta."
                 sinConfirmar={
-                  datos.tareas && datos.incidencias
-                    ? null
-                    : 'No se han podido comprobar tus tareas o incidencias.'
+                  datos.incidencias ? null : 'No se han podido comprobar tus incidencias.'
                 }
-                onSeccion={irATareas}
               />
               {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
                   sola con el calendario arriba. */}
@@ -195,11 +177,9 @@ export function PanelAlumno() {
           }
           derecha={
             <>
-              <View ref={tarjetaTareas} collapsable={false}>
-                <Tarjeta titulo="Tareas">
-                  <TareasDossier dossier={datos.dossier} onCambio={recargar} />
-                </Tarjeta>
-              </View>
+              <Tarjeta titulo="Tareas">
+                <TareasDossier dossier={datos.dossier} onCambio={recargar} />
+              </Tarjeta>
               <Tarjeta
                 titulo="Últimos registros"
                 accion={
