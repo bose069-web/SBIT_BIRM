@@ -26,6 +26,13 @@ export class ValoracionYaExisteError extends Error {
   }
 }
 
+export class HistorialNoDisponibleError extends Error {
+  constructor() {
+    super('El historial todavía no está disponible');
+    this.name = 'HistorialNoDisponibleError';
+  }
+}
+
 export class SinPermisoError extends Error {
   constructor(accion: string) {
     super(`No tienes permiso para ${accion}`);

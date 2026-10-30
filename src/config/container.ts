@@ -4,6 +4,7 @@ import type { ChatPort } from '@/core/ports/chat-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
+import type { HistorialPort } from '@/core/ports/historial-port';
 import type { IncidenciaPort } from '@/core/ports/incidencia-port';
 import type { InformePort } from '@/core/ports/informe-port';
 import type { PerfilPort } from '@/core/ports/perfil-port';
@@ -17,6 +18,7 @@ import { ChatMemory } from '@/infrastructure/memory/chat-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
 import { GestionCentroMemory } from '@/infrastructure/memory/gestion-centro-memory';
+import { HistorialMemory } from '@/infrastructure/memory/historial-memory';
 import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
 import { InformesMemory } from '@/infrastructure/memory/informes-memory';
 import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
@@ -29,6 +31,7 @@ import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { EventoSupabase } from '@/infrastructure/supabase/evento-supabase';
 import { GestionCentroSupabase } from '@/infrastructure/supabase/gestion-centro-supabase';
+import { HistorialSupabase } from '@/infrastructure/supabase/historial-supabase';
 import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
 import { InformesSupabase } from '@/infrastructure/supabase/informes-supabase';
 import { PerfilSupabase } from '@/infrastructure/supabase/perfil-supabase';
@@ -49,6 +52,7 @@ interface Container {
   chat: ChatPort;
   informes: InformePort;
   borradores: BorradorPort;
+  historial: HistorialPort;
 }
 
 /**
@@ -83,6 +87,7 @@ function crearContainer(): Container {
         chat: new ChatSupabase(cliente),
         informes: new InformesSupabase(cliente),
         borradores,
+        historial: new HistorialSupabase(cliente),
       };
     }
     console.warn(
@@ -92,11 +97,12 @@ function crearContainer(): Container {
 
   // Sin sesión al arrancar, para que se vea el login.
   const auth = new AuthMemory(null);
+  const historial = new HistorialMemory(auth);
   return {
     auth,
     dossiers: new DossierMemory(),
-    registros: new RegistroDiarioMemory(),
-    valoraciones: new ValoracionMemory(auth),
+    registros: new RegistroDiarioMemory(undefined, historial),
+    valoraciones: new ValoracionMemory(auth, historial),
     centros: new GestionCentroMemory(),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
@@ -105,6 +111,7 @@ function crearContainer(): Container {
     chat: new ChatMemory(),
     informes: new InformesMemory(),
     borradores,
+    historial,
   };
 }
 

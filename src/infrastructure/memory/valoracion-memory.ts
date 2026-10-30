@@ -9,6 +9,7 @@ import type { AuthPort } from '@/core/ports/auth-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
 
 import { VALORACIONES_DEMO } from './datos-demo';
+import type { HistorialMemory } from './historial-memory';
 
 export class ValoracionMemory implements ValoracionPort {
   private mensuales = [...VALORACIONES_DEMO];
@@ -16,7 +17,10 @@ export class ValoracionMemory implements ValoracionPort {
   private siguienteId = 1;
 
   /** Necesita la sesión para saber quién valora, como hace Supabase. */
-  constructor(private readonly auth: AuthPort) {}
+  constructor(
+    private readonly auth: AuthPort,
+    private readonly historial?: HistorialMemory,
+  ) {}
 
   private async quienValora(): Promise<string> {
     const usuario = await this.auth.usuarioActual();
@@ -39,6 +43,12 @@ export class ValoracionMemory implements ValoracionPort {
       valoradaEn: new Date().toISOString(),
     };
     this.mensuales = [...this.mensuales.filter((v) => v.id !== valoracion.id), valoracion];
+    await this.historial?.anotar(
+      b.dossierId,
+      'valoracion_mensual',
+      existente ? 'editar' : 'crear',
+      { mes: b.mes, valoracion: b.valoracion },
+    );
     return valoracion;
   }
 
@@ -59,7 +69,11 @@ export class ValoracionMemory implements ValoracionPort {
       valoradaPor: await this.quienValora(),
       valoradaEn: new Date().toISOString(),
     };
+    const accion = this.finales.has(b.dossierId) ? 'editar' : 'crear';
     this.finales.set(b.dossierId, valoracion);
+    await this.historial?.anotar(b.dossierId, 'valoracion_final', accion, {
+      resultado: b.resultado,
+    });
     return valoracion;
   }
 }
