@@ -3,6 +3,8 @@ import { useCallback, useState, type DependencyList } from 'react';
 
 interface Resultado<T> {
   clave: string;
+  /** Las dependencias sin la versión de recarga: qué se está consultando. */
+  consulta: string;
   datos: T | null;
   error: string | null;
 }
@@ -11,20 +13,26 @@ interface Resultado<T> {
 export function useDatos<T>(cargar: () => Promise<T>, deps: DependencyList) {
   const [version, setVersion] = useState(0);
   const clave = JSON.stringify([...deps, version]);
-  const [resultado, setResultado] = useState<Resultado<T>>({ clave: '', datos: null, error: null });
+  const consulta = JSON.stringify(deps);
+  const [resultado, setResultado] = useState<Resultado<T>>({
+    clave: '',
+    consulta: '',
+    datos: null,
+    error: null,
+  });
 
   useFocusEffect(
     useCallback(() => {
       let vigente = true;
-      setResultado({ clave: '', datos: null, error: null });
       Promise.resolve()
         .then(cargar)
-        .then((datos) => vigente && setResultado({ clave, datos, error: null }))
+        .then((datos) => vigente && setResultado({ clave, consulta, datos, error: null }))
         .catch(
           (e: unknown) =>
             vigente &&
             setResultado({
               clave,
+              consulta,
               datos: null,
               error: e instanceof Error ? e.message : String(e),
             }),
@@ -38,11 +46,12 @@ export function useDatos<T>(cargar: () => Promise<T>, deps: DependencyList) {
   );
 
   const recargar = useCallback(() => setVersion((v) => v + 1), []);
-  const vigente = resultado.clave === clave;
+  // Al recargar la misma consulta se mantiene lo que hay en pantalla: así no se pierde el scroll.
+  const misma = resultado.consulta === consulta;
   return {
-    datos: vigente ? resultado.datos : null,
-    error: vigente ? resultado.error : null,
-    cargando: !vigente,
+    datos: misma ? resultado.datos : null,
+    error: misma ? resultado.error : null,
+    cargando: resultado.clave !== clave,
     recargar,
   };
 }

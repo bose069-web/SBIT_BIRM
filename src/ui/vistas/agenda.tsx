@@ -64,6 +64,14 @@ export function ProximasFechas({
       ? e.dossierId === null
       : !dossierId || e.dossierId === null || e.dossierId === dossierId,
   );
+  // La misma fecha puesta en varios dossiers se ve una sola vez, con cuántos alumnos la tienen.
+  const grupos = new Map<string, { evento: Evento; alumnos: number }>();
+  for (const e of lista) {
+    const clave = JSON.stringify([e.fecha, e.titulo, e.tipo, e.dossierId === null]);
+    const grupo = grupos.get(clave);
+    if (grupo) grupo.alumnos += 1;
+    else grupos.set(clave, { evento: e, alumnos: 1 });
+  }
   if (lista.length === 0) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
@@ -73,7 +81,7 @@ export function ProximasFechas({
   }
   return (
     <View style={styles.lista}>
-      {lista.map((e) => (
+      {[...grupos.values()].map(({ evento: e, alumnos }) => (
         <View key={e.id} style={styles.fila}>
           <ThemedText type="smallBold" style={styles.fecha}>
             {fechaCorta(e.fecha)}
@@ -81,7 +89,9 @@ export function ProximasFechas({
           <View style={styles.texto}>
             <ThemedText type="small">{e.titulo}</ThemedText>
             <Chip
-              texto={`${TEXTO_TIPO_EVENTO[e.tipo]}${e.dossierId ? '' : ' · general'}`}
+              texto={`${TEXTO_TIPO_EVENTO[e.tipo]}${
+                e.dossierId ? (alumnos > 1 ? ` · ${alumnos} alumnos` : '') : ' · general'
+              }`}
               color={e.tipo === 'festivo' ? 'estadoFestivo' : 'textSecondary'}
             />
           </View>
