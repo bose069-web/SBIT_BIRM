@@ -20,6 +20,7 @@ import { fechaCorta, formatoHoras } from '@/ui/utils/fechas';
 import { contarDias, horasPorActividad } from '@/ui/utils/horas-actividad';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { SeccionHistorial } from './seccion-historial';
 
 /** Ficha de solo lectura de un dossier: quién, dónde, cuándo y las horas de cada actividad. */
 export function FichaDossier({
@@ -123,6 +124,8 @@ export function FichaDossier({
           ))
         )}
       </Tarjeta>
+
+      <SeccionHistorial dossier={dossier} />
     </Pantalla>
   );
 }

@@ -46,6 +46,21 @@ export class AuthSupabase implements AuthPort {
     if (error) throw error;
   }
 
+  async cambiarContrasena(contrasena: string) {
+    const { error } = await this.cliente.auth.updateUser({ password: contrasena });
+    if (!error) return;
+    if (error.code === 'same_password') {
+      throw new Error('La contraseña nueva debe ser distinta de la actual');
+    }
+    if (error.code === 'weak_password') {
+      throw new Error('Esa contraseña es demasiado débil: prueba con una más larga');
+    }
+    if (error.code === 'reauthentication_needed') {
+      throw new Error('Por seguridad, cierra sesión, vuelve a entrar e inténtalo de nuevo');
+    }
+    throw new Error(error.message);
+  }
+
   async usuarioActual() {
     const { data, error } = await this.cliente.auth.getSession();
     if (error) throw error;

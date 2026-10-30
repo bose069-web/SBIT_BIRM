@@ -78,3 +78,31 @@ export function comprobarDossier(b: BorradorDossier): void {
     vistas.add(clave);
   }
 }
+
+/** Lo que se está escribiendo en el formulario de dossier, tal cual está en pantalla. */
+export interface ValoresFormularioDossier {
+  alumnoId: string;
+  empresaId: string;
+  tutorEmpresaId: string | null;
+  ciclo: string;
+  fechaInicio: string;
+  fechaFin: string;
+  horas: string;
+  actividades: { id: string | null; descripcion: string }[];
+}
+
+/** Comprueba lo leído del dispositivo: puede estar corrupto o venir de otra versión. */
+export function validarValoresDossier(datos: unknown): ValoresFormularioDossier | null {
+  if (typeof datos !== 'object' || datos === null) return null;
+  const v = datos as Record<string, unknown>;
+  const textos = [v.alumnoId, v.empresaId, v.ciclo, v.fechaInicio, v.fechaFin, v.horas];
+  if (!textos.every((t) => typeof t === 'string')) return null;
+  if (v.tutorEmpresaId !== null && typeof v.tutorEmpresaId !== 'string') return null;
+  if (!Array.isArray(v.actividades)) return null;
+  const correctas = (v.actividades as unknown[]).every((a) => {
+    if (typeof a !== 'object' || a === null) return false;
+    const { id, descripcion } = a as Record<string, unknown>;
+    return (id === null || typeof id === 'string') && typeof descripcion === 'string';
+  });
+  return correctas ? (datos as ValoresFormularioDossier) : null;
+}

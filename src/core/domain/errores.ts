@@ -19,6 +19,20 @@ export class ValoracionInvalidaError extends Error {
   }
 }
 
+export class ValoracionYaExisteError extends Error {
+  constructor() {
+    super('Este mes ya está valorado');
+    this.name = 'ValoracionYaExisteError';
+  }
+}
+
+export class HistorialNoDisponibleError extends Error {
+  constructor() {
+    super('El historial todavía no está disponible');
+    this.name = 'HistorialNoDisponibleError';
+  }
+}
+
 export class SinPermisoError extends Error {
   constructor(accion: string) {
     super(`No tienes permiso para ${accion}`);
@@ -31,4 +45,39 @@ export class DatosInvalidosError extends Error {
     super(motivo);
     this.name = 'DatosInvalidosError';
   }
+}
+
+export class CorreoYaRegistradoError extends Error {
+  constructor() {
+    super('Ya existe una cuenta con ese correo. Si no tiene centro, está en Cuentas nuevas.');
+    this.name = 'CorreoYaRegistradoError';
+  }
+}
+
+/** La cuenta se ha creado, pero no se ha podido meter en el centro: se queda como cuenta nueva. */
+export class AltaSinIncorporarError extends Error {
+  constructor() {
+    super(
+      'La cuenta se ha creado, pero no se ha podido añadir al centro: añádela en Cuentas nuevas.',
+    );
+    this.name = 'AltaSinIncorporarError';
+  }
+}
+
+export class SinConexionError extends Error {
+  constructor() {
+    super('Sin conexión con el servidor');
+    this.name = 'SinConexionError';
+  }
+}
+
+/** Mensajes de fetch en Chrome, Firefox, Safari, React Native y Node, también vía supabase-js. */
+const PATRON_FALLO_RED =
+  /failed to fetch|fetch failed|network request failed|networkerror|load failed|network error|err_internet|err_network|timed? ?out/i;
+
+/** Si un error significa que no se ha llegado al servidor (no que el servidor lo haya rechazado). */
+export function esFalloDeRed(error: unknown): boolean {
+  if (error instanceof SinConexionError) return true;
+  const mensaje = error instanceof Error ? error.message : String(error);
+  return PATRON_FALLO_RED.test(mensaje);
 }

@@ -18,6 +18,7 @@ import { Cifra } from '@/ui/components/cifra';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
+import { TarjetaPendientes } from '@/ui/components/tarjeta-pendientes';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { usePanelCentro, type HacerEnCentro } from '@/ui/hooks/use-panel-centro';
@@ -25,16 +26,16 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
+import { Radius, Spacing } from '@/ui/theme/theme';
 import { alumnosSinApuntar } from '@/ui/utils/avisos-profe';
 import { avisosSeguimiento, ETIQUETA_AVISO } from '@/ui/utils/avisos-seguimiento';
 import { hace } from '@/ui/utils/chat';
 import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
+import { pendientesCentro } from '@/ui/utils/pendientes';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
-import { Correcto } from './panel-empresa';
 
 /** Hasta aquí se eligen en tarjetas; con más centros se busca por nombre. */
 const MAXIMO_TARJETAS_CENTRO = 6;
@@ -72,6 +73,7 @@ function useIncidenciasCentro(centroId: string | null) {
     );
     return {
       recientes: recientes.sort((a, b) => b.fecha.localeCompare(a.fecha)),
+      porAtender,
       pendientes: porAtender.filter((i) => i.estado !== 'resuelta').length,
     };
   }, [usuario.id, centroId]);
@@ -79,10 +81,7 @@ function useIncidenciasCentro(centroId: string | null) {
   return resultado;
 }
 
-/**
- * Los avisos de seguimiento del centro: quién dejó de apuntar, a quién sigue sin valorar la
- * empresa y en qué van las horas de cada dossier.
- */
+/** El seguimiento pendiente de cada alumno del centro para hoy. */
 function useAvisosCentro(centroId: string | null) {
   const hoy = hoyISO();
   const resultado = useDatos(async () => {
@@ -196,7 +195,7 @@ export function PanelInstituto() {
   }
 
   // La generalitat lleva el instituto elegido a la pantalla secundaria.
-  const params = esGeneralitat ? { centro: centroId } : {};
+  const params: Record<string, string> = esGeneralitat ? { centro: centroId } : {};
   const abrirAlumnos = () => router.push({ pathname: '/alumnos', params });
   const abrirConvenios = () => router.push({ pathname: '/centro', params });
 
@@ -219,14 +218,37 @@ export function PanelInstituto() {
     <>
       <RequiereAccion
         datos={datos}
-        pendientes={incidencias.datos?.pendientes ?? 0}
+        incidencias={incidencias.datos?.porAtender ?? null}
+        hayErrorIncidencias={Boolean(incidencias.error)}
+        params={params}
         hacer={hacer}
         onAlumnos={abrirAlumnos}
-        onConvenios={abrirConvenios}
         estilo={estiloTarjeta}
       />
     </>
   ) : null;
+
+  const bloqueAvisos = (
+    <Tarjeta titulo="Seguimiento de los alumnos" style={estiloTarjeta}>
+      {avisos.error && !avisos.datos ? (
+        <ErrorCarga texto={avisos.error} onReintentar={avisos.recargar} />
+      ) : !avisos.datos ? (
+        <EsqueletoPanel tarjetas={1} />
+      ) : avisos.datos.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Todo en orden: ningún alumno necesita tu atención ahora mismo.
+        </ThemedText>
+      ) : (
+        <View style={styles.lista}>
+          {avisos.datos.map((a, i) => (
+            <Fila key={`${a.tipo}-${a.alumno}-${i}`} titulo={a.alumno} detalle={a.motivo}>
+              <Chip texto={ETIQUETA_AVISO[a.tipo]} color={a.color} />
+            </Fila>
+          ))}
+        </View>
+      )}
+    </Tarjeta>
+  );
 
   const bloqueIncidencias = (
     <Tarjeta
@@ -245,28 +267,6 @@ export function PanelInstituto() {
         <View style={styles.lista}>
           {incidencias.datos.recientes.slice(0, INCIDENCIAS_EN_INICIO).map((c) => (
             <FilaIncidencia key={c.incidencia.id} conversacion={c} />
-          ))}
-        </View>
-      )}
-    </Tarjeta>
-  );
-
-  const bloqueAvisos = (
-    <Tarjeta titulo="Seguimiento de los alumnos" style={estiloTarjeta}>
-      {avisos.error && !avisos.datos ? (
-        <ErrorCarga texto={avisos.error} onReintentar={avisos.recargar} />
-      ) : !avisos.datos ? (
-        <EsqueletoPanel tarjetas={1} />
-      ) : avisos.datos.length === 0 ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          Todo en orden: ningún alumno necesita tu atención ahora mismo.
-        </ThemedText>
-      ) : (
-        <View style={styles.lista}>
-          {avisos.datos.map((a, i) => (
-            <Fila key={`${a.tipo}-${a.alumno}-${i}`} titulo={a.alumno} detalle={a.motivo}>
-              <Chip texto={ETIQUETA_AVISO[a.tipo]} color={a.color} />
-            </Fila>
           ))}
         </View>
       )}
@@ -433,109 +433,83 @@ function CifrasCentro({
   );
 }
 
-/** Lo primero de hoy. Cuentas nuevas se resuelven aquí; el resto lleva a su pantalla. */
+/** Lo primero de hoy. Las cuentas nuevas se resuelven aquí; el resto lleva a su pantalla. */
 function RequiereAccion({
   datos,
-  pendientes,
+  incidencias,
+  hayErrorIncidencias,
+  params,
   hacer,
   onAlumnos,
-  onConvenios,
   estilo,
 }: {
   datos: PanelCentro;
-  pendientes: number;
+  /** Null mientras cargan o si no se han podido cargar. */
+  incidencias: Incidencia[] | null;
+  hayErrorIncidencias: boolean;
+  params: Record<string, string>;
   hacer: HacerEnCentro;
   onAlumnos: () => void;
-  onConvenios: () => void;
   estilo: typeof styles.tarjetaAncha | undefined;
 }) {
   const usuario = useUsuario();
   const theme = useTheme();
-  const sinProfe = datos.alumnos.filter((a) => !a.profeId).length;
   const cuentas = datos.cuentasNuevas;
-  const nada = !sinProfe && !cuentas.length && !pendientes && datos.convenios.length > 0;
+  const sinConfirmar = incidencias
+    ? null
+    : hayErrorIncidencias
+      ? 'No se han podido comprobar las incidencias.'
+      : 'Comprobando las incidencias…';
   return (
-    <Tarjeta
-      titulo="Requiere tu atención"
-      style={{ ...estilo, ...(nada ? null : { borderColor: theme.primary }) }}>
-      {nada ? (
-        <View style={styles.filaCentrada}>
-          <Correcto />
-          <View style={styles.flex}>
-            <ThemedText type="subtitle">Todo al día</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Sin cuentas por añadir, alumnos sin profe ni incidencias pendientes.
+    <TarjetaPendientes
+      pendientes={pendientesCentro({
+        alumnosSinProfe: datos.alumnos.filter((a) => !a.profeId).length,
+        convenios: datos.convenios.length,
+        incidencias,
+        params,
+      })}
+      textoAlDia="Sin cuentas por añadir, alumnos sin profe ni incidencias pendientes."
+      sinConfirmar={sinConfirmar}
+      style={estilo}
+      extra={
+        cuentas.length > 0 ? (
+          <View style={[styles.cuentas, { borderTopColor: theme.border }]}>
+            <ThemedText type="smallBold">
+              {cuentas.length === 1 ? '1 cuenta nueva' : `${cuentas.length} cuentas nuevas`}
             </ThemedText>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.lista}>
-          {pendientes > 0 ? (
-            <FilaAccion
-              cuenta={pendientes}
-              color="estadoPendiente"
-              titulo={pendientes === 1 ? 'Incidencia pendiente' : 'Incidencias pendientes'}
-              detalle="Respóndelas desde el chat"
-              onPress={() => router.navigate('/chat')}
-            />
-          ) : null}
-          {sinProfe > 0 ? (
-            <FilaAccion
-              cuenta={sinProfe}
-              color="estadoPendiente"
-              titulo={sinProfe === 1 ? 'Alumno sin profe tutor' : 'Alumnos sin profe tutor'}
-              detalle="Asígnales un profe"
-              onPress={onAlumnos}
-            />
-          ) : null}
-          {datos.convenios.length === 0 ? (
-            <FilaAccion
-              cuenta={0}
-              color="estadoPendiente"
-              titulo="Sin convenios con empresas"
-              detalle="Hacen falta para que los alumnos hagan prácticas"
-              onPress={onConvenios}
-            />
-          ) : null}
-          {cuentas.length > 0 ? (
-            <View style={[styles.cuentas, { borderTopColor: theme.border }]}>
-              <ThemedText type="smallBold">
-                {cuentas.length === 1 ? '1 cuenta nueva' : `${cuentas.length} cuentas nuevas`}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                Se han registrado y aún no son de ningún centro.
-              </ThemedText>
-              {cuentas.slice(0, CUENTAS_EN_INICIO).map((p) => (
-                <View key={p.id} style={styles.cuentaNueva}>
-                  <View style={styles.persona}>
-                    <Avatar nombre={p.nombre} />
-                    <View style={styles.flex}>
-                      <ThemedText type="smallBold">{p.nombre}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                        {p.email}
-                      </ThemedText>
-                    </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              Se han registrado y aún no son de ningún centro.
+            </ThemedText>
+            {cuentas.slice(0, CUENTAS_EN_INICIO).map((p) => (
+              <View key={p.id} style={styles.cuentaNueva}>
+                <View style={styles.persona}>
+                  <Avatar nombre={p.nombre} />
+                  <View style={styles.flex}>
+                    <ThemedText type="smallBold">{p.nombre}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                      {p.email}
+                    </ThemedText>
                   </View>
-                  <Boton
-                    texto="Añadir como alumno"
-                    variante="secundario"
-                    onPress={() =>
-                      hacer(
-                        () => incorporarAlumno(container.centros, usuario, p, datos.centro.id),
-                        `${p.nombre} ya es alumno de ${datos.centro.nombre}`,
-                      )
-                    }
-                  />
                 </View>
-              ))}
-              {cuentas.length > CUENTAS_EN_INICIO ? (
-                <Enlace texto={`Ver las ${cuentas.length} cuentas ›`} onPress={onAlumnos} />
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-      )}
-    </Tarjeta>
+                <Boton
+                  texto="Añadir como alumno"
+                  variante="secundario"
+                  onPress={() =>
+                    hacer(
+                      () => incorporarAlumno(container.centros, usuario, p, datos.centro.id),
+                      `${p.nombre} ya es alumno de ${datos.centro.nombre}`,
+                    )
+                  }
+                />
+              </View>
+            ))}
+            {cuentas.length > CUENTAS_EN_INICIO ? (
+              <Enlace texto={`Ver las ${cuentas.length} cuentas ›`} onPress={onAlumnos} />
+            ) : null}
+          </View>
+        ) : null
+      }
+    />
   );
 }
 
@@ -560,42 +534,6 @@ function Fila({
       </View>
       {children}
     </View>
-  );
-}
-
-function FilaAccion({
-  cuenta,
-  color,
-  titulo,
-  detalle,
-  onPress,
-}: {
-  cuenta: number;
-  color: ThemeColor;
-  titulo: string;
-  detalle: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${cuenta} ${titulo}. ${detalle}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.filaAccion, pressed && styles.pulsada]}>
-      <View style={[styles.cuenta, { backgroundColor: theme.subtle }]}>
-        <ThemedText type="subtitle" themeColor={color}>
-          {cuenta}
-        </ThemedText>
-      </View>
-      <View style={styles.flex}>
-        <ThemedText type="smallBold">{titulo}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {detalle}
-        </ThemedText>
-      </View>
-      <ThemedText themeColor="textSecondary">›</ThemedText>
-    </Pressable>
   );
 }
 
@@ -756,13 +694,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     minHeight: 56,
     paddingVertical: Spacing.one,
-    borderRadius: Radius.button,
-  },
-  cuenta: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: Radius.button,
   },
   cuentas: {

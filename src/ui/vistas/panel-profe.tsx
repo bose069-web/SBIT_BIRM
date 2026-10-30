@@ -17,6 +17,7 @@ import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
+import { TarjetaPendientes } from '@/ui/components/tarjeta-pendientes';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
@@ -34,6 +35,7 @@ import {
   type DiasDeAlumno,
 } from '@/ui/utils/avisos-profe';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes, sumarDias } from '@/ui/utils/fechas';
+import { pendientesProfe } from '@/ui/utils/pendientes';
 import { nivelSinApuntar, type NivelAviso } from '@/ui/utils/progreso';
 
 import { ProximasFechas } from './agenda';
@@ -141,6 +143,7 @@ export function PanelProfe() {
       progresos,
       inbox,
       mensajesAbiertos,
+      deMisAlumnos: bandeja.deMisAlumnos,
     };
   }, [hoy, usuario.id]);
   useRecargarAlVolver(recargar);
@@ -171,6 +174,14 @@ export function PanelProfe() {
           ancho={ancho}
           izquierda={
             <>
+              <TarjetaPendientes
+                pendientes={pendientesProfe({
+                  incidencias: datos.deMisAlumnos,
+                  sinApuntar: datos.sinApuntar,
+                  faltaValorar: datos.faltaValorar,
+                })}
+                textoAlDia="Sin incidencias abiertas de tus alumnos, días sin apuntar ni meses sin valorar."
+              />
               <TuClase
                 ancho={ancho}
                 progresos={datos.progresos}

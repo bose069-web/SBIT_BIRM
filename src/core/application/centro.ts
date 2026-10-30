@@ -6,6 +6,7 @@ import {
   type Persona,
 } from '../domain/centro';
 import { SinPermisoError } from '../domain/errores';
+import { comprobarContrasena, comprobarEmail, comprobarNombre } from '../domain/perfil';
 import type { Usuario } from '../domain/usuario';
 import type { GestionCentroPort } from '../ports/gestion-centro-port';
 
@@ -99,6 +100,27 @@ export async function incorporarAlumno(
     throw new GestionCentroError('Solo se pueden incorporar cuentas nuevas sin centro');
   }
   await port.incorporarAlumno(persona.id, centroId);
+}
+
+/** Crea la cuenta de un alumno ya dentro del centro, sin profe todavía. */
+export async function darDeAltaAlumno(
+  port: GestionCentroPort,
+  usuario: Usuario,
+  datos: { nombre: string; email: string; contrasena: string },
+  centroId: string,
+): Promise<Persona> {
+  exigirAdministrar(usuario, centroId);
+  if (datos.nombre.trim().length < 2) {
+    throw new GestionCentroError('Escribe el nombre y los apellidos del alumno');
+  }
+  return port.crearAlumno(
+    {
+      nombre: comprobarNombre(datos.nombre),
+      email: comprobarEmail(datos.email),
+      contrasena: comprobarContrasena(datos.contrasena),
+    },
+    centroId,
+  );
 }
 
 /** Asigna (o quita, con `profe` null) el profe de un alumno. Sus dossiers pasan al nuevo profe. */
