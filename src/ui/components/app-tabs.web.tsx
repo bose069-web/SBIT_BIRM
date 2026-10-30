@@ -43,7 +43,7 @@ const cristalWeb = {
   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
 } as unknown as ViewStyle;
 
-export default function AppTabs({ rol }: { rol: Rol }) {
+export default function AppTabs({ rol, contadorChat }: { rol: Rol; contadorChat: string | null }) {
   // El profe no usa calendario: en esa pestaña tiene el seguimiento de su clase.
   const profe = rol === 'profe';
   return (
@@ -72,12 +72,10 @@ export default function AppTabs({ rol }: { rol: Rol }) {
             <TabTrigger name="validaciones" href="/validaciones" style={{ display: 'none' }} />
           )}
           <TabTrigger name="chat" href="/chat" asChild>
-            <TabButton href="/chat">Chat</TabButton>
+            <TabButton href="/chat" contador={contadorChat}>
+              Chat
+            </TabButton>
           </TabTrigger>
-          {/* Registrar y Centro siguen siendo rutas (si no, no se puede navegar a ellas), pero se
-              abren desde Inicio, no desde la barra. */}
-          <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
-          <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton href="/perfil">Perfil</TabButton>
           </TabTrigger>
@@ -99,9 +97,10 @@ export function TabButton({
   isFocused,
   ref: _ref,
   href,
+  contador,
   onPress,
   ...props
-}: TabTriggerSlotProps & { href: RutaPestana }) {
+}: TabTriggerSlotProps & { href: RutaPestana; contador?: string | null }) {
   const theme = useTheme();
   const reducido = useMovimientoReducido();
   return (
@@ -115,16 +114,31 @@ export function TabButton({
       }}
       accessibilityRole="tab"
       accessibilityState={{ selected: !!isFocused }}
-      accessibilityLabel={typeof children === 'string' ? children : undefined}
+      accessibilityLabel={
+        typeof children === 'string'
+          ? `${children}${contador ? `, ${contador} sin leer` : ''}`
+          : undefined
+      }
       style={({ pressed }) => pressed && styles.pressed}>
       {({ hovered }: EstadoPressable) => (
         <View style={styles.tabButtonView}>
-          <ThemedText
-            type={isFocused ? 'smallBold' : 'small'}
-            themeColor={isFocused || hovered ? 'text' : 'textSecondary'}
-            style={transicionWeb(reducido, 'color')}>
-            {children}
-          </ThemedText>
+          <View style={styles.tabEtiqueta}>
+            <ThemedText
+              type={isFocused ? 'smallBold' : 'small'}
+              themeColor={isFocused || hovered ? 'text' : 'textSecondary'}
+              style={transicionWeb(reducido, 'color')}>
+              {children}
+            </ThemedText>
+            {contador ? (
+              <View style={[styles.contador, { backgroundColor: theme.primary }]}>
+                <ThemedText
+                  type="smallBold"
+                  style={[styles.textoContador, { color: theme.onPrimary }]}>
+                  {contador}
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
           <View
             style={[
               styles.subrayado,
@@ -323,6 +337,16 @@ const styles = StyleSheet.create({
     right: Spacing.three,
     bottom: Spacing.one,
   },
+  tabEtiqueta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  contador: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoContador: { fontSize: 11, lineHeight: 14 },
   tabButtonView: {
     minHeight: 44,
     minWidth: 44,

@@ -2,19 +2,19 @@ import type { Dossier } from '@/core/domain/dossier';
 
 import { fechaCorta } from './fechas';
 
-// Chat de la empresa: un hilo por alumno en prácticas y otro por cada profe tutor que sigue a esos
-// alumnos. Aquí va solo lo que se puede calcular sin pantalla ni backend.
+// Contactos y mensajes del chat directo: cálculos sin pantalla ni backend.
 
-/** Quién está al otro lado: un alumno en prácticas o su profe tutor del centro. */
-export type RolChat = 'alumno' | 'profe';
+/** Rol de la otra persona que comparte un dossier. */
+export type RolChat = 'alumno' | 'profe' | 'empresa';
 
 export const TEXTO_ROL_CHAT: Record<RolChat, string> = {
   alumno: 'Alumno en prácticas',
   profe: 'Profe del centro',
+  empresa: 'Tutor de empresa',
 };
 
 export interface Conversacion {
-  /** `alumno:<id del alumno>` o `profe:<id del profe>`. */
+  /** Id de la otra persona: hay un solo hilo por cada par. */
   id: string;
   titulo: string;
   /** Ciclo y centro del alumno, o los alumnos que sigue el profe. */
@@ -50,7 +50,7 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
   const conversaciones: Conversacion[] = [];
   const vistas = new Set<string>();
   for (const d of mios) {
-    const id = `alumno:${d.alumnoId}`;
+    const id = d.alumnoId;
     if (vistas.has(id)) continue;
     vistas.add(id);
     conversaciones.push({
@@ -62,7 +62,7 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
   }
   for (const d of mios) {
     if (!d.tutorId || !d.tutorNombre) continue;
-    const id = `profe:${d.tutorId}`;
+    const id = d.tutorId;
     if (vistas.has(id)) continue;
     vistas.add(id);
     conversaciones.push({
@@ -73,6 +73,36 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
     });
   }
   return conversaciones;
+}
+
+/** Tutores de los dossiers del alumno, sin repetir personas ni incluir dossiers ajenos. */
+export function conversacionesDelAlumno(dossiers: Dossier[], alumnoId: string): Conversacion[] {
+  const contactos = new Map<string, Conversacion>();
+  // Si hay varios dossiers con la misma persona, se presenta la asignación más reciente.
+  const propios = dossiers
+    .filter((d) => d.alumnoId === alumnoId)
+    .sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio));
+  for (const d of propios) {
+    const tutores = [
+      {
+        id: d.tutorEmpresaId,
+        nombre: d.tutorEmpresaNombre,
+        rol: 'empresa' as const,
+        lugar: d.empresa,
+      },
+      { id: d.tutorId, nombre: d.tutorNombre, rol: 'profe' as const, lugar: d.centro },
+    ];
+    for (const tutor of tutores) {
+      if (!tutor.id || tutor.id === alumnoId || contactos.has(tutor.id)) continue;
+      contactos.set(tutor.id, {
+        id: tutor.id,
+        titulo: tutor.nombre?.trim() || TEXTO_ROL_CHAT[tutor.rol],
+        rol: tutor.rol,
+        etiqueta: [d.ciclo, tutor.lugar].filter(Boolean).join(' · '),
+      });
+    }
+  }
+  return [...contactos.values()];
 }
 
 /** Mensajes de un hilo, del más antiguo al más reciente. */
@@ -124,6 +154,23 @@ export function noLeidos(
   ).length;
 }
 
+/** Todo lo que falta por leer, sumando los hilos del usuario. */
+export function totalNoLeidos(
+  mensajes: MensajeChat[],
+  leidoHasta: Record<string, string>,
+  usuarioId: string,
+): number {
+  return mensajes.filter(
+    (m) => m.autorId !== usuarioId && m.enviadoEn > (leidoHasta[m.conversacionId] ?? ''),
+  ).length;
+}
+
+/** Lo que enseña la pestaña Chat: nada si no hay pendientes y, a partir de 10, `+9`. */
+export function textoContador(total: number): string | null {
+  if (total <= 0) return null;
+  return total > 9 ? '+9' : `${total}`;
+}
+
 /** Hora del mensaje en la burbuja: `14:05`. */
 export function horaDe(iso: string): string {
   const fecha = new Date(iso);
@@ -141,4 +188,25 @@ export function hace(iso: string, ahora: Date = new Date()): string {
   if (dias === 1) return 'ayer';
   if (dias < 7) return `hace ${dias} días`;
   return fechaCorta(iso.slice(0, 10));
+}
+
+/** Alumnos y tutores de empresa asignados al profesor. */
+export function conversacionesDelProfesor(dossiers: Dossier[], profesorId: string): Conversacion[] {
+  const contactos = new Map<string, Conversacion>();
+  for (const d of dossiers.filter((dossier) => dossier.tutorId === profesorId)) {
+    contactos.set(d.alumnoId, {
+      id: d.alumnoId,
+      titulo: d.alumnoNombre,
+      etiqueta: d.ciclo,
+      rol: 'alumno',
+    });
+    if (d.tutorEmpresaId)
+      contactos.set(d.tutorEmpresaId, {
+        id: d.tutorEmpresaId,
+        titulo: d.tutorEmpresaNombre || 'Tutor de empresa',
+        etiqueta: d.empresa ?? '',
+        rol: 'empresa',
+      });
+  }
+  return [...contactos.values()];
 }

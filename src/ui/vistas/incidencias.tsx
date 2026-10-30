@@ -8,6 +8,7 @@ import {
   atenderIncidencia,
   enviarMensaje,
   escalarIncidencia,
+  buscarIncidencia,
   listarMensajes,
   obtenerBandeja,
 } from '@/core/application/incidencias';
@@ -221,8 +222,7 @@ export function NuevaIncidencia({
 export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () => void }) {
   const usuario = useUsuario();
   const { datos, error, cargando, recargar } = useDatos(async () => {
-    const todas = await container.incidencias.listar();
-    const incidencia = todas.find((i) => i.id === id) ?? null;
+    const incidencia = await buscarIncidencia(container.incidencias, id);
     if (!incidencia) return null;
     const mensajes = await listarMensajes(container.incidencias, usuario, incidencia);
     return { incidencia, mensajes };

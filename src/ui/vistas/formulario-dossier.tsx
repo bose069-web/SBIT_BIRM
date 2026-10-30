@@ -14,6 +14,8 @@ import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
+import { Buscador } from '@/ui/components/buscador';
+import { fechaCorta } from '@/ui/utils/fechas';
 import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
@@ -120,7 +122,7 @@ function Formulario({
   // Al editar, el alumno no se puede cambiar: solo se muestra el suyo.
   const alumnos = actual
     ? [{ valor: actual.alumnoId, texto: actual.alumnoNombre }]
-    : opciones.alumnos.map((a) => ({ valor: a.id, texto: a.nombre }));
+    : opciones.alumnos.map((a) => ({ valor: a.id, texto: a.nombre, detalle: a.email }));
 
   function cambiarActividad(clave: string, descripcion: string) {
     setActividades((lista) => lista.map((a) => (a.clave === clave ? { ...a, descripcion } : a)));
@@ -179,7 +181,14 @@ function Formulario({
 
       <Tarjeta titulo="Alumno y empresa">
         {alumnos.length ? (
-          <Selector etiqueta="Alumno" opciones={alumnos} valor={alumnoId} onCambio={setAlumnoId} />
+          <Buscador
+            etiqueta="Alumno"
+            placeholder="Escribe el nombre o el correo"
+            opciones={alumnos}
+            valor={alumnoId}
+            onCambio={setAlumnoId}
+            fijo={!!actual}
+          />
         ) : (
           <Mensaje tipo="error" texto="No hay alumnos con profe asignado en tu centro." />
         )}
@@ -190,11 +199,13 @@ function Formulario({
           </ThemedText>
         ) : null}
         {opciones.convenios.length ? (
-          <Selector
+          <Buscador
             etiqueta="Empresa (con convenio)"
+            placeholder="Escribe el nombre de la empresa"
             opciones={opciones.convenios.map((c) => ({
               valor: c.empresaId,
               texto: c.empresaNombre,
+              detalle: c.firmadoEn ? `Convenio desde ${fechaCorta(c.firmadoEn)}` : undefined,
             }))}
             valor={empresaId}
             onCambio={(id) => {

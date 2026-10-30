@@ -7,7 +7,7 @@ import { Colors } from '@/ui/theme/theme';
 // Iconos de sistema: SF Symbols en iOS y Material Symbols en Android (expo-symbols ya viene con
 // Expo, así que no hace falta ningún archivo ni dependencia nueva). El nombre de la pestaña es
 // la etiqueta accesible; el icono solo acompaña.
-export default function AppTabs({ rol }: { rol: Rol }) {
+export default function AppTabs({ rol, contadorChat }: { rol: Rol; contadorChat: string | null }) {
   // El profe no usa calendario: en esa pestaña tiene el seguimiento de su clase.
   const profe = rol === 'profe';
   // La empresa tampoco: en esa pestaña tiene los informes que le toca validar.
@@ -44,6 +44,7 @@ export default function AppTabs({ rol }: { rol: Rol }) {
 
       <NativeTabs.Trigger name="chat">
         <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+        {contadorChat ? <NativeTabs.Trigger.Badge>{contadorChat}</NativeTabs.Trigger.Badge> : null}
         <NativeTabs.Trigger.Icon
           sf={{
             default: 'bubble.left.and.bubble.right',
@@ -52,10 +53,6 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           md="forum"
         />
       </NativeTabs.Trigger>
-
-      {/* Registrar y Centro siguen siendo rutas, pero se abren desde Inicio, no desde la barra. */}
-      <NativeTabs.Trigger name="registro" hidden />
-      <NativeTabs.Trigger name="centro" hidden />
 
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>

@@ -11,8 +11,8 @@ import { PanelProfe } from '@/ui/vistas/panel-profe';
 import { SeguimientoProfe } from '@/ui/vistas/seguimiento-profe';
 
 // Inicio distinto según el rol: el alumno ve sus horas, la empresa valora, el profe ve lo que
-// tiene pendiente (mensajes, horas por validar y quién no apunta), el instituto gestiona su
-// centro y la generalitat hace el seguimiento de todos los dossiers.
+// tiene pendiente (mensajes, horas por validar y quién no apunta) e instituto y generalitat
+// gestionan el centro (los alumnos, en segundo nivel, en /alumnos).
 // Las subpartes de Inicio van en la URL (`?dossier=`, `?editar=`, `?nuevo=`, `?valorar=`): así la
 // pestaña Inicio lleva siempre a la pantalla principal aunque ya estés dentro.
 export default function InicioScreen() {
@@ -35,7 +35,7 @@ export default function InicioScreen() {
   if (rol === 'empresa')
     return <PanelEmpresa key={valorar ?? 'inicio'} validar={valorar ?? null} mes={mes ?? null} />;
   if (rol === 'profe') return <PanelProfe />;
-  if (rol === 'instituto') return <PanelInstituto />;
+  if (rol === 'instituto' || rol === 'generalitat') return <PanelInstituto />;
   if (haceSeguimiento(rol)) return <SeguimientoProfe />;
   return <PanelAlumno />;
 }

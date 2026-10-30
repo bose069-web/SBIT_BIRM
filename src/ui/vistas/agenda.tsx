@@ -41,7 +41,16 @@ export async function eventosProximos(hoy: string): Promise<Evento[]> {
 }
 
 /** Próximas fechas: eventos generales y, si se pasa, solo los del dossier. */
-export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: string }) {
+export function ProximasFechas({
+  hoy,
+  dossierId,
+  soloGenerales = false,
+}: {
+  hoy: string;
+  dossierId?: string;
+  /** Sin las fechas de cada dossier: las que ven todos los alumnos. */
+  soloGenerales?: boolean;
+}) {
   const { datos, error, recargar } = useDatos(() => eventosProximos(hoy), [hoy]);
   if (!datos) {
     return error ? (
@@ -50,8 +59,10 @@ export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: st
       <Cargando texto="Cargando fechas…" />
     );
   }
-  const lista = datos.filter(
-    (e) => !dossierId || e.dossierId === null || e.dossierId === dossierId,
+  const lista = datos.filter((e) =>
+    soloGenerales
+      ? e.dossierId === null
+      : !dossierId || e.dossierId === null || e.dossierId === dossierId,
   );
   if (lista.length === 0) {
     return (

@@ -75,7 +75,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
 
   if (!datos) {
     return (
-      <Pantalla titulo="Registrar día" compacta>
+      <Pantalla titulo="Registrar día" compacta bajoCabecera>
         {error ? (
           <>
             <Mensaje tipo="error" texto={error} />
@@ -250,7 +250,8 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         titulo="Registrar día"
         subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}
         amplia={ancha}
-        compacta>
+        compacta
+        bajoCabecera>
         {ancha ? (
           <View style={styles.columnas}>
             <View style={styles.izquierda}>
@@ -297,7 +298,7 @@ function BotonIcono({
       style={({ pressed }) => [
         styles.icono,
         { borderColor: theme.border, backgroundColor: theme.surface },
-        (pressed || desactivado) && { opacity: 0.4 },
+        (desactivado || (Platform.OS === 'web' && pressed)) && { opacity: 0.4 },
       ]}>
       <ThemedText type="subtitle" style={styles.textoIcono}>
         {texto}
