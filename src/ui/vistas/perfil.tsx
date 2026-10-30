@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
+import { cambiarContrasena } from '@/core/application/auth';
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
   cambiarEmail,
@@ -85,12 +86,15 @@ export function VistaPerfil() {
         ancho={ancho}
         cabecera={cabecera}
         sesion={
-          <Tarjeta titulo="Sesión">
-            <ThemedText type="small" themeColor="textSecondary">
-              Datos: {container.auth.nombre}
-            </ThemedText>
-            <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
-          </Tarjeta>
+          <>
+            <TarjetaContrasena />
+            <Tarjeta titulo="Sesión">
+              <ThemedText type="small" themeColor="textSecondary">
+                Datos: {container.auth.nombre}
+              </ThemedText>
+              <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
+            </Tarjeta>
+          </>
         }
       />
     );
@@ -439,6 +443,63 @@ function Formulario({
         </>
       )}
     </Pantalla>
+  );
+}
+
+function TarjetaContrasena() {
+  const [nueva, setNueva] = useState('');
+  const [repetida, setRepetida] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+
+  const guardar = async () => {
+    if (guardando) return;
+    if (nueva !== repetida) {
+      setAviso({ tipo: 'error', texto: 'Las dos contraseñas no coinciden' });
+      return;
+    }
+    setGuardando(true);
+    setAviso(null);
+    try {
+      await cambiarContrasena(container.auth, nueva);
+      setNueva('');
+      setRepetida('');
+      setAviso({ tipo: 'ok', texto: 'Contraseña cambiada' });
+    } catch (e) {
+      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo cambiar' });
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Tarjeta titulo="Contraseña">
+      <Campo
+        etiqueta="Contraseña nueva"
+        value={nueva}
+        onChangeText={setNueva}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        ayuda="Al menos 8 caracteres."
+      />
+      <Campo
+        etiqueta="Repite la contraseña"
+        value={repetida}
+        onChangeText={setRepetida}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        onSubmitEditing={guardar}
+      />
+      {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+      <Boton
+        texto="Cambiar contraseña"
+        variante="secundario"
+        onPress={guardar}
+        cargando={guardando}
+      />
+    </Tarjeta>
   );
 }
 

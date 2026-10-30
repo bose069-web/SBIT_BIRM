@@ -87,7 +87,7 @@ function crearContainer(): Container {
         dossiers: new DossierSupabase(cliente),
         registros: new RegistroDiarioSupabase(cliente),
         valoraciones: new ValoracionSupabase(cliente),
-        centros: new GestionCentroSupabase(cliente),
+        centros: new GestionCentroSupabase(cliente, { url, clave }),
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
         incidencias: new IncidenciaSupabase(cliente),

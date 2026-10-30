@@ -47,6 +47,23 @@ export class DatosInvalidosError extends Error {
   }
 }
 
+export class CorreoYaRegistradoError extends Error {
+  constructor() {
+    super('Ya existe una cuenta con ese correo. Si no tiene centro, está en Cuentas nuevas.');
+    this.name = 'CorreoYaRegistradoError';
+  }
+}
+
+/** La cuenta se ha creado, pero no se ha podido meter en el centro: se queda como cuenta nueva. */
+export class AltaSinIncorporarError extends Error {
+  constructor() {
+    super(
+      'La cuenta se ha creado, pero no se ha podido añadir al centro: añádela en Cuentas nuevas.',
+    );
+    this.name = 'AltaSinIncorporarError';
+  }
+}
+
 export class SinConexionError extends Error {
   constructor() {
     super('Sin conexión con el servidor');

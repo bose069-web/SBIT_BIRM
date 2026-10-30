@@ -11,4 +11,6 @@ export interface AuthPort {
   iniciarSesion(email: string, contrasena: string): Promise<Usuario>;
   cerrarSesion(): Promise<void>;
   usuarioActual(): Promise<Usuario | null>;
+  /** Cambia la contraseña del usuario con sesión. */
+  cambiarContrasena(contrasena: string): Promise<void>;
 }

@@ -1,4 +1,4 @@
-import { ValoracionYaExisteError } from '../domain/errores';
+import { CorreoYaRegistradoError, ValoracionYaExisteError } from '../domain/errores';
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
@@ -283,6 +283,21 @@ export class CentrosFalsos implements GestionCentroPort {
   }
   async incorporarAlumno(id: string, centroId: string) {
     this.personas.find((p) => p.id === id)!.centroId = centroId;
+  }
+  async crearAlumno(
+    datos: { nombre: string; email: string; contrasena: string },
+    centroId: string,
+  ) {
+    if (this.personas.some((p) => p.email === datos.email)) throw new CorreoYaRegistradoError();
+    const alumno = persona({
+      id: `a${this.personas.length + 1}`,
+      nombre: datos.nombre,
+      email: datos.email,
+      rol: 'alumno',
+      centroId,
+    });
+    this.personas.push(alumno);
+    return alumno;
   }
   async asignarProfe(id: string, profeId: string | null) {
     this.personas.find((p) => p.id === id)!.profeId = profeId;
