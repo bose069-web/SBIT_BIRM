@@ -10,9 +10,9 @@ async function capturar(viewport, archivo) {
   const page = await browser.newPage({ viewport, baseURL: BASE });
   page.setDefaultNavigationTimeout(60000);
   await entrarComo(page, 'instituto@kampus.test');
-  // El Inicio del instituto: las cifras del centro arriba de todo.
-  await page.getByText('El centro en cifras').waitFor({ timeout: 60000 });
-  await page.waitForTimeout(1500); // animación de entrada de las tarjetas
+  // El Inicio del instituto: la gestión del centro con su tarjeta de seguimiento.
+  await page.getByText('Seguimiento de los alumnos').waitFor({ timeout: 60000 });
+  await page.waitForTimeout(2500); // animación de entrada y carga de los avisos
   await page.screenshot({ path: `capturas/${archivo}`, fullPage: true });
   await browser.close();
   console.log(`captura lista: capturas/${archivo}`);
