@@ -11,6 +11,10 @@ export interface Borrador<T> {
   valores: T;
   /** Fecha y hora ISO del último autoguardado. */
   guardadoEn: string;
+  /** Huella de la versión del servidor en la que se basó; `null` si entonces no había ninguna. */
+  huellaBase?: string | null;
+  /** Se intentó enviar y no se llegó al servidor. */
+  pendienteEnvio?: boolean;
 }
 
 export function textoClaveBorrador({ ambito, usuarioId, contexto }: ClaveBorrador): string {
@@ -30,8 +34,16 @@ export function interpretarBorrador<T>(
     return null;
   }
   if (typeof datos !== 'object' || datos === null) return null;
-  const { valores, guardadoEn } = datos as Record<string, unknown>;
+  const { valores, guardadoEn, huellaBase, pendienteEnvio } = datos as Record<string, unknown>;
   if (typeof guardadoEn !== 'string' || Number.isNaN(Date.parse(guardadoEn))) return null;
+  if (huellaBase !== undefined && huellaBase !== null && typeof huellaBase !== 'string')
+    return null;
   const validos = validar(valores);
-  return validos === null ? null : { valores: validos, guardadoEn };
+  if (validos === null) return null;
+  return {
+    valores: validos,
+    guardadoEn,
+    ...(huellaBase === undefined ? {} : { huellaBase }),
+    ...(pendienteEnvio === true ? { pendienteEnvio } : {}),
+  };
 }

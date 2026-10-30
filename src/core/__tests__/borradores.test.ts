@@ -1,14 +1,16 @@
 import { descartarBorrador, guardarBorrador, leerBorrador } from '../application/borradores';
-import { buscarUltimaJornada } from '../application/registro-diario';
+import { buscarUltimaJornada, enviarDia } from '../application/registro-diario';
+import { esFalloDeRed, SinConexionError } from '../domain/errores';
 import { textoClaveBorrador, type ClaveBorrador } from '../domain/borrador';
 import {
   horasParaCopiar,
+  huellaRegistro,
   validarValoresDia,
   valoresDiaIguales,
   type ValoresDia,
 } from '../domain/registro-diario';
 import type { BorradorPort } from '../ports/borrador-port';
-import { crearDossier, RegistrosFalsos } from '../__fixtures__/datos';
+import { alumno, crearDossier, RegistrosFalsos, ValoracionesFalsas } from '../__fixtures__/datos';
 import { BorradorLocalStorage } from '../../infrastructure/dispositivo/borrador-local-storage';
 import { BorradorMemory } from '../../infrastructure/memory/borrador-memory';
 
@@ -164,5 +166,151 @@ describe('copiar el día anterior', () => {
       { actividadId: 'act1', horas: 8 },
       { actividadId: 'act2', horas: 4 },
     ]);
+  });
+});
+
+describe('enviarDia', () => {
+  const dossier = crearDossier();
+  const claveEnvio = clave(alumno.id, '2026-10-20');
+  const ahora = '2026-10-20T10:30:00.000Z';
+  const delServidor = {
+    id: 'r1',
+    dossierId: dossier.id,
+    fecha: '2026-10-20',
+    tipo: 'festivo' as const,
+    horas: [],
+    observaciones: 'De otro dispositivo',
+  };
+
+  function escenario() {
+    const puertos = {
+      registros: new RegistrosFalsos(),
+      valoraciones: new ValoracionesFalsas(),
+      borradores: new BorradorMemory(),
+    };
+    return {
+      puertos,
+      enviar: (huellaBase: string | null = null, forzar = false) =>
+        enviarDia(puertos, alumno, dossier, claveEnvio, {
+          fecha: '2026-10-20',
+          valores,
+          huellaBase,
+          forzar,
+          ahora,
+        }),
+      leer: () => leerBorrador(puertos.borradores, claveEnvio, validarValoresDia),
+    };
+  }
+
+  it('borra el borrador solo tras guardar en el servidor', async () => {
+    const { puertos, enviar, leer } = escenario();
+    await guardarBorrador(puertos.borradores, claveEnvio, borrador);
+    const r = await enviar();
+    expect(r.resultado).toBe('guardado');
+    expect(puertos.registros.dias).toHaveLength(1);
+    await expect(leer()).resolves.toBeNull();
+  });
+
+  it.each([
+    ['Failed to fetch', () => new TypeError('Failed to fetch')],
+    ['supabase-js', () => new Error('TypeError: Failed to fetch')],
+    ['React Native', () => new TypeError('Network request failed')],
+    ['Safari', () => new TypeError('Load failed')],
+  ])('conserva los datos como pendientes si falla la red: %s', async (_caso, crearError) => {
+    const { puertos, enviar, leer } = escenario();
+    puertos.registros.guardar = () => Promise.reject(crearError());
+    await expect(enviar()).resolves.toEqual({ resultado: 'sin-conexion', guardadoEn: ahora });
+    await expect(leer()).resolves.toEqual({
+      valores,
+      guardadoEn: ahora,
+      huellaBase: null,
+      pendienteEnvio: true,
+    });
+  });
+
+  it('un rechazo que no es de red sube y no borra ni marca pendiente', async () => {
+    const { puertos, enviar, leer } = escenario();
+    await guardarBorrador(puertos.borradores, claveEnvio, borrador);
+    puertos.registros.guardar = () => Promise.reject(new Error('permission denied'));
+    await expect(enviar()).rejects.toThrow('permission denied');
+    await expect(leer()).resolves.toEqual(borrador);
+  });
+
+  it('con el mes cerrado no envía y conserva el borrador', async () => {
+    const { puertos, enviar, leer } = escenario();
+    await guardarBorrador(puertos.borradores, claveEnvio, borrador);
+    puertos.valoraciones.mensuales = [
+      {
+        id: 'v1',
+        dossierId: dossier.id,
+        mes: '2026-10',
+        valoracion: 'positiva',
+        comentario: null,
+        valoradaPor: 'e',
+        valoradaEn: ahora,
+      },
+    ];
+    await expect(enviar()).rejects.toThrow('valorado');
+    expect(puertos.registros.dias).toHaveLength(0);
+    await expect(leer()).resolves.toEqual(borrador);
+  });
+
+  it('si el servidor cambió, avisa sin sobrescribir ni borrar', async () => {
+    const { puertos, enviar, leer } = escenario();
+    await guardarBorrador(puertos.borradores, claveEnvio, borrador);
+    puertos.registros.dias = [delServidor];
+    await expect(enviar(null)).resolves.toEqual({ resultado: 'conflicto', servidor: delServidor });
+    expect(puertos.registros.dias).toEqual([delServidor]);
+    await expect(leer()).resolves.toEqual(borrador);
+  });
+
+  it('también es conflicto si el registro base se borró en el servidor', async () => {
+    const { enviar } = escenario();
+    await expect(enviar(huellaRegistro(delServidor))).resolves.toEqual({
+      resultado: 'conflicto',
+      servidor: null,
+    });
+  });
+
+  it('sin cambios en el servidor no hay conflicto', async () => {
+    const { puertos, enviar } = escenario();
+    puertos.registros.dias = [delServidor];
+    const r = await enviar(huellaRegistro(delServidor));
+    expect(r.resultado).toBe('guardado');
+  });
+
+  it('al confirmar, se envía el suyo', async () => {
+    const { puertos, enviar } = escenario();
+    puertos.registros.dias = [delServidor];
+    const r = await enviar(null, true);
+    expect(r.resultado).toBe('guardado');
+    expect(puertos.registros.dias.at(-1)?.tipo).toBe('trabajo');
+  });
+
+  it('un reintento cuya respuesta se perdió no es conflicto', async () => {
+    const { puertos, enviar } = escenario();
+    puertos.registros.dias = [{ ...delServidor, ...valores }];
+    const r = await enviar(null);
+    expect(r.resultado).toBe('guardado');
+  });
+});
+
+describe('esFalloDeRed', () => {
+  it.each(['duplicate key value', 'permission denied', 'Este mes ya está valorado'])(
+    'no confunde un rechazo del servidor: %s',
+    (mensaje) => {
+      expect(esFalloDeRed(new Error(mensaje))).toBe(false);
+    },
+  );
+  it('reconoce el error de dominio', () => {
+    expect(esFalloDeRed(new SinConexionError())).toBe(true);
+  });
+});
+
+describe('borrador con huella', () => {
+  it('rechaza una huella que no es texto', async () => {
+    const port = new BorradorMemory();
+    await port.guardar(textoClaveBorrador(clave()), JSON.stringify({ ...borrador, huellaBase: 7 }));
+    await expect(leerBorrador(port, clave(), validarValoresDia)).resolves.toBeNull();
   });
 });

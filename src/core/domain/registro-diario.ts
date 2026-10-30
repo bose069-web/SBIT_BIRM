@@ -119,6 +119,11 @@ export function valoresDiaIguales(a: ValoresDia, b: ValoresDia): boolean {
   return JSON.stringify(formaComparable(a)) === JSON.stringify(formaComparable(b));
 }
 
+/** Identifica el contenido de una versión del servidor; `null` si no hay registro. */
+export function huellaRegistro(registro: RegistroDiario | null): string | null {
+  return registro && JSON.stringify(formaComparable(valoresDeRegistro(registro)));
+}
+
 /** Comprueba lo leído del dispositivo: puede estar corrupto o venir de otra versión. */
 export function validarValoresDia(datos: unknown): ValoresDia | null {
   if (typeof datos !== 'object' || datos === null) return null;

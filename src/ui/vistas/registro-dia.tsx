@@ -12,15 +12,20 @@ import { obtenerDossierActual } from '@/core/application/dossier';
 import {
   buscarUltimaJornada,
   eliminarRegistro,
-  guardarRegistro,
+  enviarDia,
   listarRegistros,
+  type ResultadoEnvio,
 } from '@/core/application/registro-diario';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
+import type { ClaveBorrador } from '@/core/domain/borrador';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
+import { esFalloDeRed } from '@/core/domain/errores';
 import {
   MAX_HORAS_DIA,
   horasParaCopiar,
+  huellaRegistro,
+  totalHoras,
   validarValoresDia,
   valoresDeRegistro,
   valoresDiaIguales,
@@ -46,6 +51,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, limitesMes, sumarDias } from '@/ui/utils/fechas';
+import { estadoEnvio, estadoMes, type TonoEstado } from '@/ui/utils/estados-registro';
 import { pasoHoras } from '@/ui/utils/horas';
 
 import { CalendarioMes, ESTADOS_DIA } from './calendario-mes';
@@ -107,6 +113,9 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         {error ? (
           <>
             <Mensaje tipo="error" texto={error} />
+            <ThemedText type="small" themeColor="textSecondary">
+              Si tenías un borrador en este dispositivo, no se ha borrado.
+            </ThemedText>
             <Boton texto="Reintentar" onPress={recargar} />
           </>
         ) : cargando ? (
@@ -127,32 +136,48 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     setFecha(nueva);
   }
 
-  /** Devuelve si el servidor ha aceptado el día: solo entonces se puede borrar el borrador. */
-  async function guardar({ tipo, horas, observaciones }: ValoresDia): Promise<boolean> {
+  /** Devuelve `null` si el servidor lo rechaza por una regla: ya se ha avisado y nada se pierde. */
+  async function enviar(
+    valores: ValoresDia,
+    huellaBase: string | null,
+    forzar: boolean,
+  ): Promise<ResultadoEnvio | null> {
     Keyboard.dismiss();
     setAviso(null);
     setGuardando(true);
     try {
-      await guardarRegistro(container.registros, container.valoraciones, usuario, dossier, {
-        dossierId: dossier.id,
-        fecha,
-        tipo,
-        horas: tipo === 'trabajo' ? horas : [],
-        observaciones,
-      });
-      setAviso({ tipo: 'ok', texto: `Guardado el ${fechaCorta(fecha)}` });
-      recargar();
-      return true;
+      const resultado = await enviarDia(
+        {
+          registros: container.registros,
+          valoraciones: container.valoraciones,
+          borradores: container.borradores,
+        },
+        usuario,
+        dossier,
+        claveDia(usuario.id, dossier.id, fecha),
+        { fecha, valores, huellaBase, forzar, ahora: new Date().toISOString() },
+      );
+      if (resultado.resultado === 'guardado') {
+        setAviso({ tipo: 'ok', texto: `Guardado en el servidor el ${fechaCorta(fecha)}` });
+        recargar();
+      } else if (resultado.resultado === 'sin-conexion') {
+        setAviso({
+          tipo: 'error',
+          texto:
+            'No se ha podido conectar con el servidor. Tus datos siguen en este dispositivo: reintenta cuando tengas conexión.',
+        });
+      }
+      return resultado;
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
-      return false;
+      return null;
     } finally {
       setGuardando(false);
     }
   }
 
-  async function borrar() {
-    if (!existente) return;
+  async function borrar(): Promise<boolean> {
+    if (!existente) return false;
     Keyboard.dismiss();
     setAviso(null);
     try {
@@ -165,8 +190,17 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       );
       setAviso({ tipo: 'ok', texto: 'Día borrado' });
       recargar();
+      return true;
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({
+        tipo: 'error',
+        texto: esFalloDeRed(e)
+          ? 'No se ha podido conectar con el servidor: el día no se ha borrado.'
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      });
+      return false;
     }
   }
 
@@ -177,7 +211,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const estado: { texto: string; estado: EstadoChip } = fueraDePeriodo
     ? { texto: 'Fuera del periodo', estado: 'festivo' }
     : cerrado
-      ? { texto: 'Mes valorado: solo lectura', estado: 'festivo' }
+      ? { texto: 'Solo lectura', estado: 'festivo' }
       : existente
         ? { texto: ESTADOS_DIA[existente.tipo].texto, estado: existente.tipo }
         : { texto: ESTADOS_DIA.pendiente.texto, estado: 'pendiente' };
@@ -256,7 +290,12 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       existente={existente}
       ultimoTrabajo={existente ? null : ultimaJornada.datos}
       autoguardar={!cerrado && !fueraDePeriodo}
-      onDescartado={() => setReinicio((r) => r + 1)}
+      cerrado={cerrado}
+      onDescartado={() => {
+        setAviso(null);
+        setReinicio((r) => r + 1);
+        recargar();
+      }}
       bloqueado={bloqueado}
       motivoBloqueo={
         fueraDePeriodo
@@ -267,7 +306,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       }
       guardando={guardando}
       aviso={aviso}
-      onGuardar={guardar}
+      onEnviar={enviar}
       onBorrar={borrar}
     />
   );
@@ -383,7 +422,7 @@ function BotonHoy({ onPress }: { onPress: () => void }) {
   );
 }
 
-type EstadoChip = 'trabajo' | 'ausencia' | 'festivo' | 'pendiente';
+type EstadoChip = TonoEstado;
 
 /** Chip de estado con el relleno y la tinta de las celdas del calendario. */
 function ChipEstado({ texto, estado }: { texto: string; estado: EstadoChip }) {
@@ -497,12 +536,17 @@ const styles = StyleSheet.create({
   total: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   totalNumero: { fontSize: 28, lineHeight: 34 },
   botones: { gap: Spacing.two },
+  estados: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
   separador: { height: StyleSheet.hairlineWidth },
   punto: { width: 10, height: 10, borderRadius: 5, borderWidth: 1 },
 });
 
 /** Jornada de referencia para la barra del total: no es un límite, solo da escala. */
 const JORNADA = 8;
+
+function claveDia(usuarioId: string, dossierId: string, fecha: string): ClaveBorrador {
+  return { ambito: 'registro-dia', usuarioId, contexto: [dossierId, fecha] };
+}
 
 interface PropsFormulario {
   usuarioId: string;
@@ -515,12 +559,27 @@ interface PropsFormulario {
   bloqueado: boolean;
   /** En un mes cerrado el borrador se conserva tal cual: se ve y se descarta, pero no cambia. */
   autoguardar: boolean;
+  cerrado: boolean;
   onDescartado: () => void;
   motivoBloqueo: string | null;
   guardando: boolean;
   aviso: { tipo: 'error' | 'ok'; texto: string } | null;
-  onGuardar: (valores: ValoresDia) => Promise<boolean>;
-  onBorrar: () => void;
+  onEnviar: (
+    valores: ValoresDia,
+    huellaBase: string | null,
+    forzar: boolean,
+  ) => Promise<ResultadoEnvio | null>;
+  onBorrar: () => Promise<boolean>;
+}
+
+function textoConflicto(servidor: RegistroDiario | null): string {
+  if (!servidor) return 'Este día se ha borrado en el servidor desde que empezaste este borrador.';
+  const detalle =
+    servidor.tipo === 'trabajo'
+      ? `${ESTADOS_DIA.trabajo.texto}, ${formatoHoras(totalHoras(servidor))}`
+      : ESTADOS_DIA[servidor.tipo].texto;
+  const nota = servidor.observaciones ? `, «${servidor.observaciones}»` : '';
+  return `Este día ha cambiado en el servidor desde que empezaste este borrador. Ahora pone: ${detalle}${nota}. Elige cuál se queda.`;
 }
 
 function FormularioDia({
@@ -532,11 +591,12 @@ function FormularioDia({
   ultimoTrabajo,
   bloqueado,
   autoguardar,
+  cerrado,
   onDescartado,
   motivoBloqueo,
   guardando,
   aviso,
-  onGuardar,
+  onEnviar,
   onBorrar,
 }: PropsFormulario) {
   const theme = useTheme();
@@ -545,6 +605,8 @@ function FormularioDia({
     Object.fromEntries((existente?.horas ?? []).map((h) => [h.actividadId, h.horas])),
   );
   const [observaciones, setObservaciones] = useState(existente?.observaciones ?? '');
+  /** Versión del servidor distinta de la del borrador; `undefined` si no hay conflicto. */
+  const [conflicto, setConflicto] = useState<RegistroDiario | null | undefined>(undefined);
 
   const total = actividades.reduce((s, a) => s + (horas[a.id] ?? 0), 0);
   const sinHoras = tipo === 'trabajo' && total === 0;
@@ -575,7 +637,8 @@ function FormularioDia({
         : [],
   };
   const borrador = useBorrador<ValoresDia>({
-    clave: { ambito: 'registro-dia', usuarioId, contexto: [dossierId, fecha] },
+    clave: claveDia(usuarioId, dossierId, fecha),
+    huellaActual: huellaRegistro(existente),
     valores,
     base: valoresDeRegistro(existente),
     iguales: valoresDiaIguales,
@@ -588,9 +651,23 @@ function FormularioDia({
     },
   });
 
-  async function enviar() {
-    if (await onGuardar(valores)) await borrador.descartar();
+  async function enviar(forzar = false) {
+    setConflicto(undefined);
+    await borrador.volcar();
+    const envio = await onEnviar(valores, borrador.huella(), forzar);
+    if (envio?.resultado === 'guardado') await borrador.descartar();
+    else if (envio?.resultado === 'conflicto') setConflicto(envio.servidor);
+    else if (envio?.resultado === 'sin-conexion') borrador.marcarPendiente(envio.guardadoEn);
   }
+
+  const estados = [
+    estadoEnvio({
+      hayBorrador: borrador.guardadoEn !== null,
+      pendienteEnvio: borrador.pendienteEnvio,
+      enServidor: existente !== null,
+    }),
+    estadoMes({ cerrado, enServidor: existente !== null }),
+  ].flatMap((e) => (e ? [e] : []));
 
   const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
 
@@ -598,6 +675,13 @@ function FormularioDia({
     // Tocar fuera de un campo cierra el teclado.
     <Pressable accessible={false} onPress={Keyboard.dismiss}>
       <Tarjeta titulo="Qué has hecho">
+        {estados.length > 0 ? (
+          <View style={styles.estados}>
+            {estados.map((e) => (
+              <ChipEstado key={e.texto} texto={e.texto} estado={e.tono} />
+            ))}
+          </View>
+        ) : null}
         <View style={styles.tipos} accessibilityRole="radiogroup">
           {TIPOS.map((t) => {
             const elegido = t.valor === tipo;
@@ -746,6 +830,25 @@ function FormularioDia({
           }}
         />
         {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+        {conflicto !== undefined ? (
+          <View style={styles.botones}>
+            <Mensaje tipo="error" texto={textoConflicto(conflicto)} />
+            <Boton
+              texto="Quedarme con el del servidor"
+              variante="secundario"
+              onPress={() => {
+                void borrador.descartar().then(onDescartado);
+              }}
+            />
+            <Boton
+              texto="Enviar el mío y reemplazar"
+              variante="peligro"
+              onPress={() => {
+                void enviar(true);
+              }}
+            />
+          </View>
+        ) : null}
         <View style={styles.botones}>
           {motivo ? (
             <ThemedText type="small" themeColor={pasado ? 'danger' : 'textSecondary'}>
@@ -753,13 +856,27 @@ function FormularioDia({
             </ThemedText>
           ) : null}
           <Boton
-            texto={existente ? 'Guardar cambios' : 'Guardar día'}
-            onPress={enviar}
+            texto={
+              borrador.pendienteEnvio
+                ? 'Reintentar envío'
+                : existente
+                  ? 'Guardar cambios'
+                  : 'Guardar día'
+            }
+            onPress={() => {
+              void enviar();
+            }}
             cargando={guardando}
             desactivado={!puedeGuardar}
           />
           {existente && !bloqueado ? (
-            <Boton texto="Borrar día" variante="peligro" onPress={onBorrar} />
+            <Boton
+              texto="Borrar día"
+              variante="peligro"
+              onPress={() => {
+                void onBorrar().then((borrado) => (borrado ? borrador.descartar() : undefined));
+              }}
+            />
           ) : null}
         </View>
       </Tarjeta>

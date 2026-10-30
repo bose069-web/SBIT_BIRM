@@ -18,6 +18,8 @@ interface Opciones<T> {
   validar: (valores: unknown) => T | null;
   /** Con `false` se puede leer y descartar, pero el contenido no cambia. */
   guardable?: boolean;
+  /** Huella de la versión del servidor en pantalla, para detectar conflictos al enviar. */
+  huellaActual?: string | null;
   /** Se llama una vez si al abrir había un borrador distinto de lo guardado. */
   onRecuperar: (valores: T) => void;
 }
@@ -33,29 +35,49 @@ export function useBorrador<T>({
   iguales,
   validar,
   guardable = true,
+  huellaActual,
   onRecuperar,
 }: Opciones<T>) {
   const [guardadoEn, setGuardadoEn] = useState<string | null>(null);
   const [fallo, setFallo] = useState(false);
+  const [pendienteEnvio, setPendienteEnvio] = useState(false);
   const claveTexto = JSON.stringify(clave);
 
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistidos = useRef<T | null>(null);
   const leido = useRef(false);
+  // La versión en la que se basó el borrador: no cambia aunque el servidor sí lo haga.
+  const huellaBase = useRef<string | null | undefined>(undefined);
+  const pendiente = useRef(false);
   // Lo último que se ha pintado, para escribirlo aunque el formulario ya no esté montado.
-  const actual = useRef({ clave, valores, base, iguales, validar, onRecuperar });
+  const actual = useRef({ clave, valores, base, iguales, validar, huellaActual, onRecuperar });
   useEffect(() => {
-    actual.current = { clave, valores, base, iguales, validar, onRecuperar };
+    actual.current = { clave, valores, base, iguales, validar, huellaActual, onRecuperar };
   });
+
+  const limpiar = useCallback(() => {
+    persistidos.current = null;
+    huellaBase.current = undefined;
+    pendiente.current = false;
+    setGuardadoEn(null);
+    setFallo(false);
+    setPendienteEnvio(false);
+  }, []);
 
   const escribir = useCallback(() => {
     temporizador.current = null;
-    const { clave, valores, base, iguales } = actual.current;
+    const { clave, valores, base, iguales, huellaActual } = actual.current;
     const hayCambios = !iguales(valores, base);
     if (hayCambios) {
       const instante = new Date().toISOString();
       persistidos.current = valores;
-      return guardarBorrador(container.borradores, clave, { valores, guardadoEn: instante }).then(
+      if (huellaBase.current === undefined) huellaBase.current = huellaActual;
+      return guardarBorrador(container.borradores, clave, {
+        valores,
+        guardadoEn: instante,
+        huellaBase: huellaBase.current,
+        pendienteEnvio: pendiente.current,
+      }).then(
         () => {
           setGuardadoEn(instante);
           setFallo(false);
@@ -68,11 +90,9 @@ export function useBorrador<T>({
         },
       );
     }
-    persistidos.current = null;
-    setGuardadoEn(null);
-    setFallo(false);
+    limpiar();
     return descartarBorrador(container.borradores, clave).catch(() => undefined);
-  }, []);
+  }, [limpiar]);
 
   const pendienteEscribir = useCallback(() => {
     if (temporizador.current === null) return;
@@ -93,6 +113,9 @@ export function useBorrador<T>({
         return;
       }
       persistidos.current = borrador.valores;
+      huellaBase.current = borrador.huellaBase;
+      pendiente.current = borrador.pendienteEnvio === true;
+      setPendienteEnvio(pendiente.current);
       setGuardadoEn(borrador.guardadoEn);
       onRecuperar(borrador.valores);
     });
@@ -125,11 +148,31 @@ export function useBorrador<T>({
   const descartar = useCallback(async () => {
     if (temporizador.current !== null) clearTimeout(temporizador.current);
     temporizador.current = null;
-    persistidos.current = null;
-    setGuardadoEn(null);
-    setFallo(false);
+    limpiar();
     await descartarBorrador(container.borradores, actual.current.clave).catch(() => undefined);
+  }, [limpiar]);
+
+  /** Escribe ya lo pendiente: lo que se va a enviar tiene que estar a salvo antes. */
+  const volcar = useCallback(async () => {
+    if (temporizador.current === null) return;
+    clearTimeout(temporizador.current);
+    await escribir();
+  }, [escribir]);
+
+  /** El núcleo ya ha guardado el borrador como pendiente al fallar la red. */
+  const marcarPendiente = useCallback((instante: string) => {
+    if (huellaBase.current === undefined) huellaBase.current = actual.current.huellaActual;
+    persistidos.current = actual.current.valores;
+    pendiente.current = true;
+    setPendienteEnvio(true);
+    setGuardadoEn(instante);
   }, []);
 
-  return { guardadoEn, fallo, descartar };
+  /** La versión del servidor en la que se basa lo que hay en pantalla. */
+  const huella = useCallback(() => {
+    const base = huellaBase.current;
+    return base === undefined ? (actual.current.huellaActual ?? null) : base;
+  }, []);
+
+  return { guardadoEn, fallo, pendienteEnvio, descartar, volcar, marcarPendiente, huella };
 }
