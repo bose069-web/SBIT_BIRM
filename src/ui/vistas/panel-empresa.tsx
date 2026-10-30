@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { listarDossiers } from '@/core/application/dossier';
 import { listarRegistros } from '@/core/application/registro-diario';
@@ -19,10 +20,13 @@ import {
   type ValoracionMes,
 } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
-import { BarraProgreso } from '@/ui/components/barra-progreso';
+import { AnilloProgreso } from '@/ui/components/anillo-progreso';
+import { Avatar } from '@/ui/components/avatar';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
+import { Cifra } from '@/ui/components/cifra';
+import { Leyenda } from '@/ui/components/leyenda';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Selector } from '@/ui/components/selector';
@@ -34,7 +38,7 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
-import { Spacing, type ThemeColor } from '@/ui/theme/theme';
+import { FontFamily, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import {
   conversacionesDe,
   hace,
@@ -82,8 +86,8 @@ interface CargaDossier {
 }
 
 /**
- * Inicio de la empresa: lo que tiene que validar, cómo va cada alumno respecto al calendario, a
- * quién conviene mirar, lo último que ha valorado y, al lado, las fechas y los mensajes.
+ * Inicio de la empresa: primero lo que tiene que validar; después las cifras, a quién conviene
+ * mirar, cómo va cada alumno frente a su calendario, las fechas, los mensajes y lo último valorado.
  */
 export function PanelEmpresa({
   validar = null,
@@ -94,6 +98,7 @@ export function PanelEmpresa({
   mes?: string | null;
 }) {
   const usuario = useUsuario();
+  const theme = useTheme();
   const hoy = hoyISO();
   const ancho = useWebAncha();
   const { datos, error, cargando, recargar } = useDatos(async () => {
@@ -196,23 +201,207 @@ export function PanelEmpresa({
         a.dossier.alumnoNombre.localeCompare(b.dossier.alumnoNombre, 'es'),
     );
 
-  const resumen =
-    datos && datos.length > 0 ? (
-      <View style={styles.chips}>
-        <Chip texto={`${datos.length} ${datos.length === 1 ? 'alumno' : 'alumnos'} en prácticas`} />
-        <Chip
-          texto={informes.length ? `${informes.length} por validar` : 'Todo validado'}
-          color={informes.length ? 'estadoPendiente' : 'estadoValidado'}
-        />
-        {sinLeer ? <Chip texto={`${sinLeer} sin leer`} color="primary" /> : null}
+  const alRitmo = ritmos.filter((carga) => carga.ritmo.estado === 'al_dia').length;
+  const finDeMes = limitesMes(hoy)[1];
+  const tarjetaAncha = ancho ? styles.tarjetaAncha : undefined;
+
+  // Cada bloque se define una vez: la web y el móvil solo cambian cómo se ordenan.
+  const porValidar = (
+    <Tarjeta
+      style={{
+        ...tarjetaAncha,
+        ...(informes.length ? { borderColor: theme.primary } : null),
+      }}>
+      {informes.length === 0 ? (
+        <View style={styles.filaCentrada}>
+          <Correcto />
+          <View style={styles.flex}>
+            <ThemedText type="subtitle">Todo validado</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Todos los meses abiertos están valorados.
+            </ThemedText>
+          </View>
+        </View>
+      ) : (
+        <>
+          <View style={styles.filaCentrada}>
+            <ThemedText style={styles.cifraGrande} accessibilityRole="header">
+              {informes.length}
+            </ThemedText>
+            <View style={styles.flex}>
+              <ThemedText type="subtitle">
+                {informes.length === 1 ? 'Informe por validar' : 'Informes por validar'}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Lo primero de hoy. El mes en curso cierra el {fechaCorta(finDeMes)}.
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.lista}>
+            {informes.map((i) => (
+              <FilaInforme
+                key={`${i.dossier.id}-${i.mes}`}
+                informe={i}
+                onValidar={() => abrirValoracion(i.dossier.id, i.mes)}
+              />
+            ))}
+          </View>
+        </>
+      )}
+    </Tarjeta>
+  );
+
+  const cifras = (
+    <View style={styles.cifras}>
+      <Cifra
+        valor={`${ritmos.length}`}
+        etiqueta={ritmos.length === 1 ? 'Alumno' : 'Alumnos'}
+        detalle="en prácticas"
+      />
+      <Cifra
+        valor={`${alRitmo}`}
+        etiqueta="Al ritmo"
+        detalle={`de ${ritmos.length}`}
+        color={alRitmo ? 'estadoValidado' : 'text'}
+      />
+      <Cifra
+        valor={`${atencion.length}`}
+        etiqueta="Con avisos"
+        detalle="para revisar"
+        color={atencion.length ? 'estadoPendiente' : 'text'}
+      />
+      <Cifra
+        valor={`${sinLeer}`}
+        etiqueta="Sin leer"
+        detalle="mensajes"
+        color={sinLeer ? 'primary' : 'text'}
+      />
+    </View>
+  );
+
+  const necesitanAtencion = (
+    <Tarjeta titulo="Necesitan atención" style={tarjetaAncha}>
+      {atencion.length === 0 ? (
+        <View style={styles.filaCentrada}>
+          <Correcto />
+          <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+            Todos apuntan sus días y van al ritmo del calendario.
+          </ThemedText>
+        </View>
+      ) : (
+        <View style={styles.lista}>
+          {atencion.map(({ dossier, avisos }) => (
+            <Pressable
+              key={dossier.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver la ficha de ${dossier.alumnoNombre}: ${avisos.join('. ')}`}
+              onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
+              style={({ pressed }) => [styles.filaPersona, pressed && styles.pulsada]}>
+              <Avatar nombre={dossier.alumnoNombre} />
+              <View style={styles.flex}>
+                <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
+                {avisos.map((aviso) => (
+                  <ThemedText key={aviso} type="small" themeColor="textSecondary">
+                    {aviso}
+                  </ThemedText>
+                ))}
+              </View>
+              <ThemedText themeColor="textSecondary">›</ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </Tarjeta>
+  );
+
+  const alumnos = (
+    <Tarjeta titulo="Tus alumnos" style={tarjetaAncha}>
+      <View style={styles.rejilla}>
+        {[...ritmos]
+          .sort((a, b) => a.ritmo.desviacion - b.ritmo.desviacion)
+          .map((carga) => (
+            <TarjetaAlumno
+              key={carga.dossier.id}
+              carga={carga}
+              hoy={hoy}
+              onValorar={() => abrirValoracion(carga.dossier.id, null)}
+            />
+          ))}
       </View>
-    ) : undefined;
+      <Leyenda
+        elementos={[
+          { texto: 'Horas hechas', color: 'primary' },
+          { texto: 'Marca: lo que debería llevar hoy', color: 'text', forma: 'cuadrado' },
+        ]}
+      />
+    </Tarjeta>
+  );
+
+  const fechas = (
+    <Tarjeta titulo="Fechas" style={tarjetaAncha}>
+      <Fechas datos={datos ?? []} hoy={hoy} pendientes={informes.length} />
+    </Tarjeta>
+  );
+
+  const bandeja = (
+    <Tarjeta
+      titulo="Mensajes"
+      style={tarjetaAncha}
+      accion={<Enlace texto="Abrir chat ›" onPress={() => router.navigate('/chat')} />}>
+      <Inbox
+        conversaciones={conversaciones}
+        mensajes={mensajes}
+        leidoHasta={leidoHasta}
+        usuarioId={usuario.id}
+      />
+    </Tarjeta>
+  );
+
+  const valoraciones = (
+    <Tarjeta titulo="Últimas valoraciones" style={tarjetaAncha}>
+      {ultimas.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Todavía no has valorado ningún mes de estos alumnos.
+        </ThemedText>
+      ) : (
+        <View style={styles.rejilla}>
+          {ultimas.map(({ dossier, valoracion }) => (
+            <View key={valoracion.id} style={[styles.azulejo, { borderColor: theme.border }]}>
+              <View style={styles.filaCentrada}>
+                <Avatar nombre={dossier.alumnoNombre} />
+                <View style={styles.flex}>
+                  <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
+                  <ThemedText
+                    type="small"
+                    themeColor="textSecondary"
+                    style={estilosComunes.capital}>
+                    {nombreMes(valoracion.mes)}
+                  </ThemedText>
+                </View>
+              </View>
+              <Chip
+                texto={TEXTO_VALORACION[valoracion.valoracion]}
+                color={COLOR_VALORACION[valoracion.valoracion]}
+              />
+              {valoracion.comentario ? (
+                <ThemedText type="small" themeColor="textSecondary" numberOfLines={3}>
+                  {valoracion.comentario}
+                </ThemedText>
+              ) : null}
+              <ThemedText type="small" themeColor="textSecondary">
+                Valorado el {fechaCorta(valoracion.valoradaEn.slice(0, 10))}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      )}
+    </Tarjeta>
+  );
 
   return (
     <Pantalla
       titulo={`Hola, ${usuario.nombre.split(' ')[0]}`}
       subtitulo={fechaCorta(hoy)}
-      accion={ancho ? resumen : undefined}
       amplia={ancho}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
@@ -223,148 +412,32 @@ export function PanelEmpresa({
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
-      {ancho ? null : resumen}
       {datos && datos.length > 0 ? (
-        <Columnas
-          ancho={ancho}
-          izquierda={
-            <>
-              <Tarjeta
-                titulo="Informes por validar"
-                accion={
-                  informes.length ? (
-                    <Chip texto={`${informes.length}`} color="estadoPendiente" />
-                  ) : null
-                }>
-                {informes.length === 0 ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    No hay informes pendientes: todos los meses abiertos están valorados.
-                  </ThemedText>
-                ) : (
-                  <View style={styles.lista}>
-                    {informes.map((i) => (
-                      <FilaInforme
-                        key={`${i.dossier.id}-${i.mes}`}
-                        informe={i}
-                        onValidar={() => abrirValoracion(i.dossier.id, i.mes)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </Tarjeta>
-
-              <Tarjeta titulo="Ritmo de los alumnos">
-                <ThemedText type="small" themeColor="textSecondary">
-                  La marca de la barra son las horas que deberían llevar hoy según su calendario.
-                </ThemedText>
-                <View style={styles.lista}>
-                  {[...ritmos]
-                    .sort((a, b) => a.ritmo.desviacion - b.ritmo.desviacion)
-                    .map((carga) => (
-                      <FilaRitmo
-                        key={carga.dossier.id}
-                        carga={carga}
-                        hoy={hoy}
-                        onValorar={() => abrirValoracion(carga.dossier.id, null)}
-                      />
-                    ))}
-                </View>
-              </Tarjeta>
-
-              <Tarjeta titulo="Últimas valoraciones">
-                {ultimas.length === 0 ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Todavía no has valorado ningún mes de estos alumnos.
-                  </ThemedText>
-                ) : (
-                  <View style={styles.lista}>
-                    {ultimas.map(({ dossier, valoracion }) => (
-                      <View key={valoracion.id} style={styles.fila}>
-                        <View style={styles.filaArriba}>
-                          <ThemedText type="smallBold" style={styles.flex}>
-                            {dossier.alumnoNombre} · {nombreMes(valoracion.mes)}
-                          </ThemedText>
-                          <Chip
-                            texto={TEXTO_VALORACION[valoracion.valoracion]}
-                            color={COLOR_VALORACION[valoracion.valoracion]}
-                          />
-                        </View>
-                        {valoracion.comentario ? (
-                          <ThemedText type="small" themeColor="textSecondary">
-                            {valoracion.comentario}
-                          </ThemedText>
-                        ) : null}
-                        <ThemedText type="small" themeColor="textSecondary">
-                          Valorado el {fechaCorta(valoracion.valoradaEn.slice(0, 10))}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </Tarjeta>
-            </>
-          }
-          derecha={
-            <>
-              <Tarjeta
-                titulo="Necesitan atención"
-                accion={
-                  <Chip
-                    texto={atencion.length ? `${atencion.length}` : 'Nadie'}
-                    color={atencion.length ? 'estadoPendiente' : 'estadoValidado'}
-                  />
-                }>
-                {atencion.length === 0 ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Nadie necesita atención ahora: todos apuntan sus días y van al ritmo del
-                    calendario.
-                  </ThemedText>
-                ) : (
-                  <View style={styles.lista}>
-                    {atencion.map(({ dossier, avisos }) => (
-                      <Pressable
-                        key={dossier.id}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Ver la ficha de ${dossier.alumnoNombre}: ${avisos.join(
-                          '. ',
-                        )}`}
-                        onPress={() =>
-                          router.push({ pathname: '/', params: { dossier: dossier.id } })
-                        }
-                        style={({ pressed }) => [
-                          styles.fila,
-                          styles.pulsable,
-                          pressed && styles.pulsada,
-                        ]}>
-                        <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
-                        {avisos.map((aviso) => (
-                          <ThemedText key={aviso} type="small" themeColor="textSecondary">
-                            {aviso}
-                          </ThemedText>
-                        ))}
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </Tarjeta>
-
-              <Tarjeta titulo="Fechas">
-                <Fechas datos={datos} hoy={hoy} pendientes={informes.length} />
-              </Tarjeta>
-
-              <Tarjeta
-                titulo="Mensajes"
-                accion={<Enlace texto="Abrir chat ›" onPress={() => router.navigate('/chat')} />}>
-                <Inbox
-                  conversaciones={conversaciones}
-                  mensajes={mensajes}
-                  leidoHasta={leidoHasta}
-                  usuarioId={usuario.id}
-                />
-              </Tarjeta>
-            </>
-          }
-        />
+        ancho ? (
+          <View style={styles.columnas}>
+            <View style={styles.principal}>
+              {porValidar}
+              {alumnos}
+              {valoraciones}
+            </View>
+            <View style={styles.lateral}>
+              {cifras}
+              {necesitanAtencion}
+              {fechas}
+              {bandeja}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.bloques}>
+            {porValidar}
+            {cifras}
+            {necesitanAtencion}
+            {alumnos}
+            {bandeja}
+            {fechas}
+            {valoraciones}
+          </View>
+        )
       ) : null}
     </Pantalla>
   );
@@ -378,26 +451,59 @@ function abrirValoracion(dossierId: string, mes: string | null) {
   });
 }
 
+/** Marca de "todo en orden" para los estados sin pendientes. */
+function Correcto() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.correcto, { backgroundColor: theme.subtle }]}>
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M5 12.5l4.5 4.5L19 7.5"
+          stroke={theme.estadoValidado}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
+  );
+}
+
 function FilaInforme({ informe, onValidar }: { informe: InformePendiente; onValidar: () => void }) {
+  const theme = useTheme();
   const { dossier, mes } = informe;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Validar el informe de ${nombreMes(mes)} de ${dossier.alumnoNombre}`}
       onPress={onValidar}
-      style={({ pressed }) => [styles.fila, styles.pulsable, pressed && styles.pulsada]}>
-      <View style={styles.filaArriba}>
-        <ThemedText type="smallBold" style={styles.flex}>
-          {dossier.alumnoNombre} · {nombreMes(mes)}
+      style={({ pressed }) => [
+        styles.filaPersona,
+        styles.filaInforme,
+        { backgroundColor: theme.subtle },
+        pressed && styles.pulsada,
+      ]}>
+      <Avatar nombre={dossier.alumnoNombre} />
+      <View style={styles.flex}>
+        <ThemedText type="smallBold" numberOfLines={1}>
+          {dossier.alumnoNombre}
         </ThemedText>
-        <Chip texto="Pendiente" color="estadoPendiente" />
+        <ThemedText
+          type="small"
+          themeColor="textSecondary"
+          numberOfLines={1}
+          style={estilosComunes.capital}>
+          {nombreMes(mes)}
+        </ThemedText>
       </View>
-      <ThemedText type="small" themeColor="textSecondary">
-        {[dossier.ciclo, dossier.centro, dossier.empresa].filter(Boolean).join(' · ')}
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Tutor del centro: {dossier.tutorNombre ?? 'sin asignar'} · Valorar ›
-      </ThemedText>
+      <View style={[styles.pastilla, { backgroundColor: theme.primary }]}>
+        <ThemedText type="smallBold" themeColor="onPrimary">
+          Valorar
+        </ThemedText>
+      </View>
     </Pressable>
   );
 }
@@ -417,7 +523,7 @@ const COLOR_ESTADO_RITMO: Record<EstadoRitmo, ThemeColor> = {
 };
 
 /** Cómo va el alumno frente a su calendario y qué hay que hacer con él. */
-function FilaRitmo({
+function TarjetaAlumno({
   carga,
   hoy,
   onValorar,
@@ -426,48 +532,58 @@ function FilaRitmo({
   hoy: string;
   onValorar: () => void;
 }) {
+  const theme = useTheme();
   const { dossier, seguimiento, resumen, ultimoDia, ritmo } = carga;
   const pendientes = mesesPorValidar(dossier, seguimiento, hoy).length;
   return (
-    <View style={styles.fila}>
-      <CabeceraAlumno
-        nombre={dossier.alumnoNombre}
-        detalle={[
-          [dossier.ciclo, dossier.centro].filter(Boolean).join(' · '),
-          `Tutor del centro: ${dossier.tutorNombre ?? 'sin asignar'} · Del ${fechaCorta(
-            dossier.fechaInicio,
-          )} al ${fechaCorta(dossier.fechaFin)}`,
-        ]}
-        onAbrir={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
-      />
-      <View style={styles.progreso}>
-        <View style={styles.filaArriba}>
-          <ThemedText type="smallBold">
-            {formatoHoras(resumen.realizadas)} de {formatoHoras(resumen.totales)}
+    <View style={[styles.azulejo, { borderColor: theme.border }]}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Ver la ficha del dossier de ${dossier.alumnoNombre}`}
+        onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
+        style={({ pressed }) => [styles.filaCentrada, styles.tactil, pressed && styles.pulsada]}>
+        <Avatar nombre={dossier.alumnoNombre} />
+        <View style={styles.flex}>
+          <ThemedText type="smallBold" numberOfLines={1}>
+            {dossier.alumnoNombre}
           </ThemedText>
-          <Chip texto={TEXTO_ESTADO_RITMO[ritmo.estado]} color={COLOR_ESTADO_RITMO[ritmo.estado]} />
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {[dossier.ciclo, dossier.centro].filter(Boolean).join(' · ') || 'Ver ficha'}
+          </ThemedText>
         </View>
-        <BarraProgreso
+        <ThemedText themeColor="textSecondary">›</ThemedText>
+      </Pressable>
+      <View style={styles.filaCentrada}>
+        <AnilloProgreso
           porcentaje={resumen.porcentaje}
           marca={ritmo.porcentajeEsperado}
           etiqueta={`Horas de ${dossier.alumnoNombre}`}
         />
+        <View style={[styles.flex, styles.datosAlumno]}>
+          <View style={styles.horas}>
+            <ThemedText type="subtitle">{formatoHoras(resumen.realizadas)}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              de {formatoHoras(resumen.totales)}
+            </ThemedText>
+          </View>
+          <Chip texto={TEXTO_ESTADO_RITMO[ritmo.estado]} color={COLOR_ESTADO_RITMO[ritmo.estado]} />
+        </View>
+      </View>
+      <View>
         <ThemedText type="small" themeColor="textSecondary">
           {detalleRitmo(ritmo, resumen, dossier)}
         </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {ultimoDia
+            ? `Último día: ${fechaCorta(ultimoDia.fecha)} · ${formatoHoras(totalHoras(ultimoDia))}`
+            : 'Todavía no ha apuntado ningún día'}
+        </ThemedText>
       </View>
-      <ThemedText type="small" themeColor="textSecondary">
-        {ultimoDia
-          ? `Último día apuntado: ${fechaCorta(ultimoDia.fecha)} · ${formatoHoras(
-              totalHoras(ultimoDia),
-            )}`
-          : 'Todavía no ha apuntado ningún día'}
-      </ThemedText>
       <View style={styles.filaArriba}>
         {pendientes ? (
           <Chip texto={`${pendientes} por validar`} color="estadoPendiente" />
         ) : (
-          <Chip texto="Al día" color="estadoValidado" />
+          <Chip texto="Todo validado" color="estadoValidado" />
         )}
         <Enlace texto="Valorar meses ›" onPress={onValorar} />
       </View>
@@ -481,11 +597,30 @@ function detalleRitmo(ritmo: Ritmo, resumen: ResumenHoras, dossier: Dossier): st
   if (ritmo.estado === 'terminadas') {
     return `Acabó con ${formatoHoras(resumen.realizadas)} de ${formatoHoras(resumen.totales)}`;
   }
-  const deberia = `Debería llevar ${formatoHoras(ritmo.esperadas)} hoy`;
+  const deberia = `Debería llevar ${formatoHoras(ritmo.esperadas)}`;
   if (Math.abs(ritmo.desviacion) < 0.5) return `${deberia} · justo al ritmo`;
   return `${deberia} · ${formatoHoras(Math.abs(ritmo.desviacion))} ${
     ritmo.desviacion > 0 ? 'por delante' : 'por debajo'
   }`;
+}
+
+/** Cuenta atrás: los días que faltan como dato principal de la fila. */
+function CuentaAtras({ dias }: { dias: number }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.cuenta, { backgroundColor: theme.subtle }]}>
+      {dias < 0 ? (
+        <ThemedText type="smallBold">Fin</ThemedText>
+      ) : (
+        <>
+          <ThemedText type="smallBold">{dias}</ThemedText>
+          <ThemedText style={styles.cuentaUnidad} themeColor="textSecondary">
+            {dias === 1 ? 'día' : 'días'}
+          </ThemedText>
+        </>
+      )}
+    </View>
+  );
 }
 
 /** Lo que queda de prácticas de cada alumno y cuándo cierra el mes en curso. */
@@ -498,35 +633,33 @@ function Fechas({
   hoy: string;
   pendientes: number;
 }) {
-  const theme = useTheme();
   const finDeMes = limitesMes(hoy)[1];
   return (
     <View style={styles.lista}>
+      <View style={styles.filaCentrada}>
+        <CuentaAtras dias={diasHasta(finDeMes, hoy)} />
+        <View style={styles.flex}>
+          <ThemedText type="smallBold">Cierre del mes</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {fechaCorta(finDeMes)} · {pendientes ? `${pendientes} sin validar` : 'todo validado'}
+          </ThemedText>
+        </View>
+      </View>
       {[...datos]
         .sort((a, b) => a.dossier.fechaFin.localeCompare(b.dossier.fechaFin))
-        .map(({ dossier }) => {
-          const dias = diasHasta(dossier.fechaFin, hoy);
-          return (
-            <View key={dossier.id} style={styles.fila}>
+        .map(({ dossier }) => (
+          <View key={dossier.id} style={styles.filaCentrada}>
+            <CuentaAtras dias={diasHasta(dossier.fechaFin, hoy)} />
+            <View style={styles.flex}>
               <ThemedText type="smallBold" numberOfLines={1}>
                 {dossier.alumnoNombre}
               </ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Termina el {fechaCorta(dossier.fechaFin)} ·{' '}
-                {dias > 0 ? `faltan ${dias} días` : dias === 0 ? 'es hoy' : 'ya terminó'}
+                Termina el {fechaCorta(dossier.fechaFin)}
               </ThemedText>
             </View>
-          );
-        })}
-      <View style={[styles.cierre, { borderTopColor: theme.border }]}>
-        <ThemedText type="small" themeColor="textSecondary">
-          El mes en curso cierra el {fechaCorta(finDeMes)}
-        </ThemedText>
-        <Chip
-          texto={pendientes ? `${pendientes} sin validar` : 'Todo validado'}
-          color={pendientes ? 'estadoPendiente' : 'estadoValidado'}
-        />
-      </View>
+          </View>
+        ))}
     </View>
   );
 }
@@ -542,6 +675,7 @@ function Inbox({
   leidoHasta: Record<string, string>;
   usuarioId: string;
 }) {
+  const theme = useTheme();
   const ultimos = conversaciones
     .flatMap((conversacion) => {
       const delHilo = mensajesDe(mensajes, conversacion.id);
@@ -572,24 +706,35 @@ function Inbox({
           <Pressable
             key={`${conversacion.id}-${mensaje.id}`}
             accessibilityRole="button"
-            accessibilityLabel={`Abrir el chat con ${conversacion.titulo}`}
+            accessibilityLabel={`Abrir el chat con ${conversacion.titulo}${
+              nuevos ? `, ${nuevos} sin leer` : ''
+            }`}
             onPress={() =>
               router.push({ pathname: '/chat', params: { conversacion: conversacion.id } })
             }
-            style={({ pressed }) => [styles.fila, styles.pulsable, pressed && styles.pulsada]}>
-            <View style={styles.filaArriba}>
-              <ThemedText type="smallBold" style={styles.flex} numberOfLines={1}>
-                {conversacion.titulo}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {hace(mensaje.enviadoEn)}
+            style={({ pressed }) => [styles.filaPersona, pressed && styles.pulsada]}>
+            <Avatar nombre={conversacion.titulo} />
+            <View style={styles.flex}>
+              <View style={styles.filaCentrada}>
+                <ThemedText type="smallBold" style={styles.flex} numberOfLines={1}>
+                  {conversacion.titulo}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {hace(mensaje.enviadoEn)}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                {mensaje.autorId === usuarioId ? 'Tú: ' : ''}
+                {mensaje.texto}
               </ThemedText>
             </View>
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-              {mensaje.autorId === usuarioId ? 'Tú: ' : ''}
-              {mensaje.texto}
-            </ThemedText>
-            {nuevos ? <Chip texto={`${nuevos} sin leer`} color="estadoPendiente" /> : null}
+            {nuevos ? (
+              <View style={[styles.contador, { backgroundColor: theme.primary }]}>
+                <ThemedText type="smallBold" themeColor="onPrimary">
+                  {nuevos}
+                </ThemedText>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -602,38 +747,11 @@ function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
     <Pressable
       accessibilityRole="link"
       onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => pressed && styles.pulsada}>
+      style={({ pressed }) => [styles.enlace, pressed && styles.pulsada]}>
       <ThemedText type="small" themeColor="textSecondary">
         {texto}
       </ThemedText>
     </Pressable>
-  );
-}
-
-/** Dos columnas en la web ancha; en el móvil, todo seguido. */
-function Columnas({
-  ancho,
-  izquierda,
-  derecha,
-}: {
-  ancho: boolean;
-  izquierda: ReactNode;
-  derecha: ReactNode;
-}) {
-  if (!ancho) {
-    return (
-      <>
-        {izquierda}
-        {derecha}
-      </>
-    );
-  }
-  return (
-    <View style={styles.columnas}>
-      <View style={styles.principal}>{izquierda}</View>
-      <View style={styles.lateral}>{derecha}</View>
-    </View>
   );
 }
 
@@ -763,13 +881,67 @@ function ValorarDossier({
 }
 
 const styles = StyleSheet.create({
-  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
-  principal: { flex: 1.7, gap: Spacing.three },
-  lateral: { flex: 1, gap: Spacing.three },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.four },
+  principal: { flex: 1.7, gap: Spacing.four },
+  lateral: { flex: 1, gap: Spacing.four },
+  // En el móvil, más aire entre bloques que dentro de ellos.
+  bloques: { gap: Spacing.four },
+  tarjetaAncha: { padding: Spacing.four },
+  cifras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  cifraGrande: { fontFamily: FontFamily.semibold, fontSize: 52, lineHeight: 60, letterSpacing: -1 },
   lista: { gap: Spacing.two },
-  fila: { gap: Spacing.one, paddingVertical: Spacing.two, paddingHorizontal: Spacing.one },
-  pulsable: { borderRadius: 12 },
+  rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  azulejo: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 280,
+    gap: Spacing.three,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderRadius: Radius.button,
+  },
+  filaCentrada: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  filaPersona: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    minHeight: 56,
+    paddingVertical: Spacing.one,
+    borderRadius: Radius.button,
+  },
+  filaInforme: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  tactil: { minHeight: 44 },
+  pastilla: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.pill,
+  },
+  correcto: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
+  },
+  datosAlumno: { gap: Spacing.two, alignItems: 'flex-start' },
+  horas: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: Spacing.one },
+  cuenta: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.button,
+  },
+  cuentaUnidad: { fontSize: 12, lineHeight: 14 },
+  contador: {
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.one,
+    borderRadius: Radius.pill,
+  },
   filaArriba: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -777,8 +949,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  progreso: { gap: Spacing.one },
-  cierre: { gap: Spacing.one, paddingTop: Spacing.two, borderTopWidth: StyleSheet.hairlineWidth },
+  // 44 pt de zona táctil sin que el texto ocupe más alto en la cabecera de la tarjeta.
+  enlace: { minHeight: 44, justifyContent: 'center', marginVertical: -Spacing.two },
   pulsada: { opacity: 0.6 },
   flex: { flex: 1 },
 });
