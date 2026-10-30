@@ -34,6 +34,14 @@ export interface SeguimientoAlumno {
 /** Por debajo de la mitad de las horas, el alumno va atrasado. */
 export const UMBRAL_ATRASO = 50;
 
+/** Nombre corto de cada aviso para la etiqueta de su chip. */
+export const ETIQUETA_AVISO: Record<TipoAvisoSeguimiento, string> = {
+  'sin-apuntar': 'Sin apuntar',
+  'sin-valorar': 'Sin valorar',
+  atrasado: 'Atrasado',
+  'sin-final': 'Sin final',
+};
+
 const ORDEN: Record<TipoAvisoSeguimiento, number> = {
   'sin-apuntar': 0,
   'sin-valorar': 1,

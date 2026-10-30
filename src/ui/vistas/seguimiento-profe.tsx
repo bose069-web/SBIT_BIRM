@@ -2,13 +2,14 @@ import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { obtenerPanelCentro, type PanelCentro } from '@/core/application/centro';
 import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import {
   obtenerSeguimiento,
   ponerValoracionFinal,
   type Seguimiento,
 } from '@/core/application/valoracion';
-import type { Dossier } from '@/core/domain/dossier';
+import { estaEnPeriodo, type Dossier } from '@/core/domain/dossier';
 import type { ResumenHoras } from '@/core/domain/registro-diario';
 import { gestionaDossier, type Rol } from '@/core/domain/usuario';
 import { RESULTADOS_FINALES, type ResultadoFinal } from '@/core/domain/valoracion';
@@ -29,8 +30,14 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { useTheme } from '@/ui/hooks/use-theme';
-import { Spacing } from '@/ui/theme/theme';
+import { Radius, Spacing } from '@/ui/theme/theme';
+import {
+  avisosSeguimiento,
+  ETIQUETA_AVISO,
+  type AvisoSeguimiento,
+} from '@/ui/utils/avisos-seguimiento';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
+import { profesConAlumnos } from '@/ui/utils/reparto-profes';
 import {
   barrasProgreso,
   resumirSeguimiento,
@@ -50,30 +57,51 @@ import {
 
 const SUBTITULO: Partial<Record<Rol, string>> = {
   profe: 'Tus alumnos: horas, valoraciones de la empresa y valoración final',
-  instituto: 'Todos los alumnos de tu centro',
+  instituto: 'Las cifras de tu centro, sus profes y sus alumnos',
   generalitat: 'Todos los institutos',
 };
 
 /**
  * Seguimiento de varios dossiers. La base de datos decide cuáles ve cada uno: el profe, los de
  * sus alumnos; el instituto, los de su centro; la generalitat, todos.
+ * El instituto, además, su panel de gestión: cifras, avisos y alumnos agrupados por profe.
  */
 interface DatosAlumno {
   resumen: ResumenHoras;
   seguimiento: Seguimiento;
 }
 
+interface DetalleDossier {
+  dossier: Dossier;
+  datos: DatosAlumno;
+}
+
+interface DatosSeguimiento {
+  /** Solo el instituto (su centro); el resto de roles, null. */
+  panel: PanelCentro | null;
+  detalles: DetalleDossier[];
+  avisos: AvisoSeguimiento[];
+}
+
 export function SeguimientoProfe() {
   const usuario = useUsuario();
   const { rol } = usuario;
   const hoy = hoyISO();
+  const esInstituto = rol === 'instituto';
   const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
   const administra = rol === 'instituto' || rol === 'generalitat';
   // Se cargan aquí las horas y valoraciones de todos para poder hacer el resumen del lateral.
-  const { datos, error, cargando, recargar } = useDatos(async () => {
-    const dossiers = porAlumno(await listarDossiers(container.dossiers));
+  const { datos, error, cargando, recargar } = useDatos(async (): Promise<DatosSeguimiento> => {
+    // El instituto, además de los dossiers de su centro, el panel: profes, alumnos y convenios.
+    const [crud, panel] = await Promise.all([
+      listarDossiers(container.dossiers),
+      esInstituto && usuario.centroId
+        ? obtenerPanelCentro(container.centros, usuario, usuario.centroId)
+        : null,
+    ]);
+    const dossiers = porAlumno(crud);
     const detalles = await Promise.all(
-      dossiers.map(async (dossier) => {
+      dossiers.map(async (dossier): Promise<DetalleDossier> => {
         const [resumen, seguimiento] = await Promise.all([
           obtenerResumenHoras(dossier, container.registros),
           obtenerSeguimiento(container.valoraciones, dossier, hoy),
@@ -81,13 +109,25 @@ export function SeguimientoProfe() {
         return { dossier, datos: { resumen, seguimiento } };
       }),
     );
-    return detalles;
-  }, [hoy]);
+    // A diario, quién dejó de apuntar: eso ya está en el panel de gestión; aquí, el resto.
+    const avisos = avisosSeguimiento(
+      detalles.map(({ dossier, datos: d }) => ({
+        alumno: dossier.alumnoNombre,
+        diasSinApuntar: 0,
+        mesesSinValorar: d.seguimiento.sinValorar,
+        porcentaje: d.resumen.porcentaje,
+        terminado: hoy > dossier.fechaFin,
+        tieneFinal: !!d.seguimiento.final,
+      })),
+    );
+    return { panel, detalles, avisos };
+  }, [hoy, esInstituto, usuario.centroId, usuario.id]);
   useRecargarAlVolver(recargar);
   // En la web horizontal, alumnos a la izquierda y resumen a la derecha; en el móvil, seguido.
   const ancho = useWebAncha();
 
-  const alumnos: AlumnoSeguido[] = (datos ?? []).map(({ dossier, datos: d }) => ({
+  const detalles = datos?.detalles ?? [];
+  const alumnos: AlumnoSeguido[] = detalles.map(({ dossier, datos: d }) => ({
     nombre: dossier.alumnoNombre,
     porcentaje: d.resumen.porcentaje,
     mesesSinValorar: d.seguimiento.sinValorar.length,
@@ -113,7 +153,7 @@ export function SeguimientoProfe() {
       </View>
     ) : null;
   // Del que va más atrasado al más avanzado: lo primero que ve el profe es a quién atender.
-  const ordenados = [...(datos ?? [])].sort(
+  const ordenados = [...detalles].sort(
     (a, b) => a.datos.resumen.porcentaje - b.datos.resumen.porcentaje,
   );
 
@@ -127,30 +167,42 @@ export function SeguimientoProfe() {
       {ancho ? null : acciones}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel /> : null}
-      {datos?.length === 0 ? (
+      {/* Arriba, a lo ancho: el centro de un vistazo y qué atender (solo el instituto). */}
+      {datos?.panel ? (
+        <>
+          <CifrasCentro panel={datos.panel} dossiers={detalles.map((d) => d.dossier)} hoy={hoy} />
+          <AvisosInicio panel={datos.panel} detalles={detalles} avisos={datos.avisos} />
+        </>
+      ) : null}
+      {datos && datos.detalles.length === 0 ? (
         <EstadoVacio
           titulo="Todavía no hay alumnos con dossier"
           texto="Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final."
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
-      {datos && datos.length > 0 ? (
+      {datos && datos.detalles.length > 0 ? (
         <Columnas
           ancho={ancho}
           izquierda={
-            <Tarjeta titulo={`Alumnos (${datos.length})`}>
-              <View>
-                {ordenados.map(({ dossier, datos: d }, i) => (
-                  <FilaAlumno
-                    key={dossier.id}
-                    primera={i === 0}
-                    dossier={dossier}
-                    datos={d}
-                    onCambio={recargar}
-                  />
-                ))}
-              </View>
-            </Tarjeta>
+            // El instituto piensa en profes; el profe y la generalitat, en su lista de alumnos.
+            datos.panel ? (
+              <ProfesDelCentro panel={datos.panel} detalles={detalles} onCambio={recargar} />
+            ) : (
+              <Tarjeta titulo={`Alumnos (${datos.detalles.length})`}>
+                <View>
+                  {ordenados.map(({ dossier, datos: d }, i) => (
+                    <FilaAlumno
+                      key={dossier.id}
+                      primera={i === 0}
+                      dossier={dossier}
+                      datos={d}
+                      onCambio={recargar}
+                    />
+                  ))}
+                </View>
+              </Tarjeta>
+            )
           }
           derecha={
             <>
@@ -163,6 +215,181 @@ export function SeguimientoProfe() {
         />
       ) : null}
     </Pantalla>
+  );
+}
+
+/**
+ * Solo el instituto: las cifras del centro arriba, como el alumno en su Inicio. Los dossiers
+ * activos son los que siguen dentro de su fechas (el resto, ya cerrados).
+ */
+function CifrasCentro({
+  panel,
+  dossiers,
+  hoy,
+}: {
+  panel: PanelCentro;
+  dossiers: Dossier[];
+  hoy: string;
+}) {
+  const activos = dossiers.filter((d) => estaEnPeriodo(d, hoy)).length;
+  const cifras = [
+    { etiqueta: 'alumnos', valor: panel.alumnos.length },
+    { etiqueta: 'dossiers activos', valor: activos },
+    { etiqueta: 'profes', valor: panel.profes.length },
+    { etiqueta: 'convenios', valor: panel.convenios.length },
+  ];
+  return (
+    <Tarjeta titulo="El centro en cifras">
+      <View style={styles.cifras}>
+        {cifras.map((c) => (
+          <Cifra key={c.etiqueta} etiqueta={c.etiqueta} valor={c.valor} />
+        ))}
+      </View>
+    </Tarjeta>
+  );
+}
+
+/**
+ * Solo el instituto: lo que necesita atención de un vistazo. Primero los huecos de gestión
+ * (sin profe, sin dossier), luego los avisos de seguimiento; si no hay nada, lo dice.
+ */
+function AvisosInicio({
+  panel,
+  detalles,
+  avisos,
+}: {
+  panel: PanelCentro;
+  detalles: DetalleDossier[];
+  avisos: AvisoSeguimiento[];
+}) {
+  const conDossier = new Set(detalles.map(({ dossier }) => dossier.alumnoId));
+  const sinProfe = panel.alumnos.filter((a) => !a.profeId).length;
+  const sinDossier = panel.alumnos.filter((a) => !conDossier.has(a.id)).length;
+  const vacio = sinProfe === 0 && sinDossier === 0 && avisos.length === 0;
+  return (
+    <Tarjeta titulo="Qué necesita tu atención">
+      {vacio ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Todo en orden: nada pendiente en el centro.
+        </ThemedText>
+      ) : (
+        <>
+          {sinProfe > 0 ? (
+            <Chip texto={`${sinProfe} sin profe asignado`} color="estadoPendiente" />
+          ) : null}
+          {sinDossier > 0 ? (
+            <Chip texto={`${sinDossier} sin dossier`} color="estadoPendiente" />
+          ) : null}
+          {avisos.map((a, i) => (
+            <Fila key={`${a.tipo}-${a.alumno}-${i}`} titulo={a.alumno} detalle={a.motivo}>
+              <Chip texto={ETIQUETA_AVISO[a.tipo]} color={a.color} />
+            </Fila>
+          ))}
+        </>
+      )}
+    </Tarjeta>
+  );
+}
+
+/**
+ * Solo el instituto: una sección por profe con sus alumnos; cada uno con su quesito y horas.
+ * Los alumnos sin dossier y los profes sin alumnos salen igual, para que no se quede nada oculto.
+ */
+function ProfesDelCentro({
+  panel,
+  detalles,
+  onCambio,
+}: {
+  panel: PanelCentro;
+  detalles: DetalleDossier[];
+  onCambio: () => void;
+}) {
+  const theme = useTheme();
+  // Un alumno con varios dossiers se queda con el primero; cada dossier tiene su ficha propia.
+  const porAlumnoId = new Map<string, DetalleDossier>();
+  for (const d of detalles) {
+    if (!porAlumnoId.has(d.dossier.alumnoId)) porAlumnoId.set(d.dossier.alumnoId, d);
+  }
+  const secciones = profesConAlumnos(panel.profes, panel.alumnos);
+  return (
+    <Tarjeta titulo={`Profes del centro (${panel.profes.length})`}>
+      {secciones.map((s, si) => (
+        <View
+          key={s.profe?.id ?? 'sin-profe'}
+          style={[styles.seccion, si > 0 && { borderTopWidth: 1, borderColor: theme.border }]}>
+          <View style={styles.seccionCabecera}>
+            <ThemedText type="smallBold">
+              {s.profe ? s.profe.nombre : 'Sin profe asignado'} ({s.alumnos.length})
+            </ThemedText>
+            {s.profe && s.alumnos.length === 0 ? (
+              <Chip texto="Sin alumnos" color="estadoPendiente" />
+            ) : null}
+          </View>
+          {s.alumnos.length === 0 ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              Todavía no tiene alumnos.
+            </ThemedText>
+          ) : (
+            s.alumnos.map((a, i) => {
+              const con = porAlumnoId.get(a.id);
+              if (!con) {
+                return (
+                  <View
+                    key={a.id}
+                    style={[
+                      styles.alumno,
+                      i > 0 && { borderTopWidth: 1, borderColor: theme.border },
+                    ]}>
+                    <View style={styles.fila}>
+                      <View style={styles.flex}>
+                        <ThemedText type="smallBold">{a.nombre}</ThemedText>
+                        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                          {a.email}
+                        </ThemedText>
+                      </View>
+                      <Chip texto="Sin dossier" color="estadoPendiente" />
+                    </View>
+                  </View>
+                );
+              }
+              return (
+                <FilaAlumno
+                  key={con.dossier.id}
+                  primera={i === 0}
+                  dossier={con.dossier}
+                  datos={con.datos}
+                  onCambio={onCambio}
+                />
+              );
+            })
+          )}
+        </View>
+      ))}
+    </Tarjeta>
+  );
+}
+
+/** Una fila de motivo con su chip a la derecha, como en el panel de gestión del instituto. */
+function Fila({
+  titulo,
+  detalle,
+  children,
+}: {
+  titulo: string;
+  detalle: string;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.filaAviso, { borderColor: theme.border }]}>
+      <View style={styles.flex}>
+        <ThemedText type="smallBold">{titulo}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {detalle}
+        </ThemedText>
+      </View>
+      {children}
+    </View>
   );
 }
 
@@ -443,6 +670,23 @@ const styles = StyleSheet.create({
   botones: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   alumno: { gap: Spacing.two, paddingVertical: Spacing.two },
   fila: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
+  filaAviso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    borderWidth: 1,
+    borderRadius: Radius.control,
+    padding: Spacing.three,
+  },
+  seccion: { gap: Spacing.two, paddingTop: Spacing.three },
+  seccionCabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
   derecha: { alignItems: 'flex-end', gap: Spacing.half },
   detalle: { gap: Spacing.three, paddingTop: Spacing.one },
   cabeceraDetalle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },

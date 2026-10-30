@@ -35,8 +35,8 @@ import { Radius, Spacing } from '@/ui/theme/theme';
 import { alumnosSinApuntar } from '@/ui/utils/avisos-profe';
 import {
   avisosSeguimiento,
+  ETIQUETA_AVISO,
   type AvisoSeguimiento,
-  type TipoAvisoSeguimiento,
 } from '@/ui/utils/avisos-seguimiento';
 import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
@@ -247,13 +247,6 @@ function CifrasCentro({ datos }: { datos: PanelCentro }) {
 }
 
 type Hacer = (accion: () => Promise<unknown>, ok: string) => Promise<void>;
-
-const ETIQUETA_AVISO: Record<TipoAvisoSeguimiento, string> = {
-  'sin-apuntar': 'Sin apuntar',
-  'sin-valorar': 'Sin valorar',
-  atrasado: 'Atrasado',
-  'sin-final': 'Sin final',
-};
 
 /**
  * Lo que conviene atender de un vistazo. Siempre visible: si no hay avisos, lo dice para que
