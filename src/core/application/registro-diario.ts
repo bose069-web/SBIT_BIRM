@@ -2,6 +2,7 @@ import type { Dossier } from '../domain/dossier';
 import { RegistroInvalidoError, SinPermisoError } from '../domain/errores';
 import {
   comprobarBorrador,
+  ultimaJornadaAntesDe,
   type BorradorRegistro,
   type RegistroDiario,
 } from '../domain/registro-diario';
@@ -19,6 +20,16 @@ export function listarRegistros(
   hasta: string,
 ): Promise<RegistroDiario[]> {
   return registros.listar(dossierId, desde, hasta);
+}
+
+/** Última jornada de trabajo anterior a `fecha` en todo el periodo, aunque sea de otro mes. */
+export async function buscarUltimaJornada(
+  registros: RegistroDiarioPort,
+  dossier: Pick<Dossier, 'id' | 'fechaInicio'>,
+  fecha: string,
+): Promise<RegistroDiario | null> {
+  const dias = await registros.listar(dossier.id, dossier.fechaInicio, fecha);
+  return ultimaJornadaAntesDe(dias, fecha);
 }
 
 async function comprobarMesAbierto(

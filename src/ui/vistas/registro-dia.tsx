@@ -10,6 +10,7 @@ import {
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
+  buscarUltimaJornada,
   eliminarRegistro,
   guardarRegistro,
   listarRegistros,
@@ -17,9 +18,19 @@ import {
 import { obtenerSeguimiento } from '@/core/application/valoracion';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
-import { MAX_HORAS_DIA, type RegistroDiario, type TipoDia } from '@/core/domain/registro-diario';
+import {
+  MAX_HORAS_DIA,
+  horasParaCopiar,
+  validarValoresDia,
+  valoresDeRegistro,
+  valoresDiaIguales,
+  type RegistroDiario,
+  type TipoDia,
+  type ValoresDia,
+} from '@/core/domain/registro-diario';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
+import { AvisoBorrador } from '@/ui/components/aviso-borrador';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -27,6 +38,7 @@ import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
+import { useBorrador } from '@/ui/hooks/use-borrador';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
@@ -54,6 +66,8 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const [verCalendario, setVerCalendario] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Sube al descartar un borrador: el formulario vuelve a empezar desde lo guardado.
+  const [reinicio, setReinicio] = useState(0);
 
   const [desde, hasta] = limitesMes(fecha);
   const { datos, error, cargando, recargar } = useDatos(async () => {
@@ -72,6 +86,20 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     ? mesCerrado(fecha, datos.seguimiento.mensuales, datos.seguimiento.final)
     : false;
   const fueraDePeriodo = datos ? !estaEnPeriodo(datos.dossier, fecha) : false;
+  const dossierId = datos?.dossier.id;
+  const inicioDossier = datos?.dossier.fechaInicio;
+  // Se busca en todo el periodo, no solo en el mes cargado. Si falla, simplemente no se ofrece.
+  const ultimaJornada = useDatos(
+    async () =>
+      dossierId && inicioDossier && !existente
+        ? buscarUltimaJornada(
+            container.registros,
+            { id: dossierId, fechaInicio: inicioDossier },
+            fecha,
+          )
+        : null,
+    [dossierId, inicioDossier, fecha, !existente],
+  );
 
   if (!datos) {
     return (
@@ -99,7 +127,8 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     setFecha(nueva);
   }
 
-  async function guardar({ tipo, horas, observaciones }: ValoresDia) {
+  /** Devuelve si el servidor ha aceptado el día: solo entonces se puede borrar el borrador. */
+  async function guardar({ tipo, horas, observaciones }: ValoresDia): Promise<boolean> {
     Keyboard.dismiss();
     setAviso(null);
     setGuardando(true);
@@ -113,8 +142,10 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       });
       setAviso({ tipo: 'ok', texto: `Guardado el ${fechaCorta(fecha)}` });
       recargar();
+      return true;
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      return false;
     } finally {
       setGuardando(false);
     }
@@ -141,11 +172,6 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
 
   const bloqueado = cerrado || fueraDePeriodo || cargando || error !== null;
   const hoy = hoyISO();
-  // El último día de trabajo apuntado antes de este (del mes cargado), para copiar sus horas.
-  const ultimoTrabajo =
-    datos.dias
-      .filter((d) => d.tipo === 'trabajo' && d.fecha < fecha)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? null;
 
   // El chip usa los mismos colores que las celdas del calendario.
   const estado: { texto: string; estado: EstadoChip } = fueraDePeriodo
@@ -222,10 +248,15 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const formulario = (
     <FormularioDia
       // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
-      key={`${fecha}-${JSON.stringify(existente)}`}
+      key={`${fecha}-${JSON.stringify(existente)}-${reinicio}`}
+      usuarioId={usuario.id}
+      dossierId={dossier.id}
+      fecha={fecha}
       actividades={dossier.actividades}
       existente={existente}
-      ultimoTrabajo={existente ? null : ultimoTrabajo}
+      ultimoTrabajo={existente ? null : ultimaJornada.datos}
+      autoguardar={!cerrado && !fueraDePeriodo}
+      onDescartado={() => setReinicio((r) => r + 1)}
       bloqueado={bloqueado}
       motivoBloqueo={
         fueraDePeriodo
@@ -470,33 +501,38 @@ const styles = StyleSheet.create({
   punto: { width: 10, height: 10, borderRadius: 5, borderWidth: 1 },
 });
 
-interface ValoresDia {
-  tipo: TipoDia;
-  horas: { actividadId: string; horas: number }[];
-  observaciones: string;
-}
-
 /** Jornada de referencia para la barra del total: no es un límite, solo da escala. */
 const JORNADA = 8;
 
 interface PropsFormulario {
+  usuarioId: string;
+  dossierId: string;
+  fecha: string;
   actividades: ActividadFormativa[];
   existente: RegistroDiario | null;
   /** Día del que se pueden copiar las horas (solo si este aún no está apuntado). */
   ultimoTrabajo: RegistroDiario | null;
   bloqueado: boolean;
+  /** En un mes cerrado el borrador se conserva tal cual: se ve y se descarta, pero no cambia. */
+  autoguardar: boolean;
+  onDescartado: () => void;
   motivoBloqueo: string | null;
   guardando: boolean;
   aviso: { tipo: 'error' | 'ok'; texto: string } | null;
-  onGuardar: (valores: ValoresDia) => void;
+  onGuardar: (valores: ValoresDia) => Promise<boolean>;
   onBorrar: () => void;
 }
 
 function FormularioDia({
+  usuarioId,
+  dossierId,
+  fecha,
   actividades,
   existente,
   ultimoTrabajo,
   bloqueado,
+  autoguardar,
+  onDescartado,
   motivoBloqueo,
   guardando,
   aviso,
@@ -528,15 +564,35 @@ function FormularioDia({
     setHoras((h) => ({ ...h, [id]: pasoHoras(h[id] ?? 0, delta, MAX_HORAS_DIA) }));
   }
 
-  function enviar() {
-    onGuardar({
-      tipo,
-      observaciones,
-      horas: actividades.flatMap((a) =>
-        (horas[a.id] ?? 0) > 0 ? [{ actividadId: a.id, horas: horas[a.id] }] : [],
-      ),
-    });
+  const valores: ValoresDia = {
+    tipo,
+    observaciones,
+    horas:
+      tipo === 'trabajo'
+        ? actividades.flatMap((a) =>
+            (horas[a.id] ?? 0) > 0 ? [{ actividadId: a.id, horas: horas[a.id] }] : [],
+          )
+        : [],
+  };
+  const borrador = useBorrador<ValoresDia>({
+    clave: { ambito: 'registro-dia', usuarioId, contexto: [dossierId, fecha] },
+    valores,
+    base: valoresDeRegistro(existente),
+    iguales: valoresDiaIguales,
+    validar: validarValoresDia,
+    guardable: autoguardar,
+    onRecuperar: (v) => {
+      setTipo(v.tipo);
+      setHoras(Object.fromEntries(v.horas.map((h) => [h.actividadId, h.horas])));
+      setObservaciones(v.observaciones);
+    },
+  });
+
+  async function enviar() {
+    if (await onGuardar(valores)) await borrador.descartar();
   }
+
+  const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
 
   return (
     // Tocar fuera de un campo cierra el teclado.
@@ -603,13 +659,11 @@ function FormularioDia({
                 : `Jornada de referencia: ${JORNADA} h · máximo ${MAX_HORAS_DIA} h`}
             </ThemedText>
 
-            {ultimoTrabajo && !bloqueado ? (
+            {ultimoTrabajo && copiables.length > 0 && !bloqueado ? (
               <Enlace
                 texto={`Copiar horas del ${fechaCorta(ultimoTrabajo.fecha)}`}
                 onPress={() =>
-                  setHoras(
-                    Object.fromEntries(ultimoTrabajo.horas.map((h) => [h.actividadId, h.horas])),
-                  )
+                  setHoras(Object.fromEntries(copiables.map((h) => [h.actividadId, h.horas])))
                 }
               />
             ) : null}
@@ -683,6 +737,13 @@ function FormularioDia({
                 ? 'Opcional: qué festivo es'
                 : 'Opcional'
           }
+        />
+        <AvisoBorrador
+          guardadoEn={borrador.guardadoEn}
+          fallo={borrador.fallo}
+          onDescartar={() => {
+            void borrador.descartar().then(onDescartado);
+          }}
         />
         {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
         <View style={styles.botones}>

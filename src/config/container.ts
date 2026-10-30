@@ -1,4 +1,5 @@
 import type { AuthPort } from '@/core/ports/auth-port';
+import type { BorradorPort } from '@/core/ports/borrador-port';
 import type { ChatPort } from '@/core/ports/chat-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
@@ -9,7 +10,9 @@ import type { PerfilPort } from '@/core/ports/perfil-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
+import { BorradorLocalStorage } from '@/infrastructure/dispositivo/borrador-local-storage';
 import { AuthMemory } from '@/infrastructure/memory/auth-memory';
+import { BorradorMemory } from '@/infrastructure/memory/borrador-memory';
 import { ChatMemory } from '@/infrastructure/memory/chat-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
@@ -45,6 +48,7 @@ interface Container {
   perfil: PerfilPort;
   chat: ChatPort;
   informes: InformePort;
+  borradores: BorradorPort;
 }
 
 /**
@@ -52,6 +56,12 @@ interface Container {
  * Para cambiar de backend se toca este archivo (o la variable EXPO_PUBLIC_BACKEND), nunca el núcleo ni la UI.
  */
 function crearContainer(): Container {
+  // Los borradores viven en el dispositivo, sea cual sea el backend. Sin localStorage (renderizado
+  // estático de la web) no hay dónde guardarlos más allá de la memoria.
+  const borradores =
+    typeof localStorage === 'undefined'
+      ? new BorradorMemory()
+      : new BorradorLocalStorage(localStorage);
   const backend = process.env.EXPO_PUBLIC_BACKEND ?? 'memory';
 
   if (backend === 'supabase') {
@@ -72,6 +82,7 @@ function crearContainer(): Container {
         perfil: new PerfilSupabase(cliente),
         chat: new ChatSupabase(cliente),
         informes: new InformesSupabase(cliente),
+        borradores,
       };
     }
     console.warn(
@@ -93,6 +104,7 @@ function crearContainer(): Container {
     perfil: new PerfilMemory(),
     chat: new ChatMemory(),
     informes: new InformesMemory(),
+    borradores,
   };
 }
 
