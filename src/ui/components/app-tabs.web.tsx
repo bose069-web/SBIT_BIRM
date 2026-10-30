@@ -74,10 +74,6 @@ export default function AppTabs({ rol }: { rol: Rol }) {
           <TabTrigger name="chat" href="/chat" asChild>
             <TabButton href="/chat">Chat</TabButton>
           </TabTrigger>
-          {/* Registrar y Centro siguen siendo rutas (si no, no se puede navegar a ellas), pero se
-              abren desde Inicio, no desde la barra. */}
-          <TabTrigger name="registro" href="/registro" style={{ display: 'none' }} />
-          <TabTrigger name="centro" href="/centro" style={{ display: 'none' }} />
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton href="/perfil">Perfil</TabButton>
           </TabTrigger>

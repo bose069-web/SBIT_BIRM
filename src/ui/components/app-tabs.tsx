@@ -53,10 +53,6 @@ export default function AppTabs({ rol }: { rol: Rol }) {
         />
       </NativeTabs.Trigger>
 
-      {/* Registrar y Centro siguen siendo rutas, pero se abren desde Inicio, no desde la barra. */}
-      <NativeTabs.Trigger name="registro" hidden />
-      <NativeTabs.Trigger name="centro" hidden />
-
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
