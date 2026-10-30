@@ -38,7 +38,12 @@ export function Pantalla({
   const web = Platform.OS === 'web';
   const areaSegura = useSafeAreaInsets();
   const [altoPie, setAltoPie] = useState(0);
-  const huecoInferior = web ? 0 : BottomTabInset + areaSegura.bottom;
+  // En iOS el área segura de las pestañas nativas ya incluye la altura de la barra.
+  const huecoInferior = web
+    ? 0
+    : Platform.OS === 'ios'
+      ? areaSegura.bottom
+      : BottomTabInset + areaSegura.bottom;
   // Cada pantalla empieza arriba: la cabecera de la web vuelve a mostrar el logotipo entero.
   useEffect(() => {
     if (web) ponerDesplazado(false);
