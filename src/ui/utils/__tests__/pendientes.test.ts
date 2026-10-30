@@ -2,6 +2,7 @@ import { crearDossier } from '@/core/__fixtures__/datos';
 import type { ValoracionFinal, ValoracionMensual } from '@/core/domain/valoracion';
 
 import {
+  organizarPendientes,
   pendientesAlumno,
   pendientesCentro,
   pendientesEmpresa,
@@ -74,13 +75,24 @@ describe('pendientesAlumno', () => {
     expect(tareas.destino).toEqual({ seccion: 'tareas' });
   });
 
-  it('solo lista incidencias sin resolver, cada una con su conversación', () => {
+  it('solo cuenta incidencias sin resolver y son secundarias: las atiende otro', () => {
     const lista = pendientesAlumno(
       alumno({ incidencias: [incidencia('a'), incidencia('b', 'resuelta')] }),
     );
     expect(lista.map((p) => p.destino)).toEqual([
       { pathname: '/chat', params: { incidencia: 'a' } },
     ]);
+    expect(lista[0].prioridad).toBe('secundario');
+  });
+
+  it('registrar y hacer tareas son obligaciones', () => {
+    const lista = pendientesAlumno(
+      alumno({
+        sinApuntar: ['2026-12-07', HOY],
+        tareas: [{ titulo: 'T', completada: false, fechaLimite: null }],
+      }),
+    );
+    expect(lista.map((p) => p.prioridad)).toEqual(['importante', 'importante', 'importante']);
   });
 
   it('tolera que tareas e incidencias no se hayan podido cargar', () => {
@@ -89,23 +101,86 @@ describe('pendientesAlumno', () => {
 });
 
 describe('pendientesEmpresa', () => {
-  it('abre la valoración del mes entero de ese alumno', () => {
+  it('un solo informe abre la valoración de ese mes', () => {
     const dossier = crearDossier({ id: 'd1' });
     const [informe] = pendientesEmpresa([{ dossier, mes: '2026-11' }]);
     expect(informe.accion).toBe('Valorar');
     expect(informe.destino).toEqual({ pathname: '/', params: { valorar: 'd1', mes: '2026-11' } });
+    expect(informe.prioridad).toBe('importante');
+  });
+
+  it('agrupa los informes de cada alumno en un aviso', () => {
+    const d1 = crearDossier({ id: 'd1' });
+    const d2 = crearDossier({ id: 'd2' });
+    const lista = pendientesEmpresa([
+      { dossier: d1, mes: '2026-11' },
+      { dossier: d2, mes: '2026-11' },
+      { dossier: d1, mes: '2026-10' },
+    ]);
+    expect(lista.map((p) => p.id)).toEqual(['informes-d1', 'informes-d2']);
+    expect(lista[0].detalle).toMatch(/^2 informes/);
+    expect(lista[0].destino).toEqual({ pathname: '/', params: { valorar: 'd1' } });
   });
 });
 
 describe('pendientesProfe', () => {
-  it('une incidencias abiertas, alumnos sin apuntar y meses sin valorar', () => {
+  it('junta lo de un mismo alumno en un aviso secundario que abre su ficha', () => {
     const lista = pendientesProfe({
       incidencias: [incidencia('a'), incidencia('b', 'resuelta')],
       sinApuntar: [{ dossierId: 'd1', nombre: 'Ana', dias: 4, ultimo: null }],
-      faltaValorar: [{ dossierId: 'd2', nombre: 'Luis', empresa: null, meses: ['2026-11'] }],
+      faltaValorar: [
+        { dossierId: 'd1', nombre: 'Ana', empresa: 'ACME', meses: ['2026-11'] },
+        { dossierId: 'd2', nombre: 'Luis', empresa: null, meses: ['2026-11'] },
+      ],
     });
-    expect(lista.map((p) => p.id)).toEqual(['incidencia-a', 'sin-apuntar-d1', 'falta-valorar-d2']);
+    expect(lista.map((p) => p.id)).toEqual(['incidencias', 'alumno-d1', 'alumno-d2']);
+    expect(lista.map((p) => p.prioridad)).toEqual(['importante', 'secundario', 'secundario']);
+    expect(lista[1].detalle).toContain('4 días');
+    expect(lista[1].detalle).toContain('ACME');
     expect(lista[1].destino).toEqual({ pathname: '/', params: { dossier: 'd1' } });
+  });
+
+  it('varias incidencias se juntan y llevan al chat', () => {
+    const [aviso] = pendientesProfe({
+      incidencias: [incidencia('a'), incidencia('b')],
+      sinApuntar: [],
+      faltaValorar: [],
+    });
+    expect(aviso.titulo).toBe('2 incidencias abiertas');
+    expect(aviso.destino).toEqual({ pathname: '/chat' });
+  });
+});
+
+describe('organizarPendientes', () => {
+  const aviso = (id: string, prioridad: 'importante' | 'secundario') => ({
+    id,
+    titulo: id,
+    detalle: '',
+    accion: 'Ir',
+    destino: { pathname: '/' as const },
+    prioridad,
+  });
+  const lista = [aviso('a', 'importante'), aviso('b', 'secundario'), aviso('a', 'importante')];
+
+  it('quita duplicados y separa importante de secundario', () => {
+    const r = organizarPendientes(lista, false);
+    expect(r.importantes.map((p) => p.id)).toEqual(['a']);
+    expect(r.secundarios.map((p) => p.id)).toEqual(['b']);
+    expect(r.ocultos).toBe(0);
+  });
+
+  it('ocultar solo esconde lo secundario: las obligaciones se quedan', () => {
+    const r = organizarPendientes(lista, true);
+    expect(r.importantes.map((p) => p.id)).toEqual(['a']);
+    expect(r.secundarios).toEqual([]);
+    expect(r.ocultos).toBe(1);
+    expect(r.haySecundarios).toBe(true);
+  });
+
+  it('sin secundarios no hay nada que ocultar', () => {
+    const r = organizarPendientes([aviso('a', 'importante')], true);
+    expect(r.ocultos).toBe(0);
+    expect(r.haySecundarios).toBe(false);
   });
 });
 

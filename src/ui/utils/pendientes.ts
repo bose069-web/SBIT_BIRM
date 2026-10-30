@@ -27,6 +27,25 @@ export interface Pendiente {
   destino: DestinoPendiente;
   /** Lo que urge de este aviso, si hay algo que resaltar. */
   etiqueta?: string;
+  /** Las obligaciones son `importante` y nunca se ocultan. Lo `secundario` no depende de ti. */
+  prioridad: PrioridadPendiente;
+}
+
+export type PrioridadPendiente = 'importante' | 'secundario';
+
+/**
+ * Lo que enseña la tarjeta: sin duplicados, lo importante siempre y lo secundario según la
+ * preferencia. Ocultar solo afecta a lo secundario: las obligaciones no se pueden esconder.
+ */
+export function organizarPendientes(pendientes: Pendiente[], ocultarSecundarios: boolean) {
+  const unicos = [...new Map(pendientes.map((p) => [p.id, p])).values()];
+  const secundarios = unicos.filter((p) => p.prioridad === 'secundario');
+  return {
+    importantes: unicos.filter((p) => p.prioridad === 'importante'),
+    secundarios: ocultarSecundarios ? [] : secundarios,
+    ocultos: ocultarSecundarios ? secundarios.length : 0,
+    haySecundarios: secundarios.length > 0,
+  };
 }
 
 type IncidenciaPendiente = Pick<Incidencia, 'id' | 'titulo' | 'estado' | 'creadaPorNombre'>;
@@ -36,6 +55,39 @@ const plural = (n: number, una: string, varias: string) => (n === 1 ? una : vari
 
 function destinoIncidencia(id: string): DestinoPendiente {
   return { pathname: '/chat', params: { incidencia: id } };
+}
+
+/** Una incidencia abre su conversación; varias se juntan en un aviso que lleva al chat. */
+function avisosIncidencias(
+  incidencias: IncidenciaPendiente[],
+  prioridad: PrioridadPendiente,
+  detalleDeUna: (i: IncidenciaPendiente) => string,
+): Pendiente[] {
+  const abiertas = incidencias.filter(abierta);
+  if (abiertas.length === 0) return [];
+  if (abiertas.length === 1) {
+    const [i] = abiertas;
+    return [
+      {
+        id: 'incidencias',
+        titulo: i.titulo,
+        detalle: detalleDeUna(i),
+        accion: 'Abrir',
+        destino: destinoIncidencia(i.id),
+        prioridad,
+      },
+    ];
+  }
+  return [
+    {
+      id: 'incidencias',
+      titulo: `${abiertas.length} incidencias abiertas`,
+      detalle: abiertas[0].titulo,
+      accion: 'Ver chat',
+      destino: { pathname: '/chat' },
+      prioridad,
+    },
+  ];
 }
 
 export interface DatosPendientesAlumno {
@@ -64,6 +116,7 @@ export function pendientesAlumno(datos: DatosPendientesAlumno): Pendiente[] {
       accion: 'Registrar',
       destino: { pathname: '/registro', params: { fecha: hoy } },
       etiqueta: 'Hoy',
+      prioridad: 'importante',
     });
   }
   if (anteriores.length > 0) {
@@ -77,6 +130,7 @@ export function pendientesAlumno(datos: DatosPendientesAlumno): Pendiente[] {
           : `Empieza por el ${fechaCorta(anteriores[0])}`,
       accion: 'Apuntar',
       destino: { pathname: '/registro', params: { fecha: anteriores[0] } },
+      prioridad: 'importante',
     });
   }
   const tareas = (datos.tareas ?? []).filter((t) => !t.completada);
@@ -89,27 +143,40 @@ export function pendientesAlumno(datos: DatosPendientesAlumno): Pendiente[] {
       accion: 'Ver tareas',
       destino: { seccion: 'tareas' },
       etiqueta: vencidas ? `${vencidas} ${plural(vencidas, 'vencida', 'vencidas')}` : undefined,
+      prioridad: 'importante',
     });
   }
-  for (const i of (datos.incidencias ?? []).filter(abierta)) {
-    lista.push({
-      id: `incidencia-${i.id}`,
-      titulo: i.titulo,
-      detalle: 'Tu incidencia sigue abierta',
-      accion: 'Consultar',
-      destino: destinoIncidencia(i.id),
-    });
-  }
+  // Su incidencia la tiene que atender otro: conviene saberlo, pero no es una obligación suya.
+  lista.push(
+    ...avisosIncidencias(
+      datos.incidencias ?? [],
+      'secundario',
+      () => 'Tu incidencia sigue abierta',
+    ),
+  );
   return lista;
 }
 
+/** Los informes de un mismo alumno van juntos: abren su valoración para elegir el mes. */
 export function pendientesEmpresa(informes: InformePendiente[]): Pendiente[] {
-  return informes.map(({ dossier, mes }) => ({
-    id: `informe-${dossier.id}-${mes}`,
-    titulo: dossier.alumnoNombre,
-    detalle: `Informe de ${nombreMes(mes)}`,
+  const porAlumno = new Map<string, InformePendiente[]>();
+  for (const informe of informes) {
+    porAlumno.set(informe.dossier.id, [...(porAlumno.get(informe.dossier.id) ?? []), informe]);
+  }
+  return [...porAlumno.entries()].map(([dossierId, suyos]): Pendiente => ({
+    id: `informes-${dossierId}`,
+    titulo: suyos[0].dossier.alumnoNombre,
+    detalle:
+      suyos.length === 1
+        ? `Informe de ${nombreMes(suyos[0].mes)}`
+        : `${suyos.length} informes: ${suyos.map((i) => nombreMes(i.mes)).join(', ')}`,
     accion: 'Valorar',
-    destino: { pathname: '/', params: { valorar: dossier.id, mes } },
+    destino: {
+      pathname: '/',
+      params:
+        suyos.length === 1 ? { valorar: dossierId, mes: suyos[0].mes } : { valorar: dossierId },
+    },
+    prioridad: 'importante',
   }));
 }
 
@@ -121,32 +188,40 @@ export interface DatosPendientesProfe {
   incidencias: IncidenciaPendiente[];
 }
 
+/**
+ * Las incidencias le tocan a él. Lo demás lo tiene que hacer otro (el alumno, la empresa) y es
+ * secundario; lo de un mismo alumno va en un solo aviso, que abre su ficha.
+ */
 export function pendientesProfe(datos: DatosPendientesProfe): Pendiente[] {
-  const ficha = (dossierId: string): DestinoPendiente => ({
-    pathname: '/',
-    params: { dossier: dossierId },
-  });
+  const porAlumno = new Map<string, { nombre: string; detalles: string[] }>();
+  const anotar = (dossierId: string, nombre: string, detalle: string) => {
+    const alumno = porAlumno.get(dossierId) ?? { nombre, detalles: [] };
+    alumno.detalles.push(detalle);
+    porAlumno.set(dossierId, alumno);
+  };
+  for (const a of datos.sinApuntar) {
+    anotar(a.dossierId, a.nombre, `${a.dias} días laborables sin apuntar`);
+  }
+  for (const a of datos.faltaValorar) {
+    anotar(
+      a.dossierId,
+      a.nombre,
+      `${a.empresa ?? 'Su empresa'} no ha valorado ${a.meses.map(nombreMes).join(', ')}`,
+    );
+  }
   return [
-    ...datos.incidencias.filter(abierta).map((i): Pendiente => ({
-      id: `incidencia-${i.id}`,
-      titulo: i.titulo,
-      detalle: `Incidencia de ${i.creadaPorNombre ?? 'un alumno'}`,
-      accion: 'Abrir',
-      destino: destinoIncidencia(i.id),
-    })),
-    ...datos.sinApuntar.map((a): Pendiente => ({
-      id: `sin-apuntar-${a.dossierId}`,
-      titulo: a.nombre,
-      detalle: `${a.dias} días laborables sin apuntar`,
+    ...avisosIncidencias(
+      datos.incidencias,
+      'importante',
+      (i) => `Incidencia de ${i.creadaPorNombre ?? 'un alumno'}`,
+    ),
+    ...[...porAlumno.entries()].map(([dossierId, { nombre, detalles }]): Pendiente => ({
+      id: `alumno-${dossierId}`,
+      titulo: nombre,
+      detalle: detalles.join(' · '),
       accion: 'Ver ficha',
-      destino: ficha(a.dossierId),
-    })),
-    ...datos.faltaValorar.map((a): Pendiente => ({
-      id: `falta-valorar-${a.dossierId}`,
-      titulo: a.nombre,
-      detalle: `${a.empresa ?? 'Su empresa'} no ha valorado ${a.meses.map(nombreMes).join(', ')}`,
-      accion: 'Ver ficha',
-      destino: ficha(a.dossierId),
+      destino: { pathname: '/', params: { dossier: dossierId } },
+      prioridad: 'secundario',
     })),
   ];
 }
@@ -162,21 +237,11 @@ export interface DatosPendientesCentro {
 
 export function pendientesCentro(datos: DatosPendientesCentro): Pendiente[] {
   const { alumnosSinProfe, convenios, params } = datos;
-  const incidencias = (datos.incidencias ?? []).filter(abierta);
-  const lista: Pendiente[] = [];
-  if (incidencias.length > 0) {
-    lista.push({
-      id: 'incidencias',
-      titulo:
-        incidencias.length === 1
-          ? '1 incidencia pendiente'
-          : `${incidencias.length} incidencias pendientes`,
-      detalle: incidencias[0].titulo,
-      accion: incidencias.length === 1 ? 'Abrir' : 'Ver chat',
-      destino:
-        incidencias.length === 1 ? destinoIncidencia(incidencias[0].id) : { pathname: '/chat' },
-    });
-  }
+  const lista = avisosIncidencias(
+    datos.incidencias ?? [],
+    'importante',
+    () => 'Incidencia abierta',
+  );
   if (alumnosSinProfe > 0) {
     lista.push({
       id: 'sin-profe',
@@ -187,6 +252,7 @@ export function pendientesCentro(datos: DatosPendientesCentro): Pendiente[] {
       detalle: plural(alumnosSinProfe, 'Asígnale un profe', 'Asígnales un profe'),
       accion: 'Asignar',
       destino: { pathname: '/alumnos', params },
+      prioridad: 'importante',
     });
   }
   if (convenios === 0) {
@@ -196,6 +262,7 @@ export function pendientesCentro(datos: DatosPendientesCentro): Pendiente[] {
       detalle: 'Hacen falta para que los alumnos hagan prácticas',
       accion: 'Gestionar',
       destino: { pathname: '/centro', params },
+      prioridad: 'importante',
     });
   }
   return lista;

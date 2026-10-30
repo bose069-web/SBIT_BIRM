@@ -8,10 +8,12 @@ import type { HistorialPort } from '@/core/ports/historial-port';
 import type { IncidenciaPort } from '@/core/ports/incidencia-port';
 import type { InformePort } from '@/core/ports/informe-port';
 import type { PerfilPort } from '@/core/ports/perfil-port';
+import type { PreferenciasPort } from '@/core/ports/preferencias-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
 import { BorradorLocalStorage } from '@/infrastructure/dispositivo/borrador-local-storage';
+import { PreferenciasLocalStorage } from '@/infrastructure/dispositivo/preferencias-local-storage';
 import { AuthMemory } from '@/infrastructure/memory/auth-memory';
 import { BorradorMemory } from '@/infrastructure/memory/borrador-memory';
 import { ChatMemory } from '@/infrastructure/memory/chat-memory';
@@ -22,6 +24,7 @@ import { HistorialMemory } from '@/infrastructure/memory/historial-memory';
 import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
 import { InformesMemory } from '@/infrastructure/memory/informes-memory';
 import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
+import { PreferenciasMemory } from '@/infrastructure/memory/preferencias-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
 import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
@@ -53,6 +56,7 @@ interface Container {
   informes: InformePort;
   borradores: BorradorPort;
   historial: HistorialPort;
+  preferencias: PreferenciasPort;
 }
 
 /**
@@ -66,6 +70,10 @@ function crearContainer(): Container {
     typeof localStorage === 'undefined'
       ? new BorradorMemory()
       : new BorradorLocalStorage(localStorage);
+  const preferencias =
+    typeof localStorage === 'undefined'
+      ? new PreferenciasMemory()
+      : new PreferenciasLocalStorage(localStorage);
   const backend = process.env.EXPO_PUBLIC_BACKEND ?? 'memory';
 
   if (backend === 'supabase') {
@@ -88,6 +96,7 @@ function crearContainer(): Container {
         informes: new InformesSupabase(cliente),
         borradores,
         historial: new HistorialSupabase(cliente),
+        preferencias,
       };
     }
     console.warn(
@@ -112,6 +121,7 @@ function crearContainer(): Container {
     informes: new InformesMemory(),
     borradores,
     historial,
+    preferencias,
   };
 }
 
