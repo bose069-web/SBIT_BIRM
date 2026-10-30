@@ -17,6 +17,9 @@ import { VistaLogin } from '@/ui/vistas/login';
 
 SplashScreen.preventAutoHideAsync();
 
+// Al entrar directo por URL a una pantalla de la pila, las pestañas quedan debajo para poder volver.
+export const unstable_settings = { anchor: '(tabs)' };
+
 function temaNavegacion(modo: 'light' | 'dark'): Theme {
   const base = modo === 'dark' ? DarkTheme : DefaultTheme;
   const c = Colors[modo];
@@ -63,7 +66,7 @@ function Contenido() {
       </Pantalla>
     );
   if (!usuario) return <VistaLogin />;
-  // Las pestañas nativas no pueden abrir una pestaña oculta: Registrar y Centro van en una pila
+  // Las pestañas nativas no pueden abrir una pestaña oculta: Registrar, Centro y Alumnos van en una pila
   // por encima de las pestañas, con su propio botón de volver.
   // Cabecera solo con el botón de volver (el título ya lo pone la pantalla).
   // Opaca y del color del fondo, para que no tape el título de la pantalla.
@@ -81,6 +84,7 @@ function Contenido() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="registro" options={encima} />
       <Stack.Screen name="centro" options={encima} />
+      <Stack.Screen name="alumnos" options={encima} />
     </Stack>
   );
 }

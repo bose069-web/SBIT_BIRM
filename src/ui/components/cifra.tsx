@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
@@ -10,12 +10,14 @@ export function Cifra({
   etiqueta,
   detalle,
   color = 'text',
+  style,
 }: {
   valor: string;
   etiqueta: string;
   detalle?: string;
   /** Solo acompaña: la etiqueta siempre dice qué significa. */
   color?: ThemeColor;
+  style?: ViewStyle;
 }) {
   const theme = useTheme();
   return (
@@ -23,7 +25,7 @@ export function Cifra({
       accessible
       accessibilityRole="text"
       accessibilityLabel={[valor, etiqueta, detalle].filter(Boolean).join(' ')}
-      style={[styles.cifra, { backgroundColor: theme.subtle }]}>
+      style={[styles.cifra, { backgroundColor: theme.subtle }, style]}>
       <ThemedText type="title" themeColor={color}>
         {valor}
       </ThemedText>

@@ -12,6 +12,7 @@ import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
@@ -21,7 +22,16 @@ import { contarDias, horasPorActividad } from '@/ui/utils/horas-actividad';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 
 /** Ficha de solo lectura de un dossier: quién, dónde, cuándo y las horas de cada actividad. */
-export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVolver: () => void }) {
+export function FichaDossier({
+  dossierId,
+  onVolver,
+  onEditar = (id) => router.push({ pathname: '/', params: { editar: id } }),
+}: {
+  dossierId: string;
+  onVolver: () => void;
+  /** Por defecto, el formulario de Inicio; la gestión de alumnos lo abre en su propia pila. */
+  onEditar?: (id: string) => void;
+}) {
   const usuario = useUsuario();
   const { datos, error, cargando, recargar } = useDatos(async () => {
     const dossier = await container.dossiers.obtener(dossierId);
@@ -39,6 +49,7 @@ export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVol
       dias: contarDias(registros),
     };
   }, [dossierId]);
+  useRecargarAlVolver(recargar);
 
   const volver = <Boton texto="‹ Volver" variante="secundario" onPress={onVolver} />;
 
@@ -63,11 +74,7 @@ export function FichaDossier({ dossierId, onVolver }: { dossierId: string; onVol
     <Pantalla titulo={dossier.alumnoNombre} subtitulo={`Ficha del dossier · ${dossier.ciclo}`}>
       {volver}
       {gestionaDossier(usuario, dossier) ? (
-        <Boton
-          texto="Editar dossier"
-          variante="secundario"
-          onPress={() => router.push({ pathname: '/', params: { editar: dossier.id } })}
-        />
+        <Boton texto="Editar dossier" variante="secundario" onPress={() => onEditar(dossier.id)} />
       ) : null}
 
       <Tarjeta titulo="Prácticas">

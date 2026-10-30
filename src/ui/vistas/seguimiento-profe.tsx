@@ -65,13 +65,45 @@ interface DatosAlumno {
 
 export function SeguimientoProfe() {
   const usuario = useUsuario();
-  const { rol } = usuario;
-  const hoy = hoyISO();
   const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
-  const administra = rol === 'instituto' || rol === 'generalitat';
+  const ancho = useWebAncha();
+  const acciones = creaDossiers ? (
+    <View style={ancho ? styles.acciones : styles.accionesMovil}>
+      <Boton
+        texto="+ Nuevo dossier"
+        onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
+      />
+    </View>
+  ) : null;
+  return (
+    <Pantalla
+      titulo="Seguimiento"
+      subtitulo={SUBTITULO[usuario.rol]}
+      // En la web, las acciones junto al título, como el estado del mes en el Inicio del alumno.
+      accion={ancho ? acciones : undefined}
+      amplia={ancho}>
+      {ancho ? null : acciones}
+      <ContenidoSeguimiento />
+    </Pantalla>
+  );
+}
+
+/**
+ * La lista de alumnos con su resumen. La generalitat ve todos los dossiers, así que `centroId`
+ * limita al instituto que está gestionando.
+ */
+export function ContenidoSeguimiento({
+  centroId = null,
+  onFicha = (id) => router.push({ pathname: '/', params: { dossier: id } }),
+}: {
+  centroId?: string | null;
+  onFicha?: (dossierId: string) => void;
+}) {
+  const hoy = hoyISO();
   // Se cargan aquí las horas y valoraciones de todos para poder hacer el resumen del lateral.
   const { datos, error, cargando, recargar } = useDatos(async () => {
-    const dossiers = porAlumno(await listarDossiers(container.dossiers));
+    const todos = porAlumno(await listarDossiers(container.dossiers));
+    const dossiers = centroId ? todos.filter((d) => d.centroId === centroId) : todos;
     const detalles = await Promise.all(
       dossiers.map(async (dossier) => {
         const [resumen, seguimiento] = await Promise.all([
@@ -82,7 +114,7 @@ export function SeguimientoProfe() {
       }),
     );
     return detalles;
-  }, [hoy]);
+  }, [hoy, centroId]);
   useRecargarAlVolver(recargar);
   // En la web horizontal, alumnos a la izquierda y resumen a la derecha; en el móvil, seguido.
   const ancho = useWebAncha();
@@ -94,37 +126,13 @@ export function SeguimientoProfe() {
     tieneFinal: !!d.seguimiento.final,
   }));
 
-  const acciones =
-    administra || creaDossiers ? (
-      <View style={ancho ? styles.acciones : styles.accionesMovil}>
-        {administra ? (
-          <Boton
-            texto={rol === 'generalitat' ? 'Gestionar institutos' : 'Gestionar el centro'}
-            variante="secundario"
-            onPress={() => router.push('/centro')}
-          />
-        ) : null}
-        {creaDossiers ? (
-          <Boton
-            texto="+ Nuevo dossier"
-            onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
-          />
-        ) : null}
-      </View>
-    ) : null;
   // Del que va más atrasado al más avanzado: lo primero que ve el profe es a quién atender.
   const ordenados = [...(datos ?? [])].sort(
     (a, b) => a.datos.resumen.porcentaje - b.datos.resumen.porcentaje,
   );
 
   return (
-    <Pantalla
-      titulo="Seguimiento"
-      subtitulo={SUBTITULO[rol]}
-      // En la web, las acciones junto al título, como el estado del mes en el Inicio del alumno.
-      accion={ancho ? acciones : undefined}
-      amplia={ancho}>
-      {ancho ? null : acciones}
+    <>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
@@ -147,6 +155,7 @@ export function SeguimientoProfe() {
                     dossier={dossier}
                     datos={d}
                     onCambio={recargar}
+                    onFicha={() => onFicha(dossier.id)}
                   />
                 ))}
               </View>
@@ -162,7 +171,7 @@ export function SeguimientoProfe() {
           }
         />
       ) : null}
-    </Pantalla>
+    </>
   );
 }
 
@@ -267,11 +276,13 @@ function FilaAlumno({
   datos,
   primera,
   onCambio,
+  onFicha,
 }: {
   dossier: Dossier;
   datos: DatosAlumno;
   primera: boolean;
   onCambio: () => void;
+  onFicha: () => void;
 }) {
   const usuario = useUsuario();
   const theme = useTheme();
@@ -355,10 +366,7 @@ function FilaAlumno({
               Tutor de empresa: {dossier.tutorEmpresaNombre ?? 'sin asignar'} · del{' '}
               {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
             </ThemedText>
-            <Enlace
-              texto="Ficha ›"
-              onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
-            />
+            <Enlace texto="Ficha ›" onPress={onFicha} />
           </View>
           <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
           <View style={styles.botones}>

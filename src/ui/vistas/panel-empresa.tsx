@@ -452,7 +452,7 @@ function abrirValoracion(dossierId: string, mes: string | null) {
 }
 
 /** Marca de "todo en orden" para los estados sin pendientes. */
-function Correcto() {
+export function Correcto() {
   const theme = useTheme();
   return (
     <View

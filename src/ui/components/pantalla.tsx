@@ -17,7 +17,7 @@ interface Props {
   amplia?: boolean;
   /** Menos aire arriba: para pantallas de trabajo como el chat, donde manda el contenido. */
   compacta?: boolean;
-  /** La cabecera nativa de la pila ya reserva el área segura superior. */
+  /** Bajo la cabecera de la pila: ni área segura ni hueco para la barra de pestañas web. */
   bajoCabecera?: boolean;
   /** Acción fija fuera del scroll, situada por encima de las pestañas en móvil. */
   pie?: ReactNode;
@@ -50,14 +50,14 @@ export function Pantalla({
   }, [web]);
   return (
     <SafeAreaView
-      edges={bajoCabecera && !web ? [] : ['top']}
+      edges={bajoCabecera ? [] : ['top']}
       style={[styles.fondo, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.fondo}
         contentContainerStyle={[
           styles.scroll,
           compacta && styles.scrollCompacta,
-          bajoCabecera && !web && styles.bajoCabecera,
+          bajoCabecera && styles.bajoCabecera,
           { paddingBottom: huecoInferior + Spacing.five + (pie ? altoPie : 0) },
         ]}
         // Los campos de los formularios se pueden tocar con el teclado abierto y, al arrastrar,
