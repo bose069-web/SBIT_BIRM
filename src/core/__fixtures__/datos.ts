@@ -17,11 +17,13 @@ import type {
   ValoracionMensual,
 } from '../domain/valoracion';
 import type { BorradorTarea, Tarea } from '../domain/tarea';
+import type { Toque } from '../domain/toque';
 import type { DossierPort } from '../ports/dossier-port';
 import type { EventoPort } from '../ports/evento-port';
 import type { GestionCentroPort } from '../ports/gestion-centro-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { TareaPort } from '../ports/tarea-port';
+import type { ToquePort } from '../ports/toque-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
 
 // Datos y dobles de prueba en TypeScript puro: los tests del núcleo no dependen de ningún adaptador.
@@ -236,6 +238,42 @@ export class TareasFalsas implements TareaPort {
   }
   async borrar(id: string) {
     this.tareas = this.tareas.filter((t) => t.id !== id);
+  }
+}
+
+export class ToquesFalsos implements ToquePort {
+  toques: Toque[] = [];
+  async dar(dossierId: string, diasSinApuntar: number) {
+    const toque: Toque = {
+      id: `to${this.toques.length + 1}`,
+      dossierId,
+      dadoPor: profe.id,
+      diasSinApuntar,
+      fecha: '2026-10-27',
+      creadoEn: `2026-10-27T09:00:0${this.toques.length}.000Z`,
+      vistoEn: null,
+      resueltoEn: null,
+    };
+    this.toques = [toque, ...this.toques];
+    return toque;
+  }
+  async pendientesDelAlumno() {
+    return this.toques.filter((t) => t.resueltoEn === null);
+  }
+  async ultimosPorDossier(dossierIds: string[]) {
+    const ultimos = new Map<string, Toque>();
+    for (const toque of this.toques) {
+      if (dossierIds.includes(toque.dossierId) && !ultimos.has(toque.dossierId)) {
+        ultimos.set(toque.dossierId, toque);
+      }
+    }
+    return [...ultimos.values()];
+  }
+  async marcarVisto(id: string) {
+    const toque = this.toques.find((t) => t.id === id);
+    if (!toque) throw new Error('No existe');
+    toque.vistoEn = toque.vistoEn ?? '2026-10-28T08:00:00.000Z';
+    return toque;
   }
 }
 
