@@ -1,5 +1,6 @@
+import { toquesPendientes, marcarToqueVisto } from '@/core/application/toques';
 import { router } from 'expo-router';
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
@@ -84,6 +85,7 @@ export function PanelAlumno() {
       // está en la cabecera.
       accion={ancho && datos ? estadoMes : undefined}
       amplia={ancho}>
+      {datos && <AvisoToqueAlumno key={datos.dossier.id} dossier={datos.dossier} />}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
@@ -448,3 +450,56 @@ const styles = StyleSheet.create({
   datos: { flex: 1, gap: Spacing.two, paddingLeft: Spacing.two },
   cifras: { flexDirection: 'row', gap: Spacing.three },
 });
+
+function AvisoToqueAlumno({ dossier }: { dossier: Dossier }) {
+  const usuario = useUsuario();
+  const { datos, error, recargar } = useDatos(async () => {
+    const pendientes = await toquesPendientes(container.toques);
+    return (
+      pendientes
+        .filter((t) => t.dossierId === dossier.id)
+        .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))[0] ?? null
+    );
+  }, [usuario.id, dossier.id]);
+  useRecargarAlVolver(recargar);
+  const [abriendo, abrir] = useState(false);
+  const [fallo, avisar] = useState(false);
+  async function apuntar() {
+    if (!datos || abriendo) return;
+    abrir(true);
+    avisar(false);
+    try {
+      if (!datos.vistoEn) await marcarToqueVisto(container.toques, usuario, dossier, datos);
+      router.push('/registro');
+    } catch {
+      avisar(true);
+    } finally {
+      abrir(false);
+    }
+  }
+  if (error)
+    return (
+      <ErrorCarga texto="No se pudieron consultar los avisos del tutor." onReintentar={recargar} />
+    );
+  if (!datos) return null;
+  return (
+    <Tarjeta titulo="Aviso de tu tutor">
+      <ThemedText>
+        Tu tutor te ha dado un toque: llevas {datos.diasSinApuntar} días sin apuntar
+      </ThemedText>
+      {fallo && (
+        <ThemedText themeColor="danger">
+          No se pudo marcar el aviso como visto. Puedes reintentar o abrir Registro.
+        </ThemedText>
+      )}
+      <Boton texto="Apuntar ahora" cargando={abriendo} onPress={apuntar} />
+      {fallo && (
+        <Boton
+          texto="Abrir Registro"
+          variante="secundario"
+          onPress={() => router.push('/registro')}
+        />
+      )}
+    </Tarjeta>
+  );
+}

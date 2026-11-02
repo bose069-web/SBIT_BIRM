@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { listarDossiers, obtenerResumenHoras } from '@/core/application/dossier';
 import { obtenerBandeja } from '@/core/application/incidencias';
 import { listarRegistros } from '@/core/application/registro-diario';
-import { crearTarea, listarTareas } from '@/core/application/tareas';
+import { darToque, ultimosToques, puedeDarToques } from '@/core/application/toques';
+import { ToqueYaExisteError } from '@/core/domain/errores';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
 import type { Dossier } from '@/core/domain/dossier';
 import type { Incidencia } from '@/core/domain/incidencia';
@@ -29,8 +30,6 @@ import {
   agruparPorAlumno,
   alumnosSinApuntar,
   DIAS_PARA_AVISAR,
-  textoToque,
-  toquePendiente,
   type AlumnoSinApuntar,
   type DiasDeAlumno,
 } from '@/ui/utils/avisos-profe';
@@ -109,12 +108,12 @@ export function PanelProfe() {
       })),
       hoy,
     );
-    // Toque ya dado y aún sin cumplir, para no repetirlo.
-    const tareas = await Promise.all(
-      sinApuntar.map((a) => listarTareas(container.tareas, a.dossierId)),
+    const ultimos = await ultimosToques(
+      container.toques,
+      sinApuntar.map((a) => a.dossierId),
     );
-    const toques: Record<string, string | null> = Object.fromEntries(
-      sinApuntar.map((a, i) => [a.dossierId, toquePendiente(tareas[i])]),
+    const toques: Record<string, string> = Object.fromEntries(
+      ultimos.map((t) => [t.dossierId, t.fecha]),
     );
     const faltaValorar: FaltaValorar[] = dossiers
       .map((d, i) => ({
@@ -331,32 +330,33 @@ function SinApuntar({
   onCambio,
 }: {
   alumnos: AlumnoSinApuntar[];
-  /** Día del toque que cada alumno aún no ha cumplido (por dossier). */
+  /** Fecha del último aviso por dossier. */
   toques: Record<string, string | null>;
   dossiers: Dossier[];
   onCambio: () => void;
 }) {
   const usuario = useUsuario();
   const theme = useTheme();
-  const hoy = hoyISO();
   const [enviando, setEnviando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
 
-  async function darToque(a: AlumnoSinApuntar) {
+  async function avisarAlumno(a: AlumnoSinApuntar) {
     const dossier = dossiers.find((d) => d.id === a.dossierId);
     if (!dossier) return;
     setAviso(null);
     setEnviando(a.dossierId);
     try {
-      await crearTarea(container.tareas, usuario, dossier, {
-        dossierId: dossier.id,
-        ...textoToque(a),
-        fechaLimite: hoy,
-      });
-      setAviso({ tipo: 'ok', texto: `${a.nombre} verá el aviso en sus tareas` });
+      await darToque(container.toques, usuario, dossier, a.dias);
+      setAviso({ tipo: 'ok', texto: `${a.nombre} verá el aviso en Inicio` });
       onCambio();
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({
+        tipo: 'error',
+        texto:
+          e instanceof ToqueYaExisteError
+            ? 'Ya has dado un toque a este alumno hoy.'
+            : 'No se pudo enviar el toque. Vuelve a intentarlo.',
+      });
     } finally {
       setEnviando(null);
     }
@@ -374,7 +374,7 @@ function SinApuntar({
             const toque = toques[a.dossierId];
             const color = COLOR_AVISO[nivelSinApuntar(a.dias)];
             return (
-              <Fila key={a.dossierId} primera={i === 0}>
+              <Fila key={a.dossierId} primera={i === 0} adaptable>
                 <View style={styles.flex}>
                   <ThemedText type="smallBold">{a.nombre}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
@@ -386,19 +386,18 @@ function SinApuntar({
                 <ThemedText type="smallBold" style={color ? { color: theme[color] } : undefined}>
                   {a.dias} días
                 </ThemedText>
-                {toque !== undefined && toque !== null ? (
-                  <Chip
-                    texto={toque ? `Toque el ${fechaCorta(toque)}` : 'Toque dado'}
-                    color="estadoPendiente"
-                  />
-                ) : (
+                {toque ? (
+                  <Chip texto={`Último toque: ${fechaCorta(toque)}`} color="estadoPendiente" />
+                ) : null}
+                {dossiers.some((d) => d.id === a.dossierId && puedeDarToques(usuario, d)) ? (
                   <Boton
                     texto="Darle un toque"
                     variante="secundario"
                     cargando={enviando === a.dossierId}
-                    onPress={() => darToque(a)}
+                    desactivado={enviando !== null}
+                    onPress={() => avisarAlumno(a)}
                   />
-                )}
+                ) : null}
               </Fila>
             );
           })}
@@ -501,7 +500,9 @@ function Fila({
   primera,
   onPress,
   etiqueta,
+  adaptable,
 }: {
+  adaptable?: boolean;
   children: ReactNode;
   primera: boolean;
   onPress?: () => void;
@@ -509,7 +510,8 @@ function Fila({
 }) {
   const theme = useTheme();
   const borde = primera ? null : { borderTopWidth: 1, borderColor: theme.border };
-  if (!onPress) return <View style={[styles.fila, borde]}>{children}</View>;
+  if (!onPress)
+    return <View style={[styles.fila, adaptable && { flexWrap: 'wrap' }, borde]}>{children}</View>;
   return (
     <Pressable
       accessibilityRole="button"
