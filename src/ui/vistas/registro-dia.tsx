@@ -48,7 +48,14 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
-import { fechaCorta, formatoHoras, hoyISO, limitesMes, sumarDias } from '@/ui/utils/fechas';
+import {
+  fechaCorta,
+  formatoHoras,
+  hoyISO,
+  limitesMes,
+  nombreDelDia,
+  sumarDias,
+} from '@/ui/utils/fechas';
 import { estadoEnvio, estadoMes, type TonoEstado } from '@/ui/utils/estados-registro';
 import { pasoHoras } from '@/ui/utils/horas';
 
@@ -457,12 +464,10 @@ function ChipEstado({ texto, estado }: { texto: string; estado: EstadoChip }) {
   );
 }
 
-const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
 /** `2026-10-22` → `jueves` */
 function diaSemana(fecha: string): string {
   const [a, m, d] = fecha.split('-').map(Number);
-  return DIAS_SEMANA[new Date(a, m - 1, d).getDay()];
+  return nombreDelDia(new Date(a, m - 1, d).getDay());
 }
 
 function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {

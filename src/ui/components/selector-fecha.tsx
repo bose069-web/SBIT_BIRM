@@ -8,7 +8,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
 import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { FontFamily, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
-import { DIAS_SEMANA, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
+import { diasSemana, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 interface Props {
@@ -84,7 +84,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
             />
           </View>
           <View style={styles.semana}>
-            {DIAS_SEMANA.map((d) => (
+            {diasSemana().map((d) => (
               <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.letra}>
                 {d}
               </ThemedText>

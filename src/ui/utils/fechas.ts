@@ -1,4 +1,6 @@
-const MESES = [
+import { idiomaActual } from './idioma';
+
+const MESES_ES = [
   'enero',
   'febrero',
   'marzo',
@@ -12,6 +14,45 @@ const MESES = [
   'noviembre',
   'diciembre',
 ];
+
+const MESES_CA = [
+  'gener',
+  'febrer',
+  'març',
+  'abril',
+  'maig',
+  'juny',
+  'juliol',
+  'agost',
+  'setembre',
+  'octubre',
+  'novembre',
+  'desembre',
+];
+
+const ABREVIADOS_CA = [
+  'gen',
+  'feb',
+  'març',
+  'abr',
+  'maig',
+  'juny',
+  'jul',
+  'ag',
+  'set',
+  'oct',
+  'nov',
+  'des',
+];
+
+/** Nombre del mes (1-12) en el idioma de la app. */
+export function nombreDelMes(m: number): string {
+  return (idiomaActual() === 'ca' ? MESES_CA : MESES_ES)[m - 1];
+}
+
+function mesAbreviado(m: number): string {
+  return idiomaActual() === 'ca' ? ABREVIADOS_CA[m - 1] : MESES_ES[m - 1].slice(0, 3);
+}
 
 /** Fecha local de hoy en `AAAA-MM-DD`. */
 export function hoyISO(): string {
@@ -28,13 +69,13 @@ export function sumarDias(fecha: string, dias: number): string {
 /** `2026-10` → `octubre 2026` */
 export function nombreMes(mes: string): string {
   const [a, m] = mes.split('-').map(Number);
-  return `${MESES[m - 1]} ${a}`;
+  return `${nombreDelMes(m)} ${a}`;
 }
 
 /** `2026-10-27` → `27 oct 2026` */
 export function fechaCorta(fecha: string): string {
   const [a, m, d] = fecha.split('-').map(Number);
-  return `${d} ${MESES[m - 1].slice(0, 3)} ${a}`;
+  return `${d} ${mesAbreviado(m)} ${a}`;
 }
 
 /** Fecha y hora ISO → `14:05`, en la hora local. */
@@ -43,13 +84,21 @@ export function horaCorta(instante: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const DIAS_CA = ['diumenge', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte'];
 
-/** `2026-10-27` → `martes 27 de octubre` */
+/** Nombre del día de la semana (0 = domingo) en el idioma de la app. */
+export function nombreDelDia(dia: number): string {
+  return (idiomaActual() === 'ca' ? DIAS_CA : DIAS_ES)[dia];
+}
+
+/** `2026-10-27` → `martes 27 de octubre` (`dimarts 27 d'octubre`). */
 export function fechaLarga(fecha: string): string {
   const [a, m, d] = fecha.split('-').map(Number);
-  const dia = DIAS[new Date(a, m - 1, d).getDay()];
-  return `${dia} ${d} de ${MESES[m - 1]}`;
+  const dia = nombreDelDia(new Date(a, m - 1, d).getDay());
+  const mes = nombreDelMes(m);
+  if (idiomaActual() === 'ca') return `${dia} ${d} ${/^[aeiou]/.test(mes) ? "d'" : 'de '}${mes}`;
+  return `${dia} ${d} de ${mes}`;
 }
 
 /** Días que faltan de `hoy` a `fecha`; negativo si ya pasó y 0 si es hoy. */

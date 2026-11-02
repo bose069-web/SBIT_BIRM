@@ -24,6 +24,7 @@ import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/i
 import { Radius, Spacing } from '@/ui/theme/theme';
 
 import { ThemedText } from './themed-text';
+import { t } from '@/ui/utils/idioma';
 
 const LOGOTIPO = {
   light: require('@/assets/brand/kampus-logotipo.png'),
@@ -52,7 +53,7 @@ export default function AppTabs({ rol, contadorChat }: { rol: Rol; contadorChat:
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton href="/">Inicio</TabButton>
+            <TabButton href="/">{t('Inicio')}</TabButton>
           </TabTrigger>
           {/* El profe no tiene calendario: esa pestaña es el seguimiento de su clase. La empresa
               tampoco: lo que necesita son los informes que le toca validar. Las rutas que no se
@@ -61,27 +62,27 @@ export default function AppTabs({ rol, contadorChat }: { rol: Rol; contadorChat:
             <TabTrigger name="calendario" href="/calendario" style={{ display: 'none' }} />
           ) : (
             <TabTrigger name="calendario" href="/calendario" asChild>
-              <TabButton href="/calendario">{profe ? 'Seguimiento' : 'Calendario'}</TabButton>
+              <TabButton href="/calendario">{profe ? t('Seguimiento') : t('Calendario')}</TabButton>
             </TabTrigger>
           )}
           {rol === 'empresa' ? (
             <TabTrigger name="validaciones" href="/validaciones" asChild>
-              <TabButton href="/validaciones">Validaciones</TabButton>
+              <TabButton href="/validaciones">{t('Validaciones')}</TabButton>
             </TabTrigger>
           ) : (
             <TabTrigger name="validaciones" href="/validaciones" style={{ display: 'none' }} />
           )}
           <TabTrigger name="chat" href="/chat" asChild>
             <TabButton href="/chat" contador={contadorChat}>
-              Chat
+              {t('Chat')}
             </TabButton>
           </TabTrigger>
           <TabTrigger name="perfil" href="/perfil" asChild>
-            <TabButton href="/perfil">Perfil</TabButton>
+            <TabButton href="/perfil">{t('Perfil')}</TabButton>
           </TabTrigger>
           <BotonEsquema />
           {/* Como en anthropic.com: una sola acción destacada, en píldora oscura, al final. */}
-          {rol === 'alumno' ? <BotonDestacado texto="Registrar hoy" href="/registro" /> : null}
+          {rol === 'alumno' ? <BotonDestacado texto={t('Registrar hoy')} href="/registro" /> : null}
         </CustomTabList>
       </TabList>
     </Tabs>
@@ -116,7 +117,7 @@ export function TabButton({
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={
         typeof children === 'string'
-          ? `${children}${contador ? `, ${contador} sin leer` : ''}`
+          ? `${children}${contador ? t(', {n} sin leer', { n: contador }) : ''}`
           : undefined
       }
       style={({ pressed }) => pressed && styles.pressed}>
@@ -190,7 +191,7 @@ export function CustomTabList(props: TabListProps) {
             volver arriba sale deslizándose. Son dos recortes del mismo logotipo. */}
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Kampus, ir a Inicio"
+          accessibilityLabel={t('Kampus, ir a Inicio')}
           onPress={() => router.navigate('/')}
           style={({ hovered, pressed }: EstadoPressable) => [
             pressed && styles.pressed,
@@ -252,7 +253,7 @@ function BotonEsquema() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      accessibilityLabel={oscuro ? t('Cambiar a modo claro') : t('Cambiar a modo oscuro')}
       onPress={() => cambiarEsquemaWeb(oscuro ? 'light' : 'dark')}
       style={({ hovered, pressed }: EstadoPressable) => [
         styles.botonEsquema,
