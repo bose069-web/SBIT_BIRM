@@ -28,6 +28,8 @@ import { FilaDato } from '@/ui/components/fila-dato';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Selector } from '@/ui/components/selector';
+import { cambiarEsquemaWeb } from '@/ui/estado/preferencias-web';
+import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -59,6 +61,21 @@ const IDIOMAS: { valor: Idioma; texto: string }[] = [
   { valor: 'es', texto: 'Castellano' },
   { valor: 'ca', texto: 'Català' },
 ];
+
+function SelectorApariencia() {
+  const actual = useColorScheme() === 'dark' ? 'dark' : 'light';
+  return (
+    <Selector
+      etiqueta="Apariencia"
+      opciones={[
+        { valor: 'light', texto: 'Claro' },
+        { valor: 'dark', texto: 'Oscuro' },
+      ]}
+      valor={actual}
+      onCambio={cambiarEsquemaWeb}
+    />
+  );
+}
 
 export function VistaPerfil() {
   const usuario = useUsuario();
@@ -385,6 +402,7 @@ function Formulario({
 
   const preferencias = (
     <Tarjeta titulo="Preferencias">
+      <SelectorApariencia />
       <Selector
         etiqueta="Idioma"
         opciones={IDIOMAS}
