@@ -10,7 +10,13 @@ import {
   type ValoresDia,
 } from '../domain/registro-diario';
 import type { BorradorPort } from '../ports/borrador-port';
-import { alumno, crearDossier, RegistrosFalsos, ValoracionesFalsas } from '../__fixtures__/datos';
+import {
+  alumno,
+  crearDossier,
+  RegistrosFalsos,
+  ValoracionesFalsas,
+  DossiersFalsos,
+} from '../__fixtures__/datos';
 import { BorradorLocalStorage } from '../../infrastructure/dispositivo/borrador-local-storage';
 import { BorradorMemory } from '../../infrastructure/memory/borrador-memory';
 
@@ -183,19 +189,21 @@ describe('enviarDia', () => {
   };
 
   function escenario() {
+    const dossiers = new DossiersFalsos();
+    dossiers.dossiers = [dossier];
     const puertos = {
+      dossiers,
       registros: new RegistrosFalsos(),
       valoraciones: new ValoracionesFalsas(),
       borradores: new BorradorMemory(),
     };
     return {
       puertos,
-      enviar: (huellaBase: string | null = null, forzar = false) =>
+      enviar: (huellaBase: string | null = null) =>
         enviarDia(puertos, alumno, dossier, claveEnvio, {
           fecha: '2026-10-20',
           valores,
           huellaBase,
-          forzar,
           ahora,
         }),
       leer: () => leerBorrador(puertos.borradores, claveEnvio, validarValoresDia),
@@ -282,7 +290,7 @@ describe('enviarDia', () => {
   it('al confirmar, se envía el suyo', async () => {
     const { puertos, enviar } = escenario();
     puertos.registros.dias = [delServidor];
-    const r = await enviar(null, true);
+    const r = await enviar(huellaRegistro(delServidor));
     expect(r.resultado).toBe('guardado');
     expect(puertos.registros.dias.at(-1)?.tipo).toBe('trabajo');
   });

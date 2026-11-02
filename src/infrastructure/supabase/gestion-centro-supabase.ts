@@ -2,14 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Centro, Convenio, Persona } from '@/core/domain/centro';
 import {
-  AltaSinIncorporarError,
   CorreoYaRegistradoError,
   DatosInvalidosError,
+  SinPermisoError,
 } from '@/core/domain/errores';
 import { esRol } from '@/core/domain/usuario';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
-
-import { crearClienteTemporal } from './client';
 
 interface FilaPersona {
   id: string;
@@ -27,22 +25,24 @@ interface FilaConvenio {
   empresas: { nombre: string } | null;
 }
 
-/** Lo que responde Supabase Auth al crear una cuenta, en palabras del instituto. */
-function errorDeAlta(error: { message: string; code?: string }): Error {
-  switch (error.code) {
-    case 'user_already_exists':
-    case 'email_exists':
+type FilaAlta = Pick<FilaPersona, 'id' | 'nombre' | 'email' | 'centro_id' | 'profe_id'>;
+
+/** Lo que responde la función de alta, en palabras del instituto. */
+async function errorDeAlta(error: { context?: unknown } | null): Promise<Error> {
+  const respuesta = error?.context;
+  const cuerpo: unknown =
+    respuesta instanceof Response ? await respuesta.json().catch(() => null) : null;
+  const codigo = (cuerpo as { codigo?: string } | null)?.codigo;
+  switch (codigo) {
+    case 'correo_repetido':
       return new CorreoYaRegistradoError();
-    case 'email_address_invalid':
-      return new DatosInvalidosError('Escribe un correo válido');
-    case 'signup_disabled':
-    case 'email_provider_disabled':
-      return new Error('El servidor no permite crear cuentas nuevas ahora mismo');
-    case 'over_email_send_rate_limit':
-    case 'over_request_rate_limit':
-      return new Error('Se han creado demasiadas cuentas seguidas. Inténtalo dentro de un rato');
+    case 'datos_invalidos':
+      return new DatosInvalidosError('Revisa el nombre y el correo');
+    case 'sin_permiso':
+    case 'sin_sesion':
+      return new SinPermisoError('dar de alta alumnos en este centro');
     default:
-      return new Error(error.message);
+      return new Error('No se ha podido crear la cuenta. Inténtalo de nuevo.');
   }
 }
 
@@ -57,10 +57,7 @@ function comprobar(error: { message: string; code?: string } | null) {
 
 // RLS y el trigger proteger_perfil deciden qué puede ver y cambiar cada uno.
 export class GestionCentroSupabase implements GestionCentroPort {
-  constructor(
-    private readonly cliente: SupabaseClient,
-    private readonly proyecto: { url: string; clave: string },
-  ) {}
+  constructor(private readonly cliente: SupabaseClient) {}
 
   async listarCentros(): Promise<Centro[]> {
     const { data, error } = await this.cliente
@@ -143,44 +140,19 @@ export class GestionCentroSupabase implements GestionCentroPort {
     datos: { nombre: string; email: string; contrasena: string },
     centroId: string,
   ) {
-    // Con confirmación de correo, signUp sobre una cuenta sin confirmar devuelve esa cuenta como si
-    // fuera nueva y conserva su contraseña: la inicial que se mostrase no serviría. Hay que frenarlo.
-    const { data: existente, error: errorExistente } = await this.cliente
-      .from('perfiles')
-      .select('id')
-      .eq('email', datos.email)
-      .maybeSingle<{ id: string }>();
-    comprobar(errorExistente);
-    if (existente) throw new CorreoYaRegistradoError();
-
-    const temporal = crearClienteTemporal(this.proyecto.url, this.proyecto.clave);
-    const { data, error } = await temporal.auth.signUp({
-      email: datos.email,
-      password: datos.contrasena,
-      options: { data: { nombre: datos.nombre } },
-    });
-    if (error) throw errorDeAlta(error);
-    // Con la confirmación de correo activa, un correo repetido devuelve un usuario sin identidades.
-    if (!data.user || data.user.identities?.length === 0) throw new CorreoYaRegistradoError();
-    // Esa sesión no le sirve a nadie: se revoca, y si falla caduca sola sin haberse guardado.
-    if (data.session) await temporal.auth.signOut({ scope: 'local' }).catch(() => undefined);
-
-    const { data: fila, error: errorCentro } = await this.cliente
-      .from('perfiles')
-      .update({ centro_id: centroId })
-      .eq('id', data.user.id)
-      .select('id, nombre, email, rol, centro_id, profe_id')
-      .maybeSingle<FilaPersona>();
-    if (errorCentro) throw new AltaSinIncorporarError();
-    // Una cuenta recién creada siempre se puede tocar: si RLS no la deja, es de otro centro y ya existía.
-    if (!fila) throw new CorreoYaRegistradoError();
+    const { data, error } = await this.cliente.functions.invoke<{ alumno: FilaAlta }>(
+      'alta-alumno',
+      { body: { ...datos, centroId } },
+    );
+    if (error || !data) throw await errorDeAlta(error);
+    const { alumno } = data;
     return {
-      id: fila.id,
-      nombre: fila.nombre,
-      email: fila.email,
+      id: alumno.id,
+      nombre: alumno.nombre,
+      email: alumno.email,
       rol: 'alumno' as const,
-      centroId: fila.centro_id,
-      profeId: fila.profe_id,
+      centroId: alumno.centro_id,
+      profeId: alumno.profe_id,
     };
   }
 

@@ -1,6 +1,6 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
-import { CredencialesInvalidasError } from '@/core/domain/errores';
+import { CredencialesInvalidasError, CuentaSinConfirmarError } from '@/core/domain/errores';
 import { esRol, type Usuario } from '@/core/domain/usuario';
 import type { AuthPort } from '@/core/ports/auth-port';
 
@@ -37,6 +37,7 @@ export class AuthSupabase implements AuthPort {
       email,
       password: contrasena,
     });
+    if (error?.code === 'email_not_confirmed') throw new CuentaSinConfirmarError();
     if (error || !data.user) throw new CredencialesInvalidasError();
     return this.aUsuario(data.user);
   }

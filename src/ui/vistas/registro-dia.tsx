@@ -8,15 +8,13 @@ import {
   View,
 } from 'react-native';
 
-import { obtenerDossierActual } from '@/core/application/dossier';
+import { cargarContextoRegistro } from '@/core/application/contexto-registro';
 import {
   buscarUltimaJornada,
   eliminarRegistro,
   enviarDia,
-  listarRegistros,
   type ResultadoEnvio,
 } from '@/core/application/registro-diario';
-import { obtenerSeguimiento } from '@/core/application/valoracion';
 import type { ClaveBorrador } from '@/core/domain/borrador';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
@@ -76,15 +74,10 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const [reinicio, setReinicio] = useState(0);
 
   const [desde, hasta] = limitesMes(fecha);
-  const { datos, error, cargando, recargar } = useDatos(async () => {
-    const dossier = await obtenerDossierActual(container.dossiers, hoyISO());
-    if (!dossier) return null;
-    const [dias, seguimiento] = await Promise.all([
-      listarRegistros(container.registros, dossier.id, desde, hasta),
-      obtenerSeguimiento(container.valoraciones, dossier, hoyISO()),
-    ]);
-    return { dossier, dias, seguimiento };
-  }, [desde, hasta]);
+  const { datos, error, cargando, recargar } = useDatos(
+    () => cargarContextoRegistro(container, usuario, desde, hasta, hoyISO()),
+    [usuario.id, desde, hasta],
+  );
   useRecargarAlVolver(recargar);
 
   const existente = datos?.dias.find((d) => d.fecha === fecha) ?? null;
@@ -140,7 +133,6 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   async function enviar(
     valores: ValoresDia,
     huellaBase: string | null,
-    forzar: boolean,
   ): Promise<ResultadoEnvio | null> {
     Keyboard.dismiss();
     setAviso(null);
@@ -148,6 +140,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     try {
       const resultado = await enviarDia(
         {
+          dossiers: container.dossiers,
           registros: container.registros,
           valoraciones: container.valoraciones,
           borradores: container.borradores,
@@ -155,11 +148,17 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         usuario,
         dossier,
         claveDia(usuario.id, dossier.id, fecha),
-        { fecha, valores, huellaBase, forzar, ahora: new Date().toISOString() },
+        { fecha, valores, huellaBase, ahora: new Date().toISOString() },
       );
       if (resultado.resultado === 'guardado') {
         setAviso({ tipo: 'ok', texto: `Guardado en el servidor el ${fechaCorta(fecha)}` });
         recargar();
+      } else if (resultado.resultado === 'sin-guardar-local') {
+        setAviso({
+          tipo: 'error',
+          texto:
+            'No se ha podido enviar ni guardar en este dispositivo. Mantén esta pantalla abierta y reintenta para no perder los cambios.',
+        });
       } else if (resultado.resultado === 'sin-conexion') {
         setAviso({
           tipo: 'error',
@@ -282,7 +281,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
   const formulario = (
     <FormularioDia
       // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
-      key={`${fecha}-${JSON.stringify(existente)}-${reinicio}`}
+      key={`${usuario.id}-${dossier.id}-${fecha}-${JSON.stringify(existente)}-${reinicio}`}
       usuarioId={usuario.id}
       dossierId={dossier.id}
       fecha={fecha}
@@ -291,12 +290,13 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       ultimoTrabajo={existente ? null : ultimaJornada.datos}
       autoguardar={!cerrado && !fueraDePeriodo}
       cerrado={cerrado}
+      local={datos.local}
       onDescartado={() => {
         setAviso(null);
         setReinicio((r) => r + 1);
         recargar();
       }}
-      bloqueado={bloqueado}
+      bloqueado={bloqueado || guardando}
       motivoBloqueo={
         fueraDePeriodo
           ? 'Este día está fuera de tu periodo de prácticas.'
@@ -322,6 +322,12 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         amplia={ancha}
         compacta
         bajoCabecera>
+        {!datos.contextoConservado ? (
+          <Mensaje
+            tipo="error"
+            texto="No se pudo conservar el contexto del formulario. No podrás recuperarlo al reabrir sin conexión."
+          />
+        ) : null}
         {ancha ? (
           <View style={styles.columnas}>
             <View style={styles.izquierda}>
@@ -560,15 +566,12 @@ interface PropsFormulario {
   /** En un mes cerrado el borrador se conserva tal cual: se ve y se descarta, pero no cambia. */
   autoguardar: boolean;
   cerrado: boolean;
+  local: boolean;
   onDescartado: () => void;
   motivoBloqueo: string | null;
   guardando: boolean;
   aviso: { tipo: 'error' | 'ok'; texto: string } | null;
-  onEnviar: (
-    valores: ValoresDia,
-    huellaBase: string | null,
-    forzar: boolean,
-  ) => Promise<ResultadoEnvio | null>;
+  onEnviar: (valores: ValoresDia, huellaBase: string | null) => Promise<ResultadoEnvio | null>;
   onBorrar: () => Promise<boolean>;
 }
 
@@ -592,6 +595,7 @@ function FormularioDia({
   bloqueado,
   autoguardar,
   cerrado,
+  local,
   onDescartado,
   motivoBloqueo,
   guardando,
@@ -654,19 +658,21 @@ function FormularioDia({
   async function enviar(forzar = false) {
     setConflicto(undefined);
     await borrador.volcar();
-    const envio = await onEnviar(valores, borrador.huella(), forzar);
+    const base = forzar && conflicto !== undefined ? huellaRegistro(conflicto) : borrador.huella();
+    const envio = await onEnviar(valores, base);
     if (envio?.resultado === 'guardado') await borrador.descartar();
     else if (envio?.resultado === 'conflicto') setConflicto(envio.servidor);
     else if (envio?.resultado === 'sin-conexion') borrador.marcarPendiente(envio.guardadoEn);
+    else if (envio?.resultado === 'sin-guardar-local') borrador.marcarFallo();
   }
 
   const estados = [
     estadoEnvio({
       hayBorrador: borrador.guardadoEn !== null,
       pendienteEnvio: borrador.pendienteEnvio,
-      enServidor: existente !== null,
+      enServidor: !local && existente !== null,
     }),
-    estadoMes({ cerrado, enServidor: existente !== null }),
+    estadoMes({ cerrado, enServidor: !local && existente !== null }),
   ].flatMap((e) => (e ? [e] : []));
 
   const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
@@ -675,6 +681,12 @@ function FormularioDia({
     // Tocar fuera de un campo cierra el teclado.
     <Pressable accessible={false} onPress={Keyboard.dismiss}>
       <Tarjeta titulo="Qué has hecho">
+        {local ? (
+          <Mensaje
+            tipo="error"
+            texto="Sin conexión: puedes editar el borrador con el contexto guardado en este dispositivo. Al enviar se comprobarán los permisos y el estado actual del mes."
+          />
+        ) : null}
         {estados.length > 0 ? (
           <View style={styles.estados}>
             {estados.map((e) => (
