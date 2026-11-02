@@ -166,12 +166,17 @@ export class GestionCentroSupabase implements GestionCentroPort {
 
   async asignarProfeEnBloque(alumnoIds: string[], profeId: string | null) {
     if (alumnoIds.length === 0) return;
-    const { error } = await this.cliente
+    const { data, error } = await this.cliente
       .from('perfiles')
       .update({ profe_id: profeId })
       .in('id', alumnoIds)
-      .eq('rol', 'alumno');
+      .eq('rol', 'alumno')
+      .select('id');
     comprobar(error);
+    // RLS omite sin error las filas ajenas: no se puede dar por movido lo que no se ha movido.
+    if (data?.length !== new Set(alumnoIds).size) {
+      throw new SinPermisoError('reasignar a todos estos alumnos');
+    }
   }
 
   async listarEmpresas() {

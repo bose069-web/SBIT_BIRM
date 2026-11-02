@@ -57,3 +57,27 @@ describe('crearAlumno en Supabase', () => {
     await expect(port.crearAlumno(datos, 'c1')).rejects.toThrow('No se ha podido crear la cuenta');
   });
 });
+
+describe('asignarProfeEnBloque en Supabase', () => {
+  function preparaUpdate(filas: { id: string }[]) {
+    const consulta = { update: jest.fn(), in: jest.fn(), eq: jest.fn(), select: jest.fn() };
+    consulta.update.mockReturnValue(consulta);
+    consulta.in.mockReturnValue(consulta);
+    consulta.eq.mockReturnValue(consulta);
+    consulta.select.mockResolvedValue({ data: filas, error: null });
+    const cliente = { from: jest.fn(() => consulta) };
+    return new GestionCentroSupabase(cliente as unknown as SupabaseClient);
+  }
+
+  it('acepta cuando se mueven todos', async () => {
+    await expect(
+      preparaUpdate([{ id: 'a1' }, { id: 'a2' }]).asignarProfeEnBloque(['a1', 'a2'], 'p1'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('avisa si los permisos omiten a algún alumno', async () => {
+    await expect(
+      preparaUpdate([{ id: 'a1' }]).asignarProfeEnBloque(['a1', 'a2'], 'p1'),
+    ).rejects.toThrow(SinPermisoError);
+  });
+});

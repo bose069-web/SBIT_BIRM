@@ -87,7 +87,7 @@ export async function cargarContextoRegistro(
     return {
       dossier: copia.valores,
       dias: [],
-      seguimiento: { mensuales: [], final: null, sinValorar: [] },
+      seguimiento: { mensuales: [], final: null, sinValorar: [], sinConfirmar: [] },
       local: true,
       contextoConservado: true,
     };
