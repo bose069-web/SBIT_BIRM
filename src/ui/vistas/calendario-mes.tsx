@@ -10,6 +10,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { estadoDia, semanasDelMes, sumarMeses, type EstadoDia } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
+import { idiomaActual } from '@/ui/utils/idioma';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 
@@ -140,7 +141,7 @@ export function CalendarioMes({
 
       <View>
         <View style={styles.semana}>
-          {DIAS_SEMANA_CORTOS.map((d) => (
+          {diasCortos().map((d) => (
             <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.diaSemana}>
               {d}
             </ThemedText>
@@ -263,7 +264,11 @@ export function CalendarioMes({
   );
 }
 
-const DIAS_SEMANA_CORTOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+function diasCortos(): string[] {
+  return idiomaActual() === 'ca'
+    ? ['dl', 'dt', 'dc', 'dj', 'dv', 'ds', 'dg']
+    : ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+}
 
 const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 

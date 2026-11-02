@@ -6,7 +6,7 @@ import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
-import { DIAS_SEMANA, esFinDeSemana, estadoDia, semanasDelMes } from '@/ui/utils/calendario';
+import { diasSemana, esFinDeSemana, estadoDia, semanasDelMes } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
 
 import { ESTADOS_DIA } from './calendario-mes';
@@ -60,7 +60,7 @@ export function MiniCalendario({
         </View>
       ) : null}
       <View style={styles.semana}>
-        {DIAS_SEMANA.map((d) => (
+        {diasSemana().map((d) => (
           <ThemedText key={d} style={[styles.celda, styles.letra, { color: theme.textSecondary }]}>
             {d}
           </ThemedText>

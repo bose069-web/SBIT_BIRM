@@ -17,7 +17,6 @@ import {
   puedeCambiarSuEmail,
   puedeCambiarSuNombre,
   type DatosPersonales,
-  type Idioma,
 } from '@/core/domain/perfil';
 import type { Rol, Usuario } from '@/core/domain/usuario';
 import { container } from '@/config/container';
@@ -31,14 +30,18 @@ import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
+import { useIdioma } from '@/ui/hooks/use-idioma';
 import { useSesion, useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
+import { t } from '@/ui/utils/idioma';
+import { OPCIONES_IDIOMA } from '@/ui/utils/traducciones/opciones';
 
 import { ErrorCarga, EsqueletoPanel } from './comun';
 
+// Textos en castellano: se traducen con t() al pintarlos.
 const NOMBRE_ROL: Record<Rol, string> = {
   alumno: 'Alumno',
   empresa: 'Tutor de empresa',
@@ -54,11 +57,6 @@ const TITULO_ROL: Record<Rol, string | null> = {
   instituto: 'Cargo en el centro',
   generalitat: null,
 };
-
-const IDIOMAS: { valor: Idioma; texto: string }[] = [
-  { valor: 'es', texto: 'Castellano' },
-  { valor: 'ca', texto: 'Català' },
-];
 
 export function VistaPerfil() {
   const usuario = useUsuario();
@@ -88,11 +86,11 @@ export function VistaPerfil() {
         sesion={
           <>
             <TarjetaContrasena />
-            <Tarjeta titulo="Sesión">
+            <Tarjeta titulo={t('Sesión')}>
               <ThemedText type="small" themeColor="textSecondary">
-                Datos: {container.auth.nombre}
+                {t('Datos: {origen}', { origen: container.auth.nombre })}
               </ThemedText>
-              <Boton texto="Cerrar sesión" variante="peligro" onPress={salir} />
+              <Boton texto={t('Cerrar sesión')} variante="peligro" onPress={salir} />
             </Tarjeta>
           </>
         }
@@ -101,7 +99,7 @@ export function VistaPerfil() {
   }
 
   return (
-    <Pantalla titulo="Perfil" amplia={ancho} compacta>
+    <Pantalla titulo={t('Perfil')} amplia={ancho} compacta>
       {cabecera}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
@@ -138,7 +136,7 @@ function Cabecera({
         </View>
         <View style={styles.flex}>
           <ThemedText type="subtitle">{usuario.nombre}</ThemedText>
-          <Chip texto={NOMBRE_ROL[usuario.rol]} color="primary" />
+          <Chip texto={t(NOMBRE_ROL[usuario.rol])} color="primary" />
           <ThemedText type="small" themeColor="textSecondary">
             {usuario.email}
           </ThemedText>
@@ -147,22 +145,26 @@ function Cabecera({
       {usuario.rol === 'alumno' ? (
         <View style={[styles.practicas, { borderTopColor: theme.border }]}>
           <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
-            <FilaDato vertical etiqueta="Ciclo" valor={dossier?.ciclo ?? 'Sin asignar'} />
+            <FilaDato vertical etiqueta={t('Ciclo')} valor={dossier?.ciclo ?? t('Sin asignar')} />
           </View>
           <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
-            <FilaDato vertical etiqueta="Centro" valor={dossier?.centro ?? 'Sin asignar'} />
-          </View>
-          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
-            <FilaDato vertical etiqueta="Empresa" valor={dossier?.empresa ?? 'Sin asignar'} />
+            <FilaDato vertical etiqueta={t('Centro')} valor={dossier?.centro ?? t('Sin asignar')} />
           </View>
           <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
             <FilaDato
               vertical
-              etiqueta="Periodo"
+              etiqueta={t('Empresa')}
+              valor={dossier?.empresa ?? t('Sin asignar')}
+            />
+          </View>
+          <View style={[styles.datoPracticas, ancho && styles.datoPracticasAncho]}>
+            <FilaDato
+              vertical
+              etiqueta={t('Periodo')}
               valor={
                 dossier
                   ? `${fechaCorta(dossier.fechaInicio)} – ${fechaCorta(dossier.fechaFin)}`
-                  : 'Sin asignar'
+                  : t('Sin asignar')
               }
             />
           </View>
@@ -189,6 +191,7 @@ function Formulario({
 }) {
   const theme = useTheme();
   const { renombrar, cambiarCorreo } = useSesion();
+  const { idioma, cambiarIdioma } = useIdioma();
   const [nombre, setNombre] = useState(usuario.nombre);
   const [datos, setDatos] = useState(inicial);
   const [email, setEmail] = useState(usuario.email);
@@ -227,7 +230,7 @@ function Formulario({
         nombreGuardado = await cambiarNombre(container.perfil, usuario, nombre);
         renombrar(nombreGuardado);
       }
-      let mensaje = 'Cambios guardados';
+      let mensaje = t('Cambios guardados');
       let emailGuardado = guardado.email;
       // El correo solo se pide si ha cambiado de verdad.
       if (editaEmail && email.trim().toLowerCase() !== guardado.email.toLowerCase()) {
@@ -236,17 +239,25 @@ function Formulario({
         setEmail(cambio.email);
         if (cambio.estado === 'cambiado') {
           cambiarCorreo(cambio.email);
-          mensaje = 'Correo actualizado';
+          mensaje = t('Correo actualizado');
         } else {
-          mensaje = `Te hemos enviado un enlace a ${cambio.email} para confirmar el cambio. Hasta que lo confirmes, entra con el de siempre.`;
+          mensaje = t(
+            'Te hemos enviado un enlace a {email} para confirmar el cambio. Hasta que lo confirmes, entra con el de siempre.',
+            { email: cambio.email },
+          );
         }
       }
       setDatos(guardados);
       setNombre(nombreGuardado);
       setGuardado({ nombre: nombreGuardado, datos: guardados, email: emailGuardado });
       setAviso({ tipo: 'ok', texto: mensaje });
+      // Con el idioma nuevo se vuelve a pintar toda la app.
+      if (guardados.idioma !== idioma) cambiarIdioma(guardados.idioma);
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo guardar' });
+      setAviso({
+        tipo: 'error',
+        texto: e instanceof Error ? t(e.message) : t('No se pudo guardar'),
+      });
     } finally {
       setGuardando(false);
     }
@@ -256,13 +267,13 @@ function Formulario({
 
   // Datos de identidad: solo consulta, con una única nota sobre quién los gestiona.
   const cuenta = (
-    <Tarjeta titulo="Cuenta">
+    <Tarjeta titulo={t('Cuenta')}>
       {!editaNombre ? (
-        <FilaDato vertical={!ancho} etiqueta="Nombre y apellidos" valor={usuario.nombre} />
+        <FilaDato vertical={!ancho} etiqueta={t('Nombre y apellidos')} valor={usuario.nombre} />
       ) : null}
       {editaEmail ? (
         <Campo
-          etiqueta="Correo"
+          etiqueta={t('Correo')}
           value={email}
           onChangeText={(v) => {
             setEmail(v);
@@ -271,34 +282,36 @@ function Formulario({
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
-          ayuda="Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón."
+          ayuda={t(
+            'Es tu correo para entrar: aquí lo cambias tú. Te pediremos confirmarlo desde el buzón.',
+          )}
         />
       ) : (
-        <FilaDato vertical={!ancho} etiqueta="Correo" valor={usuario.email} />
+        <FilaDato vertical={!ancho} etiqueta={t('Correo')} valor={usuario.email} />
       )}
       {usuario.rol === 'alumno' ? <FilaDni dni={dni} vertical={!ancho} /> : null}
       {/* La empresa gestiona su propia cuenta; al resto se la gestiona su centro. */}
       {editaEmail ? null : (
         <ThemedText type="small" themeColor="textSecondary">
-          Estos datos los gestiona tu centro. Si alguno está mal, avisa a tu tutor.
+          {t('Estos datos los gestiona tu centro. Si alguno está mal, avisa a tu tutor.')}
         </ThemedText>
       )}
       {usuario.rol === 'alumno' ? (
         <Boton
-          texto="Avisar a mi tutor"
+          texto={t('Avisar a mi tutor')}
           variante="secundario"
           onPress={() => router.push('/chat')}
-          accessibilityHint="Abre el chat para comunicar una incidencia"
+          accessibilityHint={t('Abre el chat para comunicar una incidencia')}
         />
       ) : null}
     </Tarjeta>
   );
 
   const contacto = (
-    <Tarjeta titulo="Contacto">
+    <Tarjeta titulo={t('Contacto')}>
       {editaNombre ? (
         <Campo
-          etiqueta="Nombre y apellidos"
+          etiqueta={t('Nombre y apellidos')}
           value={nombre}
           onChangeText={(v) => {
             setNombre(v);
@@ -308,7 +321,7 @@ function Formulario({
         />
       ) : null}
       <Campo
-        etiqueta="Teléfono"
+        etiqueta={t('Teléfono')}
         value={texto('telefono')}
         onChangeText={(v) => cambiar('telefono', v)}
         placeholder="600 123 456"
@@ -317,21 +330,21 @@ function Formulario({
       />
       {usuario.rol === 'alumno' ? (
         <View style={[styles.emergencia, { borderTopColor: theme.border }]}>
-          <ThemedText type="smallBold">En caso de emergencia</ThemedText>
+          <ThemedText type="smallBold">{t('En caso de emergencia')}</ThemedText>
           <Campo
-            etiqueta="Nombre del contacto"
+            etiqueta={t('Nombre del contacto')}
             value={texto('emergenciaNombre')}
             onChangeText={(v) => cambiar('emergenciaNombre', v)}
-            placeholder="Madre, padre, tutor legal…"
+            placeholder={t('Madre, padre, tutor legal…')}
           />
           <Campo
-            etiqueta="Teléfono del contacto"
+            etiqueta={t('Teléfono del contacto')}
             value={texto('emergenciaTelefono')}
             onChangeText={(v) => cambiar('emergenciaTelefono', v)}
             keyboardType="phone-pad"
           />
           <ThemedText type="small" themeColor="textSecondary">
-            Pendiente de validar por tu tutor
+            {t('Pendiente de validar por tu tutor')}
           </ThemedText>
         </View>
       ) : null}
@@ -339,44 +352,46 @@ function Formulario({
   );
 
   const tarjetaRol = tituloRol ? (
-    <Tarjeta titulo={tituloRol}>
+    <Tarjeta titulo={t(tituloRol)}>
       {usuario.rol === 'profe' ? (
         <>
           <Campo
-            etiqueta="Departamento"
+            etiqueta={t('Departamento')}
             value={texto('departamento')}
             onChangeText={(v) => cambiar('departamento', v)}
-            placeholder="Informática"
+            placeholder={t('Informática')}
           />
           <Campo
-            etiqueta="Horario de tutoría"
+            etiqueta={t('Horario de tutoría')}
             value={texto('horarioTutoria')}
             onChangeText={(v) => cambiar('horarioTutoria', v)}
-            placeholder="Martes de 15:00 a 16:00"
+            placeholder={t('Martes de 15:00 a 16:00')}
           />
         </>
       ) : null}
       {usuario.rol === 'empresa' || usuario.rol === 'instituto' ? (
         <Campo
-          etiqueta="Cargo"
+          etiqueta={t('Cargo')}
           value={texto('cargo')}
           onChangeText={(v) => cambiar('cargo', v)}
-          placeholder={usuario.rol === 'empresa' ? 'Responsable de desarrollo' : 'Coordinación FCT'}
+          placeholder={
+            usuario.rol === 'empresa' ? t('Responsable de desarrollo') : t('Coordinación FCT')
+          }
         />
       ) : null}
       {usuario.rol === 'empresa' ? (
         <>
           <Campo
-            etiqueta="Teléfono de trabajo"
+            etiqueta={t('Teléfono de trabajo')}
             value={texto('telefonoTrabajo')}
             onChangeText={(v) => cambiar('telefonoTrabajo', v)}
             keyboardType="phone-pad"
           />
           <Campo
-            etiqueta="Centro de trabajo"
+            etiqueta={t('Centro de trabajo')}
             value={texto('centroTrabajo')}
             onChangeText={(v) => cambiar('centroTrabajo', v)}
-            placeholder="Oficina de Barcelona"
+            placeholder={t('Oficina de Barcelona')}
           />
         </>
       ) : null}
@@ -384,15 +399,15 @@ function Formulario({
   ) : null;
 
   const preferencias = (
-    <Tarjeta titulo="Preferencias">
+    <Tarjeta titulo={t('Preferencias')}>
       <Selector
-        etiqueta="Idioma"
-        opciones={IDIOMAS}
+        etiqueta={t('Idioma')}
+        opciones={OPCIONES_IDIOMA}
         valor={datos.idioma}
         onCambio={(v) => cambiar('idioma', v)}
       />
       <Interruptor
-        texto="Avisos y notificaciones"
+        texto={t('Avisos y notificaciones')}
         valor={datos.notificaciones}
         onCambio={(v) => cambiar('notificaciones', v)}
       />
@@ -406,17 +421,17 @@ function Formulario({
           <Mensaje tipo={aviso.tipo} texto={aviso.texto} />
         ) : (
           <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-            Tienes cambios sin guardar
+            {t('Tienes cambios sin guardar')}
           </ThemedText>
         )}
       </View>
-      <Boton texto="Guardar cambios" onPress={guardar} cargando={guardando} />
+      <Boton texto={t('Guardar cambios')} onPress={guardar} cargando={guardando} />
     </View>
   ) : null;
 
   // Web ancha: lo editable a la izquierda (contacto y rol en paralelo) y la cuenta a la derecha.
   return (
-    <Pantalla titulo="Perfil" amplia={ancho} compacta pie={barra}>
+    <Pantalla titulo={t('Perfil')} amplia={ancho} compacta pie={barra}>
       {cabecera}
       {!hayCambios && aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       {ancho ? (
@@ -455,7 +470,7 @@ function TarjetaContrasena() {
   const guardar = async () => {
     if (guardando) return;
     if (nueva !== repetida) {
-      setAviso({ tipo: 'error', texto: 'Las dos contraseñas no coinciden' });
+      setAviso({ tipo: 'error', texto: t('Las dos contraseñas no coinciden') });
       return;
     }
     setGuardando(true);
@@ -464,27 +479,30 @@ function TarjetaContrasena() {
       await cambiarContrasena(container.auth, nueva);
       setNueva('');
       setRepetida('');
-      setAviso({ tipo: 'ok', texto: 'Contraseña cambiada' });
+      setAviso({ tipo: 'ok', texto: t('Contraseña cambiada') });
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo cambiar' });
+      setAviso({
+        tipo: 'error',
+        texto: e instanceof Error ? t(e.message) : t('No se pudo cambiar'),
+      });
     } finally {
       setGuardando(false);
     }
   };
 
   return (
-    <Tarjeta titulo="Contraseña">
+    <Tarjeta titulo={t('Contraseña')}>
       <Campo
-        etiqueta="Contraseña nueva"
+        etiqueta={t('Contraseña nueva')}
         value={nueva}
         onChangeText={setNueva}
         secureTextEntry
         autoCapitalize="none"
         autoComplete="new-password"
-        ayuda="Al menos 8 caracteres."
+        ayuda={t('Al menos 8 caracteres.')}
       />
       <Campo
-        etiqueta="Repite la contraseña"
+        etiqueta={t('Repite la contraseña')}
         value={repetida}
         onChangeText={setRepetida}
         secureTextEntry
@@ -494,7 +512,7 @@ function TarjetaContrasena() {
       />
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       <Boton
-        texto="Cambiar contraseña"
+        texto={t('Cambiar contraseña')}
         variante="secundario"
         onPress={guardar}
         cargando={guardando}
@@ -506,7 +524,7 @@ function TarjetaContrasena() {
 /** DNI enmascarado por defecto; el alumno puede mostrarlo pero nunca editarlo. */
 function FilaDni({ dni, vertical }: { dni: string | null; vertical: boolean }) {
   const [visible, setVisible] = useState(false);
-  if (!dni) return <FilaDato vertical={vertical} etiqueta="DNI" valor="Sin registrar" />;
+  if (!dni) return <FilaDato vertical={vertical} etiqueta="DNI" valor={t('Sin registrar')} />;
   return (
     <View style={styles.filaDni}>
       <View style={styles.flex}>
@@ -514,11 +532,11 @@ function FilaDni({ dni, vertical }: { dni: string | null; vertical: boolean }) {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={visible ? 'Ocultar DNI' : 'Mostrar DNI'}
+        accessibilityLabel={visible ? t('Ocultar DNI') : t('Mostrar DNI')}
         onPress={() => setVisible((v) => !v)}
         style={({ pressed }) => [styles.botonDni, pressed && styles.pulsado]}>
         <ThemedText type="smallBold" themeColor="primary">
-          {visible ? 'Ocultar' : 'Mostrar'}
+          {visible ? t('Ocultar') : t('Mostrar')}
         </ThemedText>
       </Pressable>
     </View>
