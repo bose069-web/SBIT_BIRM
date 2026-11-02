@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { SinPermisoError, ValoracionYaExisteError } from '@/core/domain/errores';
+import {
+  SinPermisoError,
+  ValoracionInvalidaError,
+  ValoracionYaExisteError,
+} from '@/core/domain/errores';
 import type {
   BorradorValoracionFinal,
   BorradorValoracionMensual,
@@ -18,6 +22,8 @@ interface FilaMensual {
   comentario: string | null;
   valorada_por: string;
   valorada_en: string;
+  confirmada_por: string | null;
+  confirmada_en: string | null;
 }
 
 interface FilaFinal {
@@ -28,7 +34,8 @@ interface FilaFinal {
   valorada_en: string;
 }
 
-const COLUMNAS_MENSUAL = 'id, dossier_id, mes, valoracion, comentario, valorada_por, valorada_en';
+const COLUMNAS_MENSUAL =
+  'id, dossier_id, mes, valoracion, comentario, valorada_por, valorada_en, confirmada_por, confirmada_en';
 const COLUMNAS_FINAL = 'dossier_id, resultado, comentario, valorada_por, valorada_en';
 
 function aMensual(f: FilaMensual): ValoracionMensual {
@@ -41,6 +48,8 @@ function aMensual(f: FilaMensual): ValoracionMensual {
     comentario: f.comentario,
     valoradaPor: f.valorada_por,
     valoradaEn: f.valorada_en,
+    confirmadaPor: f.confirmada_por,
+    confirmadaEn: f.confirmada_en,
   };
 }
 
@@ -112,6 +121,33 @@ export class ValoracionSupabase implements ValoracionPort {
       .single<FilaMensual>();
     if (error?.code === '23505') throw new ValoracionYaExisteError();
     if (error?.code === '42501') throw new SinPermisoError('valorar este dossier');
+    if (error) throw new Error(error.message);
+    return aMensual(data);
+  }
+
+  async confirmarMes(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, true);
+  }
+
+  async quitarConfirmacion(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, false);
+  }
+
+  /**
+   * Solo se manda `confirmada_en`: el trigger `confirmar_mes` pone quién confirma, comprueba que sea
+   * el profe tutor y le impide a la empresa tocar un mes ya confirmado.
+   */
+  private async cambiarConfirmacion(dossierId: string, mes: string, confirmar: boolean) {
+    const { data, error } = await this.cliente
+      .from('valoraciones_mensuales')
+      .update({ confirmada_en: confirmar ? new Date().toISOString() : null })
+      .eq('dossier_id', dossierId)
+      .eq('mes', `${mes}-01`)
+      .select(COLUMNAS_MENSUAL)
+      .single<FilaMensual>();
+    if (error?.code === '42501') throw new SinPermisoError('confirmar este mes');
+    // `raise exception` del trigger: el mensaje ya está en castellano y se le puede enseñar al usuario.
+    if (error?.code === 'P0001') throw new ValoracionInvalidaError(error.message);
     if (error) throw new Error(error.message);
     return aMensual(data);
   }

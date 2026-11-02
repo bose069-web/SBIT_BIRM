@@ -2,6 +2,7 @@ import { huellaRegistro, valoresDeRegistro, valoresDiaIguales } from '../domain/
 import {
   ConflictoRegistroError,
   CorreoYaRegistradoError,
+  ValoracionInvalidaError,
   ValoracionYaExisteError,
 } from '../domain/errores';
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
@@ -171,7 +172,14 @@ export class ValoracionesFalsas implements ValoracionPort {
     return this.mensuales;
   }
   async guardarMensual(b: BorradorValoracionMensual) {
-    const v: ValoracionMensual = { ...b, id: `v-${b.mes}`, valoradaPor: 'x', valoradaEn: '' };
+    const v: ValoracionMensual = {
+      ...b,
+      id: `v-${b.mes}`,
+      valoradaPor: 'x',
+      valoradaEn: '',
+      confirmadaPor: null,
+      confirmadaEn: null,
+    };
     this.mensuales = [
       ...this.mensuales.filter((m) => m.dossierId !== b.dossierId || m.mes !== b.mes),
       v,
@@ -183,6 +191,23 @@ export class ValoracionesFalsas implements ValoracionPort {
       throw new ValoracionYaExisteError();
     }
     return this.guardarMensual(b);
+  }
+  async confirmarMes(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, true);
+  }
+  async quitarConfirmacion(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, false);
+  }
+  private cambiarConfirmacion(dossierId: string, mes: string, confirmar: boolean) {
+    const indice = this.mensuales.findIndex((m) => m.dossierId === dossierId && m.mes === mes);
+    if (indice === -1) throw new ValoracionInvalidaError('La empresa todavía no ha valorado este mes');
+    const v: ValoracionMensual = {
+      ...this.mensuales[indice],
+      confirmadaPor: confirmar ? 'x' : null,
+      confirmadaEn: confirmar ? '2026-12-01T09:00:00.000Z' : null,
+    };
+    this.mensuales = this.mensuales.map((m, i) => (i === indice ? v : m));
+    return Promise.resolve(v);
   }
   async obtenerFinal() {
     return this.final;
