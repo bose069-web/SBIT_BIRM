@@ -18,7 +18,13 @@ import {
   type ValoresDia,
 } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
-import { mesCerrado } from '../domain/valoracion';
+import {
+  mesCerrado,
+  mesConfirmado,
+  mesDe,
+  type ValoracionFinal,
+  type ValoracionMensual,
+} from '../domain/valoracion';
 import type { BorradorPort } from '../ports/borrador-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
@@ -162,4 +168,69 @@ export async function eliminarRegistro(
   if (usuario.id !== dossier.alumnoId) throw new SinPermisoError('borrar días de este dossier');
   await comprobarMesAbierto(valoraciones, dossier, registro.fecha);
   await registros.eliminar(registro.id);
+}
+
+/** Solo el profe tutor del dossier corrige las horas de su alumno. */
+export function puedeCorregirHoras(usuario: Usuario, dossier: Pick<Dossier, 'tutorId'>): boolean {
+  return usuario.rol === 'profe' && usuario.id === dossier.tutorId;
+}
+
+/** Un mes confirmado, o con valoración final, no se corrige sin quitar antes la confirmación. */
+export function mesBloqueadoParaTutor(
+  fecha: string,
+  mensuales: Pick<ValoracionMensual, 'mes' | 'confirmadaEn'>[],
+  final: ValoracionFinal | null,
+): boolean {
+  return final !== null || mesConfirmado(mensuales, mesDe(fecha));
+}
+
+async function comprobarCorreccion(
+  valoraciones: ValoracionPort,
+  usuario: Usuario,
+  dossier: Dossier,
+  fecha: string,
+): Promise<void> {
+  if (!puedeCorregirHoras(usuario, dossier)) throw new SinPermisoError('corregir estas horas');
+  const [mensuales, final] = await Promise.all([
+    valoraciones.listarMensuales(dossier.id),
+    valoraciones.obtenerFinal(dossier.id),
+  ]);
+  if (mesBloqueadoParaTutor(fecha, mensuales, final)) {
+    throw new RegistroInvalidoError(
+      final
+        ? 'El alumno ya tiene valoración final: no se pueden corregir sus horas'
+        : 'Este mes ya está confirmado: quita antes la confirmación',
+    );
+  }
+}
+
+/**
+ * El tutor crea o corrige un día. Lanza `ConflictoRegistroError` si el día ha cambiado desde que lo
+ * abrió, para no pisar lo que acaba de apuntar el alumno.
+ */
+export async function corregirDia(
+  puertos: { registros: RegistroDiarioPort; valoraciones: ValoracionPort },
+  usuario: Usuario,
+  dossier: Dossier,
+  fecha: string,
+  valores: ValoresDia,
+  huellaBase: string | null,
+): Promise<RegistroDiario> {
+  const borrador: BorradorRegistro = { ...valores, dossierId: dossier.id, fecha };
+  comprobarBorrador(borrador, dossier);
+  await comprobarCorreccion(puertos.valoraciones, usuario, dossier, fecha);
+  return puertos.registros.guardar(
+    { ...borrador, observaciones: valores.observaciones.trim() || null },
+    huellaBase,
+  );
+}
+
+export async function borrarDiaComoTutor(
+  puertos: { registros: RegistroDiarioPort; valoraciones: ValoracionPort },
+  usuario: Usuario,
+  dossier: Dossier,
+  registro: RegistroDiario,
+): Promise<void> {
+  await comprobarCorreccion(puertos.valoraciones, usuario, dossier, registro.fecha);
+  await puertos.registros.eliminar(registro.id);
 }

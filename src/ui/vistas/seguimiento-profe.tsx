@@ -1,4 +1,3 @@
-import { MisClases } from './clases-centro';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -41,6 +40,8 @@ import {
 } from '@/ui/utils/seguimiento-profe';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
+import { MisClases } from './clases-centro';
+import { HorasAlumno } from './horas-alumno';
 import { TareasDossier } from './tareas';
 import {
   ErrorCarga,
@@ -404,6 +405,7 @@ function FilaAlumno({
             </ThemedText>
             <Enlace texto="Ficha ›" onPress={onFicha} />
           </View>
+          <HorasAlumno dossier={dossier} seguimiento={seguimiento} onCambio={onCambio} />
           <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
           {seguimiento.mensuales.map((v) => (
             <View key={v.mes} style={styles.detalle}>

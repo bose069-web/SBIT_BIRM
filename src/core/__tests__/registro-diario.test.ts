@@ -1,6 +1,16 @@
-import { eliminarRegistro, guardarRegistro } from '../application/registro-diario';
-import { RegistroInvalidoError, SinPermisoError } from '../domain/errores';
-import { comprobarBorrador, resumirHoras, totalHoras } from '../domain/registro-diario';
+import {
+  borrarDiaComoTutor,
+  corregirDia,
+  eliminarRegistro,
+  guardarRegistro,
+} from '../application/registro-diario';
+import { ConflictoRegistroError, RegistroInvalidoError, SinPermisoError } from '../domain/errores';
+import {
+  comprobarBorrador,
+  huellaRegistro,
+  resumirHoras,
+  totalHoras,
+} from '../domain/registro-diario';
 import {
   alumno,
   borrador,
@@ -148,5 +158,63 @@ describe('guardarRegistro y eliminarRegistro', () => {
       'ya está valorado',
     );
     expect(registros.dias).toHaveLength(1);
+  });
+});
+
+describe('corrección de horas por el tutor', () => {
+  const profe = { ...alumno, id: 'profe-tutor', rol: 'profe' as const };
+  const dossier = crearDossier({ tutorId: profe.id });
+  const fecha = dossier.fechaInicio;
+  const actividad = dossier.actividades[0].id;
+  const valores = {
+    tipo: 'trabajo' as const,
+    horas: [{ actividadId: actividad, horas: 4 }],
+    observaciones: ' Corregido ',
+  };
+  const preparar = () => ({
+    registros: new RegistrosFalsos(),
+    valoraciones: new ValoracionesFalsas(),
+  });
+
+  it('el tutor corrige un día y un mes solo valorado sigue abierto para él', async () => {
+    const p = preparar();
+    await p.valoraciones.guardarMensual({
+      dossierId: dossier.id,
+      mes: fecha.slice(0, 7),
+      valoracion: 'positiva',
+      comentario: null,
+    });
+    const dia = await corregirDia(p, profe, dossier, fecha, valores, null);
+    expect(dia.observaciones).toBe('Corregido');
+  });
+
+  it('nadie más lo corrige, ni siquiera el alumno por esta vía', async () => {
+    await expect(corregirDia(preparar(), alumno, dossier, fecha, valores, null)).rejects.toThrow(
+      SinPermisoError,
+    );
+  });
+
+  it('un mes confirmado no se corrige ni se borra', async () => {
+    const p = preparar();
+    const dia = await corregirDia(p, profe, dossier, fecha, valores, null);
+    await p.valoraciones.guardarMensual({
+      dossierId: dossier.id,
+      mes: fecha.slice(0, 7),
+      valoracion: 'positiva',
+      comentario: null,
+    });
+    await p.valoraciones.confirmarMes(dossier.id, fecha.slice(0, 7));
+    await expect(
+      corregirDia(p, profe, dossier, fecha, valores, huellaRegistro(dia)),
+    ).rejects.toThrow('quita antes la confirmación');
+    await expect(borrarDiaComoTutor(p, profe, dossier, dia)).rejects.toThrow(RegistroInvalidoError);
+  });
+
+  it('avisa de conflicto si el día cambió desde que se abrió', async () => {
+    const p = preparar();
+    await corregirDia(p, profe, dossier, fecha, valores, null);
+    await expect(
+      corregirDia(p, profe, dossier, fecha, { ...valores, observaciones: 'Otro' }, null),
+    ).rejects.toThrow(ConflictoRegistroError);
   });
 });
