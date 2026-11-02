@@ -13,6 +13,7 @@ import type { Dossier } from '@/core/domain/dossier';
 import { ConflictoRegistroError } from '@/core/domain/errores';
 import {
   huellaRegistro,
+  totalHoras,
   TIPOS_DIA,
   valoresDeRegistro,
   VALORES_DIA_VACIOS,
@@ -24,6 +25,7 @@ import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
+import { Leyenda } from '@/ui/components/leyenda';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Selector } from '@/ui/components/selector';
 import { ThemedText } from '@/ui/components/themed-text';
@@ -31,9 +33,11 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
-import { fechaCorta, formatoHoras, hoyISO } from '@/ui/utils/fechas';
+import { sumarMeses } from '@/ui/utils/calendario';
+import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
-import { CalendarioMes } from './calendario-mes';
+import { LEYENDA_DIAS } from './calendario-mes';
+import { MiniCalendario } from './mini-calendario';
 
 const TEXTO_TIPO: Record<TipoDia, string> = {
   trabajo: 'Fichado',
@@ -47,32 +51,8 @@ interface Props {
   onCambio: () => void;
 }
 
-/** Minidesplegable con el calendario de días fichados del alumno. El profe tutor los corrige desde aquí. */
+/** Mini calendario con los días fichados del alumno. El profe tutor los corrige desde aquí. */
 export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
-  const [abierto, setAbierto] = useState(false);
-  return (
-    <View style={styles.bloque}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: abierto }}
-        accessibilityLabel={`Horas fichadas de ${dossier.alumnoNombre}`}
-        onPress={() => setAbierto((v) => !v)}
-        style={({ pressed }) => [styles.cabecera, pressed && { opacity: 0.6 }]}>
-        <ThemedText type="smallBold" style={styles.flex}>
-          Horas fichadas
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {abierto ? '⌃' : '⌄'}
-        </ThemedText>
-      </Pressable>
-      {abierto ? (
-        <ListaDias dossier={dossier} seguimiento={seguimiento} onCambio={onCambio} />
-      ) : null}
-    </View>
-  );
-}
-
-function ListaDias({ dossier, seguimiento, onCambio }: Props) {
   const usuario = useUsuario();
   const hoy = hoyISO();
   const hasta = hoy < dossier.fechaFin ? hoy : dossier.fechaFin;
@@ -98,29 +78,51 @@ function ListaDias({ dossier, seguimiento, onCambio }: Props) {
   const mes = mesElegido ?? mesDe(ultimo || hasta);
   const bloqueado = (fecha: string) =>
     mesBloqueadoParaTutor(fecha, seguimiento.mensuales, seguimiento.final);
+  const delMes = dias.filter((d) => mesDe(d.fecha) === mes);
+  const cambiarMes = (m: string) => {
+    setMesElegido(m);
+    setSeleccion(null);
+  };
   const registro = dias.find((d) => d.fecha === seleccion) ?? null;
   const editable = seleccion !== null && corrige && !bloqueado(seleccion) && seleccion <= hoy;
 
   return (
     <View style={styles.lista}>
+      <View style={styles.cabecera}>
+        <BotonMes
+          texto="‹"
+          etiqueta="Mes anterior"
+          desactivado={mes <= mesDe(dossier.fechaInicio)}
+          onPress={() => cambiarMes(sumarMeses(mes, -1))}
+        />
+        <View style={styles.titulo}>
+          <ThemedText type="smallBold">{nombreMes(mes)}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {formatoHoras(delMes.reduce((suma, d) => suma + totalHoras(d), 0))}
+          </ThemedText>
+        </View>
+        <BotonMes
+          texto="›"
+          etiqueta="Mes siguiente"
+          desactivado={mes >= mesDe(dossier.fechaFin)}
+          onPress={() => cambiarMes(sumarMeses(mes, 1))}
+        />
+      </View>
       {bloqueado(`${mes}-01`) ? <Chip texto="Bloqueado" color="estadoValidado" /> : null}
-      <CalendarioMes
-        mes={mes}
-        onCambiarMes={(m) => {
-          setMesElegido(m);
-          setSeleccion(null);
-        }}
-        dias={dias.filter((d) => mesDe(d.fecha) === mes)}
-        periodo={dossier}
+      <MiniCalendario
         hoy={hoy}
-        cerrado={seguimiento.mensuales.some((v) => v.mes === mes)}
-        seleccionada={seleccion ?? undefined}
+        cabecera={false}
+        mes={mes}
+        registros={delMes}
+        periodo={dossier}
+        seleccionada={seleccion}
         onElegir={(fecha) => {
           // Fija el mes: si se borra su último día, la vista no salta a otro.
           setMesElegido(mes);
           setSeleccion(fecha);
         }}
       />
+      <Leyenda elementos={LEYENDA_DIAS} />
       {seleccion === null ? (
         <ThemedText type="small" themeColor="textSecondary">
           {corrige
@@ -158,6 +160,33 @@ function ListaDias({ dossier, seguimiento, onCambio }: Props) {
         />
       )}
     </View>
+  );
+}
+
+function BotonMes({
+  texto,
+  etiqueta,
+  desactivado,
+  onPress,
+}: {
+  texto: string;
+  etiqueta: string;
+  desactivado: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      accessibilityState={{ disabled: desactivado }}
+      disabled={desactivado}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.botonMes,
+        { opacity: desactivado ? 0.35 : pressed ? 0.6 : 1 },
+      ]}>
+      <ThemedText type="smallBold">{texto}</ThemedText>
+    </Pressable>
   );
 }
 
@@ -327,9 +356,9 @@ function EditorDia({
 }
 
 const styles = StyleSheet.create({
-  bloque: { gap: Spacing.two },
-  cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, minHeight: 44 },
-  flex: { flex: 1, gap: Spacing.half },
+  cabecera: { flexDirection: 'row', alignItems: 'center' },
+  titulo: { flex: 1, alignItems: 'center' },
+  botonMes: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   lista: { gap: Spacing.two },
   editor: {
     gap: Spacing.three,

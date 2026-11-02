@@ -6,10 +6,9 @@ async function abrirHoras(page) {
     .getByRole('button', { name: /Alumno Demo.*Ver detalle/ })
     .first()
     .click();
-  await page.getByRole('button', { name: /^Horas fichadas de / }).click();
 }
 
-const diasFichados = (page) => page.getByRole('button', { name: /: Fichado, / });
+const diasFichados = (page) => page.getByRole('button', { name: /, Fichado, / });
 
 for (const ancho of [320, 1280]) {
   test('el tutor corrige un día del calendario a ' + ancho + ' px', async ({ page }) => {

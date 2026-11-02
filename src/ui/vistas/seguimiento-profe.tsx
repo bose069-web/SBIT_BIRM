@@ -405,7 +405,6 @@ function FilaAlumno({
             </ThemedText>
             <Enlace texto="Ficha ›" onPress={onFicha} />
           </View>
-          <HorasAlumno dossier={dossier} seguimiento={seguimiento} onCambio={onCambio} />
           <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
           {seguimiento.mensuales.map((v) => (
             <View key={v.mes} style={styles.detalle}>
@@ -471,6 +470,7 @@ function FilaAlumno({
               {gestiona ? <NuevoEvento dossier={dossier} /> : null}
             </>
           ) : null}
+          <HorasAlumno dossier={dossier} seguimiento={seguimiento} onCambio={onCambio} />
         </View>
       ) : null}
     </View>
