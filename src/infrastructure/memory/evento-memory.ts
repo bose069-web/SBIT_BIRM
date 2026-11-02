@@ -5,6 +5,20 @@ import { IDS_DEMO } from './datos-demo';
 
 const EVENTOS_DEMO: Evento[] = [
   {
+    id: 'evento-demo-red-1',
+    dossierId: null,
+    titulo: 'Entrega de la documentación de prácticas del primer trimestre',
+    fecha: '2026-11-20',
+    tipo: 'plazo',
+  },
+  {
+    id: 'evento-demo-red-2',
+    dossierId: null,
+    titulo: 'Fin del primer periodo de prácticas',
+    fecha: '2026-12-18',
+    tipo: 'curso',
+  },
+  {
     id: 'evento-demo-1',
     dossierId: null,
     titulo: 'Todos los Santos',
