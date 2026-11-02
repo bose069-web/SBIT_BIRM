@@ -1,7 +1,8 @@
 import type { Centro, Convenio, Empresa, Persona } from '@/core/domain/centro';
+import { CorreoYaRegistradoError } from '@/core/domain/errores';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
-import { IDS_DEMO } from './datos-demo';
+import { IDS_DEMO, USUARIOS_DEMO } from './datos-demo';
 
 // Mismos IDs que datos-demo: el instituto demo administra IDS_DEMO.centro.
 const CENTROS: Centro[] = [
@@ -119,6 +120,25 @@ export class GestionCentroMemory implements GestionCentroPort {
 
   async incorporarAlumno(personaId: string, centroId: string) {
     this.cambiar(personaId, { centroId });
+  }
+
+  // La contraseña no se guarda: en memoria solo entran los usuarios demo.
+  async crearAlumno(
+    datos: { nombre: string; email: string; contrasena: string },
+    centroId: string,
+  ) {
+    const correos = [...this.personas, ...TUTORES_DEMO, ...USUARIOS_DEMO].map((p) => p.email);
+    if (correos.includes(datos.email)) throw new CorreoYaRegistradoError();
+    const alumno: Persona = {
+      id: `alumno-nuevo-${this.siguienteId++}`,
+      nombre: datos.nombre,
+      email: datos.email,
+      rol: 'alumno',
+      centroId,
+      profeId: null,
+    };
+    this.personas.push(alumno);
+    return { ...alumno };
   }
 
   async asignarProfe(alumnoId: string, profeId: string | null) {

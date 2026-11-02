@@ -1,6 +1,7 @@
 import {
   asignarProfe,
   crearCentro,
+  darDeAltaAlumno,
   GestionCentroError,
   listarCentros,
   darDeAltaEmpresa,
@@ -9,7 +10,7 @@ import {
   obtenerPanelCentro,
   quitarConvenio,
 } from '../application/centro';
-import { SinPermisoError } from '../domain/errores';
+import { CorreoYaRegistradoError, DatosInvalidosError, SinPermisoError } from '../domain/errores';
 import {
   alumno,
   empresa,
@@ -176,6 +177,60 @@ describe('cuentas nuevas, empresas y convenios', () => {
     expect(port.convenios.map((c) => c.empresaId)).toEqual([beta.id]);
     await expect(firmarConvenio(port, otroInstituto, 'c1', 'e2', null)).rejects.toThrow(
       SinPermisoError,
+    );
+  });
+});
+
+describe('dar de alta un alumno', () => {
+  const datos = {
+    nombre: '  Eva   Roca ',
+    email: ' Eva@Kampus.TEST ',
+    contrasena: 'una-contrasena',
+  };
+
+  it.each([instituto, generalitat])('$rol lo crea limpio, en el centro y sin profe', async (u) => {
+    const port = new CentrosFalsos();
+    const creado = await darDeAltaAlumno(port, u, datos, 'c1');
+    expect(creado).toMatchObject({
+      nombre: 'Eva Roca',
+      email: 'eva@kampus.test',
+      rol: 'alumno',
+      centroId: 'c1',
+      profeId: null,
+    });
+    const panel = await obtenerPanelCentro(port, instituto, 'c1');
+    expect(panel.alumnos.map((p) => p.nombre)).toContain('Eva Roca');
+    expect(panel.cuentasNuevas.map((p) => p.nombre)).not.toContain('Eva Roca');
+  });
+
+  it.each([alumno, empresa, profe, otroInstituto])(
+    'impide el alta a $rol de fuera, antes de validar',
+    async (usuario) => {
+      const port = new CentrosFalsos();
+      const crear = jest.spyOn(port, 'crearAlumno');
+      await expect(
+        darDeAltaAlumno(port, usuario, { nombre: '', email: '', contrasena: '' }, 'c1'),
+      ).rejects.toThrow(SinPermisoError);
+      expect(crear).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [{ ...datos, nombre: ' a ' }, GestionCentroError],
+    [{ ...datos, email: 'sin arroba' }, DatosInvalidosError],
+    [{ ...datos, contrasena: 'corta' }, DatosInvalidosError],
+  ])('rechaza datos no válidos sin llamar al puerto: %j', async (invalidos, tipo) => {
+    const port = new CentrosFalsos();
+    const crear = jest.spyOn(port, 'crearAlumno');
+    await expect(darDeAltaAlumno(port, instituto, invalidos, 'c1')).rejects.toThrow(tipo);
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it('da un error claro si el correo ya existe', async () => {
+    const port = new CentrosFalsos();
+    await darDeAltaAlumno(port, instituto, datos, 'c1');
+    await expect(darDeAltaAlumno(port, instituto, datos, 'c1')).rejects.toThrow(
+      CorreoYaRegistradoError,
     );
   });
 });

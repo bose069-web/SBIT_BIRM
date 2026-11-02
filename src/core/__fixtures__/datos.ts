@@ -1,3 +1,4 @@
+import { CorreoYaRegistradoError, ValoracionYaExisteError } from '../domain/errores';
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
@@ -25,6 +26,8 @@ import type {
   MensajeIncidencia,
 } from '../domain/incidencia';
 import type { IncidenciaPort } from '../ports/incidencia-port';
+import type { DiaParaInforme, DossierParaInforme } from '../domain/informe';
+import type { InformePort } from '../ports/informe-port';
 
 export const alumno: Usuario = {
   id: 'a1',
@@ -155,8 +158,17 @@ export class ValoracionesFalsas implements ValoracionPort {
   }
   async guardarMensual(b: BorradorValoracionMensual) {
     const v: ValoracionMensual = { ...b, id: `v-${b.mes}`, valoradaPor: 'x', valoradaEn: '' };
-    this.mensuales = [...this.mensuales.filter((m) => m.mes !== b.mes), v];
+    this.mensuales = [
+      ...this.mensuales.filter((m) => m.dossierId !== b.dossierId || m.mes !== b.mes),
+      v,
+    ];
     return v;
+  }
+  async crearMensual(b: BorradorValoracionMensual) {
+    if (this.mensuales.some((m) => m.dossierId === b.dossierId && m.mes === b.mes)) {
+      throw new ValoracionYaExisteError();
+    }
+    return this.guardarMensual(b);
   }
   async obtenerFinal() {
     return this.final;
@@ -203,6 +215,35 @@ export class EventosFalsos implements EventoPort {
   }
 }
 
+export function crearDossierInforme(cambios: Partial<DossierParaInforme> = {}): DossierParaInforme {
+  return {
+    id: 'd1',
+    alumnoId: alumno.id,
+    alumnoNombre: alumno.nombre,
+    tutorId: profe.id,
+    tutorNombre: profe.nombre,
+    tutorEmpresaId: empresa.id,
+    centroId: 'c1',
+    centro: 'Institut',
+    empresaId: 'emp1',
+    empresa: 'Empresa SL',
+    horasTotales: 400,
+    ...cambios,
+  };
+}
+
+export function crearDia(cambios: Partial<DiaParaInforme> = {}): DiaParaInforme {
+  return { dossierId: 'd1', fecha: '2026-10-20', horas: 6, ...cambios };
+}
+
+export class InformesFalsos implements InformePort {
+  dossiers: DossierParaInforme[] = [];
+  dias: DiaParaInforme[] = [];
+  async obtenerDatos() {
+    return { dossiers: this.dossiers, dias: this.dias };
+  }
+}
+
 export const persona = (p: Partial<Persona> & Pick<Persona, 'id' | 'nombre' | 'rol'>): Persona => ({
   email: `${p.id}@kampus.test`,
   centroId: 'c1',
@@ -242,6 +283,21 @@ export class CentrosFalsos implements GestionCentroPort {
   }
   async incorporarAlumno(id: string, centroId: string) {
     this.personas.find((p) => p.id === id)!.centroId = centroId;
+  }
+  async crearAlumno(
+    datos: { nombre: string; email: string; contrasena: string },
+    centroId: string,
+  ) {
+    if (this.personas.some((p) => p.email === datos.email)) throw new CorreoYaRegistradoError();
+    const alumno = persona({
+      id: `a${this.personas.length + 1}`,
+      nombre: datos.nombre,
+      email: datos.email,
+      rol: 'alumno',
+      centroId,
+    });
+    this.personas.push(alumno);
+    return alumno;
   }
   async asignarProfe(id: string, profeId: string | null) {
     this.personas.find((p) => p.id === id)!.profeId = profeId;

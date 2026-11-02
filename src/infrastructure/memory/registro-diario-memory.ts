@@ -2,12 +2,16 @@ import type { BorradorRegistro, RegistroDiario } from '@/core/domain/registro-di
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 
 import { REGISTROS_DEMO } from './datos-demo';
+import type { HistorialMemory } from './historial-memory';
 
 export class RegistroDiarioMemory implements RegistroDiarioPort {
   private registros: Map<string, RegistroDiario>;
   private siguienteId = 1;
 
-  constructor(registros: RegistroDiario[] = REGISTROS_DEMO) {
+  constructor(
+    registros: RegistroDiario[] = REGISTROS_DEMO,
+    private readonly historial?: HistorialMemory,
+  ) {
     this.registros = new Map(registros.map((registro) => [registro.id, registro]));
   }
 
@@ -31,10 +35,19 @@ export class RegistroDiarioMemory implements RegistroDiarioPort {
       id: existente?.id ?? `registro-${this.siguienteId++}`,
     };
     this.registros.set(registro.id, registro);
+    await this.historial?.anotar(b.dossierId, 'registro', existente ? 'editar' : 'crear', {
+      fecha: b.fecha,
+    });
     return registro;
   }
 
   async eliminar(id: string) {
+    const registro = this.registros.get(id);
     this.registros.delete(id);
+    if (registro) {
+      await this.historial?.anotar(registro.dossierId, 'registro', 'borrar', {
+        fecha: registro.fecha,
+      });
+    }
   }
 }

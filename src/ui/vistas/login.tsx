@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -9,6 +16,8 @@ import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 import { useSesion } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
+
+import { Portada } from './portada';
 
 const CUENTAS_DEMO = [
   { rol: 'Alumno', email: 'alumno@kampus.test' },
@@ -38,66 +47,76 @@ export function VistaLogin() {
     }
   }
 
+  const { width } = useWindowDimensions();
+  // En la web horizontal el acceso va dentro de la portada; en el móvil, solo.
+  const conPortada = Platform.OS === 'web' && width >= 900;
+
+  const caja = (
+    <View style={[styles.caja, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Image
+        accessibilityLabel="Kampus"
+        source={
+          oscuro
+            ? require('@/assets/brand/kampus-logotipo-blanco.png')
+            : require('@/assets/brand/kampus-logotipo.png')
+        }
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <ThemedText themeColor="textSecondary">Seguimiento de las prácticas FCT y Dual</ThemedText>
+
+      <Campo
+        etiqueta="Correo"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        placeholder="nombre@centro.cat"
+      />
+      <Campo
+        etiqueta="Contraseña"
+        value={contrasena}
+        onChangeText={setContrasena}
+        secureTextEntry
+        autoComplete="current-password"
+        onSubmitEditing={() => enviar()}
+      />
+      {error ? <Mensaje tipo="error" texto={error} /> : null}
+      <Boton texto="Entrar" onPress={() => enviar()} cargando={enviando} />
+
+      {__DEV__ ? (
+        <View style={[styles.demo, { borderTopColor: theme.border }]}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Cuentas de prueba (contraseña kampus)
+          </ThemedText>
+          <View style={styles.filaDemo}>
+            {CUENTAS_DEMO.map((c) => (
+              <Boton
+                key={c.email}
+                texto={c.rol}
+                variante="secundario"
+                desactivado={enviando}
+                onPress={() => {
+                  setEmail(c.email);
+                  setContrasena('kampus');
+                  enviar(c.email, 'kampus');
+                }}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (conPortada) return <Portada acceso={caja} />;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.fondo, { backgroundColor: theme.background }]}>
-      <View style={[styles.caja, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Image
-          accessibilityLabel="Kampus"
-          source={
-            oscuro
-              ? require('@/assets/brand/kampus-logotipo-blanco.png')
-              : require('@/assets/brand/kampus-logotipo.png')
-          }
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <ThemedText themeColor="textSecondary">Seguimiento de las prácticas FCT y Dual</ThemedText>
-
-        <Campo
-          etiqueta="Correo"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          placeholder="nombre@centro.cat"
-        />
-        <Campo
-          etiqueta="Contraseña"
-          value={contrasena}
-          onChangeText={setContrasena}
-          secureTextEntry
-          autoComplete="current-password"
-          onSubmitEditing={() => enviar()}
-        />
-        {error ? <Mensaje tipo="error" texto={error} /> : null}
-        <Boton texto="Entrar" onPress={() => enviar()} cargando={enviando} />
-
-        {__DEV__ ? (
-          <View style={[styles.demo, { borderTopColor: theme.border }]}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Cuentas de prueba (contraseña kampus)
-            </ThemedText>
-            <View style={styles.filaDemo}>
-              {CUENTAS_DEMO.map((c) => (
-                <Boton
-                  key={c.email}
-                  texto={c.rol}
-                  variante="secundario"
-                  desactivado={enviando}
-                  onPress={() => {
-                    setEmail(c.email);
-                    setContrasena('kampus');
-                    enviar(c.email, 'kampus');
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
-      </View>
+      {caja}
     </KeyboardAvoidingView>
   );
 }

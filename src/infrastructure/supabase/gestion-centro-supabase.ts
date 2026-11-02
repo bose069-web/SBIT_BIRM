@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Centro, Convenio, Persona } from '@/core/domain/centro';
+import {
+  CorreoYaRegistradoError,
+  DatosInvalidosError,
+  SinPermisoError,
+} from '@/core/domain/errores';
 import { esRol } from '@/core/domain/usuario';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
@@ -18,6 +23,27 @@ interface FilaConvenio {
   empresa_id: string;
   firmado_en: string | null;
   empresas: { nombre: string } | null;
+}
+
+type FilaAlta = Pick<FilaPersona, 'id' | 'nombre' | 'email' | 'centro_id' | 'profe_id'>;
+
+/** Lo que responde la función de alta, en palabras del instituto. */
+async function errorDeAlta(error: { context?: unknown } | null): Promise<Error> {
+  const respuesta = error?.context;
+  const cuerpo: unknown =
+    respuesta instanceof Response ? await respuesta.json().catch(() => null) : null;
+  const codigo = (cuerpo as { codigo?: string } | null)?.codigo;
+  switch (codigo) {
+    case 'correo_repetido':
+      return new CorreoYaRegistradoError();
+    case 'datos_invalidos':
+      return new DatosInvalidosError('Revisa el nombre y el correo');
+    case 'sin_permiso':
+    case 'sin_sesion':
+      return new SinPermisoError('dar de alta alumnos en este centro');
+    default:
+      return new Error('No se ha podido crear la cuenta. Inténtalo de nuevo.');
+  }
 }
 
 function comprobar(error: { message: string; code?: string } | null) {
@@ -106,6 +132,28 @@ export class GestionCentroSupabase implements GestionCentroPort {
       .update({ centro_id: centroId })
       .eq('id', personaId);
     comprobar(error);
+  }
+
+  // El alta usa un cliente temporal: signUp abre sesión con la cuenta nueva y la del instituto no
+  // debe cambiar. El perfil lo crea el trigger al_crear_usuario y el nombre sale de los metadatos.
+  async crearAlumno(
+    datos: { nombre: string; email: string; contrasena: string },
+    centroId: string,
+  ) {
+    const { data, error } = await this.cliente.functions.invoke<{ alumno: FilaAlta }>(
+      'alta-alumno',
+      { body: { ...datos, centroId } },
+    );
+    if (error || !data) throw await errorDeAlta(error);
+    const { alumno } = data;
+    return {
+      id: alumno.id,
+      nombre: alumno.nombre,
+      email: alumno.email,
+      rol: 'alumno' as const,
+      centroId: alumno.centro_id,
+      profeId: alumno.profe_id,
+    };
   }
 
   async asignarProfe(alumnoId: string, profeId: string | null) {

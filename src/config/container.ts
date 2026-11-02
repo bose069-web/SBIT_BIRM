@@ -1,25 +1,43 @@
 import type { AuthPort } from '@/core/ports/auth-port';
+import type { BorradorPort } from '@/core/ports/borrador-port';
+import type { ChatPort } from '@/core/ports/chat-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
+import type { HistorialPort } from '@/core/ports/historial-port';
 import type { IncidenciaPort } from '@/core/ports/incidencia-port';
+import type { InformePort } from '@/core/ports/informe-port';
+import type { PerfilPort } from '@/core/ports/perfil-port';
+import type { PreferenciasPort } from '@/core/ports/preferencias-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
+import { BorradorLocalStorage } from '@/infrastructure/dispositivo/borrador-local-storage';
+import { PreferenciasLocalStorage } from '@/infrastructure/dispositivo/preferencias-local-storage';
 import { AuthMemory } from '@/infrastructure/memory/auth-memory';
+import { BorradorMemory } from '@/infrastructure/memory/borrador-memory';
+import { ChatMemory } from '@/infrastructure/memory/chat-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
 import { GestionCentroMemory } from '@/infrastructure/memory/gestion-centro-memory';
+import { HistorialMemory } from '@/infrastructure/memory/historial-memory';
 import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
+import { InformesMemory } from '@/infrastructure/memory/informes-memory';
+import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
+import { PreferenciasMemory } from '@/infrastructure/memory/preferencias-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
 import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
 import { AuthSupabase } from '@/infrastructure/supabase/auth-supabase';
+import { ChatSupabase } from '@/infrastructure/supabase/chat-supabase';
 import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { EventoSupabase } from '@/infrastructure/supabase/evento-supabase';
 import { GestionCentroSupabase } from '@/infrastructure/supabase/gestion-centro-supabase';
+import { HistorialSupabase } from '@/infrastructure/supabase/historial-supabase';
 import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
+import { InformesSupabase } from '@/infrastructure/supabase/informes-supabase';
+import { PerfilSupabase } from '@/infrastructure/supabase/perfil-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
 import { TareaSupabase } from '@/infrastructure/supabase/tarea-supabase';
 import { ValoracionSupabase } from '@/infrastructure/supabase/valoracion-supabase';
@@ -33,6 +51,12 @@ interface Container {
   tareas: TareaPort;
   eventos: EventoPort;
   incidencias: IncidenciaPort;
+  perfil: PerfilPort;
+  chat: ChatPort;
+  informes: InformePort;
+  borradores: BorradorPort;
+  historial: HistorialPort;
+  preferencias: PreferenciasPort;
 }
 
 /**
@@ -40,6 +64,16 @@ interface Container {
  * Para cambiar de backend se toca este archivo (o la variable EXPO_PUBLIC_BACKEND), nunca el núcleo ni la UI.
  */
 function crearContainer(): Container {
+  // Los borradores viven en el dispositivo, sea cual sea el backend. Sin localStorage (renderizado
+  // estático de la web) no hay dónde guardarlos más allá de la memoria.
+  const borradores =
+    typeof localStorage === 'undefined'
+      ? new BorradorMemory()
+      : new BorradorLocalStorage(localStorage);
+  const preferencias =
+    typeof localStorage === 'undefined'
+      ? new PreferenciasMemory()
+      : new PreferenciasLocalStorage(localStorage);
   const backend = process.env.EXPO_PUBLIC_BACKEND ?? 'memory';
 
   if (backend === 'supabase') {
@@ -57,6 +91,12 @@ function crearContainer(): Container {
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
         incidencias: new IncidenciaSupabase(cliente),
+        perfil: new PerfilSupabase(cliente),
+        chat: new ChatSupabase(cliente),
+        informes: new InformesSupabase(cliente),
+        borradores,
+        historial: new HistorialSupabase(cliente),
+        preferencias,
       };
     }
     console.warn(
@@ -66,15 +106,22 @@ function crearContainer(): Container {
 
   // Sin sesión al arrancar, para que se vea el login.
   const auth = new AuthMemory(null);
+  const historial = new HistorialMemory(auth);
   return {
     auth,
     dossiers: new DossierMemory(),
-    registros: new RegistroDiarioMemory(),
-    valoraciones: new ValoracionMemory(auth),
+    registros: new RegistroDiarioMemory(undefined, historial),
+    valoraciones: new ValoracionMemory(auth, historial),
     centros: new GestionCentroMemory(),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
     incidencias: new IncidenciaMemory(),
+    perfil: new PerfilMemory(),
+    chat: new ChatMemory(),
+    informes: new InformesMemory(),
+    borradores,
+    historial,
+    preferencias,
   };
 }
 

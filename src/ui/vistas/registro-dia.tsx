@@ -10,47 +10,70 @@ import {
 
 import { obtenerDossierActual } from '@/core/application/dossier';
 import {
+  buscarUltimaJornada,
   eliminarRegistro,
-  guardarRegistro,
+  enviarDia,
   listarRegistros,
+  type ResultadoEnvio,
 } from '@/core/application/registro-diario';
 import { obtenerSeguimiento } from '@/core/application/valoracion';
+import type { ClaveBorrador } from '@/core/domain/borrador';
 import { estaEnPeriodo } from '@/core/domain/dossier';
 import type { ActividadFormativa } from '@/core/domain/dossier';
-import { MAX_HORAS_DIA, type RegistroDiario, type TipoDia } from '@/core/domain/registro-diario';
+import { esFalloDeRed } from '@/core/domain/errores';
+import {
+  MAX_HORAS_DIA,
+  horasParaCopiar,
+  huellaRegistro,
+  totalHoras,
+  validarValoresDia,
+  valoresDeRegistro,
+  valoresDiaIguales,
+  type RegistroDiario,
+  type TipoDia,
+  type ValoresDia,
+} from '@/core/domain/registro-diario';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
+import { AvisoBorrador } from '@/ui/components/aviso-borrador';
+import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
-import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
-import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
+import { useBorrador } from '@/ui/hooks/use-borrador';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useUsuario } from '@/ui/hooks/use-sesion';
-import { Spacing } from '@/ui/theme/theme';
+import { useTheme } from '@/ui/hooks/use-theme';
+import { useWebAncha } from '@/ui/hooks/use-web-ancha';
+import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, limitesMes, sumarDias } from '@/ui/utils/fechas';
-import { filtrarHoras, leerHoras } from '@/ui/utils/horas';
+import { estadoEnvio, estadoMes, type TonoEstado } from '@/ui/utils/estados-registro';
+import { pasoHoras } from '@/ui/utils/horas';
 
-import { CalendarioMes } from './calendario-mes';
+import { CalendarioMes, ESTADOS_DIA } from './calendario-mes';
 import { Cargando } from './comun';
 
 const TIPOS: { valor: TipoDia; texto: string }[] = [
-  { valor: 'trabajo', texto: 'Trabajo' },
+  { valor: 'trabajo', texto: 'Fichado' },
   { valor: 'ausencia', texto: 'Ausencia' },
   { valor: 'festivo', texto: 'Festivo' },
 ];
 
 /** El alumno apunta lo que ha hecho un día y las horas por actividad. */
 export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
+  const theme = useTheme();
   const usuario = useUsuario();
+  const ancha = useWebAncha();
   const [fecha, setFecha] = useState(fechaInicial ?? hoyISO());
   const [verCalendario, setVerCalendario] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Sube al descartar un borrador: el formulario vuelve a empezar desde lo guardado.
+  const [reinicio, setReinicio] = useState(0);
 
   const [desde, hasta] = limitesMes(fecha);
   const { datos, error, cargando, recargar } = useDatos(async () => {
@@ -69,13 +92,30 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     ? mesCerrado(fecha, datos.seguimiento.mensuales, datos.seguimiento.final)
     : false;
   const fueraDePeriodo = datos ? !estaEnPeriodo(datos.dossier, fecha) : false;
+  const dossierId = datos?.dossier.id;
+  const inicioDossier = datos?.dossier.fechaInicio;
+  // Se busca en todo el periodo, no solo en el mes cargado. Si falla, simplemente no se ofrece.
+  const ultimaJornada = useDatos(
+    async () =>
+      dossierId && inicioDossier && !existente
+        ? buscarUltimaJornada(
+            container.registros,
+            { id: dossierId, fechaInicio: inicioDossier },
+            fecha,
+          )
+        : null,
+    [dossierId, inicioDossier, fecha, !existente],
+  );
 
   if (!datos) {
     return (
-      <Pantalla titulo="Registrar día">
+      <Pantalla titulo="Registrar día" compacta bajoCabecera>
         {error ? (
           <>
             <Mensaje tipo="error" texto={error} />
+            <ThemedText type="small" themeColor="textSecondary">
+              Si tenías un borrador en este dispositivo, no se ha borrado.
+            </ThemedText>
             <Boton texto="Reintentar" onPress={recargar} />
           </>
         ) : cargando ? (
@@ -96,29 +136,48 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
     setFecha(nueva);
   }
 
-  async function guardar({ tipo, horas, observaciones }: ValoresDia) {
+  /** Devuelve `null` si el servidor lo rechaza por una regla: ya se ha avisado y nada se pierde. */
+  async function enviar(
+    valores: ValoresDia,
+    huellaBase: string | null,
+    forzar: boolean,
+  ): Promise<ResultadoEnvio | null> {
     Keyboard.dismiss();
     setAviso(null);
     setGuardando(true);
     try {
-      await guardarRegistro(container.registros, container.valoraciones, usuario, dossier, {
-        dossierId: dossier.id,
-        fecha,
-        tipo,
-        horas: tipo === 'trabajo' ? horas : [],
-        observaciones,
-      });
-      setAviso({ tipo: 'ok', texto: `Guardado el ${fechaCorta(fecha)}` });
-      recargar();
+      const resultado = await enviarDia(
+        {
+          registros: container.registros,
+          valoraciones: container.valoraciones,
+          borradores: container.borradores,
+        },
+        usuario,
+        dossier,
+        claveDia(usuario.id, dossier.id, fecha),
+        { fecha, valores, huellaBase, forzar, ahora: new Date().toISOString() },
+      );
+      if (resultado.resultado === 'guardado') {
+        setAviso({ tipo: 'ok', texto: `Guardado en el servidor el ${fechaCorta(fecha)}` });
+        recargar();
+      } else if (resultado.resultado === 'sin-conexion') {
+        setAviso({
+          tipo: 'error',
+          texto:
+            'No se ha podido conectar con el servidor. Tus datos siguen en este dispositivo: reintenta cuando tengas conexión.',
+        });
+      }
+      return resultado;
     } catch (e) {
       setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      return null;
     } finally {
       setGuardando(false);
     }
   }
 
-  async function borrar() {
-    if (!existente) return;
+  async function borrar(): Promise<boolean> {
+    if (!existente) return false;
     Keyboard.dismiss();
     setAviso(null);
     try {
@@ -131,225 +190,693 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       );
       setAviso({ tipo: 'ok', texto: 'Día borrado' });
       recargar();
+      return true;
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({
+        tipo: 'error',
+        texto: esFalloDeRed(e)
+          ? 'No se ha podido conectar con el servidor: el día no se ha borrado.'
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      });
+      return false;
     }
   }
 
   const bloqueado = cerrado || fueraDePeriodo || cargando || error !== null;
+  const hoy = hoyISO();
+
+  // El chip usa los mismos colores que las celdas del calendario.
+  const estado: { texto: string; estado: EstadoChip } = fueraDePeriodo
+    ? { texto: 'Fuera del periodo', estado: 'festivo' }
+    : cerrado
+      ? { texto: 'Solo lectura', estado: 'festivo' }
+      : existente
+        ? { texto: ESTADOS_DIA[existente.tipo].texto, estado: existente.tipo }
+        : { texto: ESTADOS_DIA.pendiente.texto, estado: 'pendiente' };
+
+  const calendario = (
+    <CalendarioMes
+      mes={mesDe(fecha)}
+      // Al cambiar de mes se elige su primer día (o hoy, si es el mes actual).
+      onCambiarMes={(m) => irA(m === mesDe(hoy) ? hoy : `${m}-01`)}
+      dias={datos.dias}
+      periodo={dossier}
+      hoy={hoy}
+      cerrado={cerrado}
+      seleccionada={fecha}
+      onElegir={(f) => {
+        irA(f);
+        setVerCalendario(false);
+      }}
+    />
+  );
+
+  const navegacion = (
+    <Tarjeta>
+      <View style={styles.navFecha}>
+        <View style={styles.centro}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.diaSemana}>
+            {diaSemana(fecha)}
+          </ThemedText>
+          <ThemedText type="subtitle" accessibilityRole="header">
+            {fechaCorta(fecha)}
+          </ThemedText>
+        </View>
+        {/* Las flechas van juntas, como un único control de paso. */}
+        <View style={[styles.flechas, { borderColor: theme.border }]}>
+          <BotonFlecha
+            texto="‹"
+            etiqueta="Día anterior"
+            onPress={() => irA(sumarDias(fecha, -1))}
+          />
+          <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
+          <BotonFlecha
+            texto="›"
+            etiqueta="Día siguiente"
+            onPress={() => irA(sumarDias(fecha, 1))}
+          />
+        </View>
+      </View>
+      <View style={styles.enlaces}>
+        <ChipEstado texto={estado.texto} estado={estado.estado} />
+        <View style={styles.hueco} />
+        {fecha !== hoy ? <BotonHoy onPress={() => irA(hoy)} /> : null}
+        {/* En la web ancha el calendario va siempre a la vista en su columna. */}
+        {!ancha ? (
+          <Enlace
+            texto={verCalendario ? 'Ocultar calendario' : 'Ver calendario'}
+            onPress={() => {
+              Keyboard.dismiss();
+              setVerCalendario((v) => !v);
+            }}
+          />
+        ) : null}
+      </View>
+      {/* Arriba y plegable: al elegir un día se cierra y el formulario queda a la vista. */}
+      {verCalendario && !ancha ? calendario : null}
+    </Tarjeta>
+  );
+
+  const formulario = (
+    <FormularioDia
+      // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
+      key={`${fecha}-${JSON.stringify(existente)}-${reinicio}`}
+      usuarioId={usuario.id}
+      dossierId={dossier.id}
+      fecha={fecha}
+      actividades={dossier.actividades}
+      existente={existente}
+      ultimoTrabajo={existente ? null : ultimaJornada.datos}
+      autoguardar={!cerrado && !fueraDePeriodo}
+      cerrado={cerrado}
+      onDescartado={() => {
+        setAviso(null);
+        setReinicio((r) => r + 1);
+        recargar();
+      }}
+      bloqueado={bloqueado}
+      motivoBloqueo={
+        fueraDePeriodo
+          ? 'Este día está fuera de tu periodo de prácticas.'
+          : cerrado
+            ? 'La empresa ya ha valorado este mes: no se puede cambiar.'
+            : null
+      }
+      guardando={guardando}
+      aviso={aviso}
+      onEnviar={enviar}
+      onBorrar={borrar}
+    />
+  );
 
   return (
     // En iOS el teclado tapa el final del formulario si no se aparta el contenido.
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Pantalla titulo="Registrar día" subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}>
-        <Tarjeta>
-          <View style={styles.navFecha}>
-            <Boton texto="‹" variante="secundario" onPress={() => irA(sumarDias(fecha, -1))} />
-            <View style={styles.centro}>
-              <ThemedText type="subtitle">{fechaCorta(fecha)}</ThemedText>
-              {fueraDePeriodo ? (
-                <Chip texto="Fuera del periodo de prácticas" color="estadoFestivo" />
-              ) : cerrado ? (
-                <Chip texto="Mes valorado: no se puede cambiar" color="estadoFestivo" />
-              ) : existente ? (
-                <Chip texto="Apuntado" color="estadoValidado" />
-              ) : (
-                <Chip texto="Sin apuntar" color="estadoPendiente" />
-              )}
+      <Pantalla
+        titulo="Registrar día"
+        subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}
+        amplia={ancha}
+        compacta
+        bajoCabecera>
+        {ancha ? (
+          <View style={styles.columnas}>
+            <View style={styles.izquierda}>
+              {navegacion}
+              <Tarjeta>{calendario}</Tarjeta>
             </View>
-            <Boton texto="›" variante="secundario" onPress={() => irA(sumarDias(fecha, 1))} />
+            <View style={styles.derecha}>{formulario}</View>
           </View>
-          <View style={styles.acciones}>
-            <View style={styles.flex}>
-              <Boton
-                texto={verCalendario ? 'Ocultar calendario' : 'Calendario'}
-                variante="secundario"
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setVerCalendario((v) => !v);
-                }}
-              />
-            </View>
-            {fecha !== hoyISO() ? (
-              <View style={styles.flex}>
-                <Boton texto="Hoy" variante="secundario" onPress={() => irA(hoyISO())} />
-              </View>
-            ) : null}
-          </View>
-          {/* Arriba y plegable: al elegir un día se cierra y el formulario queda a la vista. */}
-          {verCalendario ? (
-            <CalendarioMes
-              mes={mesDe(fecha)}
-              // Al cambiar de mes se elige su primer día (o hoy, si es el mes actual).
-              onCambiarMes={(m) => irA(m === mesDe(hoyISO()) ? hoyISO() : `${m}-01`)}
-              dias={datos.dias}
-              periodo={dossier}
-              hoy={hoyISO()}
-              cerrado={cerrado}
-              seleccionada={fecha}
-              onElegir={(f) => {
-                irA(f);
-                setVerCalendario(false);
-              }}
-            />
-          ) : null}
-        </Tarjeta>
-
-        <FormularioDia
-          // Al cambiar de día (o tras guardar) el formulario empieza con lo ya apuntado.
-          key={`${fecha}-${JSON.stringify(existente)}`}
-          actividades={dossier.actividades}
-          existente={existente}
-          bloqueado={bloqueado}
-          guardando={guardando}
-          aviso={aviso}
-          onGuardar={guardar}
-          onBorrar={borrar}
-        />
+        ) : (
+          <>
+            {navegacion}
+            {formulario}
+          </>
+        )}
       </Pantalla>
     </KeyboardAvoidingView>
   );
 }
 
+/** Botón cuadrado de 44 px para las flechas de día. */
+function BotonIcono({
+  texto,
+  etiqueta,
+  onPress,
+  desactivado,
+  onLongPress,
+}: {
+  texto: string;
+  etiqueta: string;
+  onPress: () => void;
+  desactivado?: boolean;
+  onLongPress?: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      accessibilityState={{ disabled: !!desactivado }}
+      disabled={desactivado}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.icono,
+        { borderColor: theme.border, backgroundColor: theme.surface },
+        (desactivado || (Platform.OS === 'web' && pressed)) && { opacity: 0.4 },
+      ]}>
+      <ThemedText type="subtitle" style={styles.textoIcono}>
+        {texto}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+/** Flecha sutil de 44 px, sin borde propio: el grupo pone el marco. */
+function BotonFlecha({
+  texto,
+  etiqueta,
+  onPress,
+}: {
+  texto: string;
+  etiqueta: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      onPress={onPress}
+      style={({ pressed }) => [styles.flecha, pressed && { backgroundColor: theme.subtle }]}>
+      <ThemedText type="subtitle" themeColor="textSecondary" style={styles.textoIcono}>
+        {texto}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+/** Píldora pequeña para volver a hoy. */
+function BotonHoy({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ir a hoy"
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.hoy,
+        { borderColor: theme.primary, backgroundColor: theme.primarySuave },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <ThemedText type="smallBold" themeColor="primary">
+        Hoy
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+type EstadoChip = TonoEstado;
+
+/** Chip de estado con el relleno y la tinta de las celdas del calendario. */
+function ChipEstado({ texto, estado }: { texto: string; estado: EstadoChip }) {
+  const theme = useTheme();
+  const { fondo, tinta } = ESTADOS_DIA[estado];
+  const pendiente = estado === 'pendiente';
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Estado: ${texto}`}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: theme[fondo ?? 'subtle'],
+          borderColor: pendiente ? theme.bordePendiente : 'transparent',
+          borderStyle: pendiente ? 'dashed' : 'solid',
+        },
+      ]}>
+      <ThemedText
+        type="smallBold"
+        numberOfLines={1}
+        style={[styles.textoChip, { color: theme[tinta ?? 'text'] }]}>
+        {texto}
+      </ThemedText>
+    </View>
+  );
+}
+
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/** `2026-10-22` → `jueves` */
+function diaSemana(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  return DIAS_SEMANA[new Date(a, m - 1, d).getDay()];
+}
+
+function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={styles.enlace}>
+      <ThemedText type="smallBold" themeColor="primary">
+        {texto}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  columnas: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
+  izquierda: { flex: 5, gap: Spacing.three },
+  derecha: { flex: 6, gap: Spacing.three },
   navFecha: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  centro: { flex: 1, alignItems: 'center', gap: Spacing.one },
-  acciones: { flexDirection: 'row', gap: Spacing.two },
+  centro: { flex: 1, gap: 2 },
+  diaSemana: { textTransform: 'capitalize' },
+  flechas: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: Radius.button,
+    overflow: 'hidden',
+  },
+  flecha: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  separadorFlechas: { width: 1, height: 24 },
+  enlaces: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  hueco: { flex: 1 },
+  chip: {
+    flexShrink: 1,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: 3,
+  },
+  textoChip: { fontSize: 13 },
+  hoy: {
+    minHeight: 32,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  enlace: { minHeight: 32, justifyContent: 'center' },
+  icono: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoIcono: { lineHeight: 28 },
+  tipos: { flexDirection: 'row', gap: Spacing.two },
+  tipo: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one,
+  },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  filaTexto: { flex: 1 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  valor: { minWidth: 56, textAlign: 'center' },
+  total: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  totalNumero: { fontSize: 28, lineHeight: 34 },
   botones: { gap: Spacing.two },
-  campo: { gap: Spacing.one },
-  total: { flexDirection: 'row', justifyContent: 'space-between' },
+  estados: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  separador: { height: StyleSheet.hairlineWidth },
+  punto: { width: 10, height: 10, borderRadius: 5, borderWidth: 1 },
 });
 
-interface ValoresDia {
-  tipo: TipoDia;
-  horas: { actividadId: string; horas: number }[];
-  observaciones: string;
+/** Jornada de referencia para la barra del total: no es un límite, solo da escala. */
+const JORNADA = 8;
+
+function claveDia(usuarioId: string, dossierId: string, fecha: string): ClaveBorrador {
+  return { ambito: 'registro-dia', usuarioId, contexto: [dossierId, fecha] };
 }
 
 interface PropsFormulario {
+  usuarioId: string;
+  dossierId: string;
+  fecha: string;
   actividades: ActividadFormativa[];
   existente: RegistroDiario | null;
+  /** Día del que se pueden copiar las horas (solo si este aún no está apuntado). */
+  ultimoTrabajo: RegistroDiario | null;
   bloqueado: boolean;
+  /** En un mes cerrado el borrador se conserva tal cual: se ve y se descarta, pero no cambia. */
+  autoguardar: boolean;
+  cerrado: boolean;
+  onDescartado: () => void;
+  motivoBloqueo: string | null;
   guardando: boolean;
   aviso: { tipo: 'error' | 'ok'; texto: string } | null;
-  onGuardar: (valores: ValoresDia) => void;
-  onBorrar: () => void;
+  onEnviar: (
+    valores: ValoresDia,
+    huellaBase: string | null,
+    forzar: boolean,
+  ) => Promise<ResultadoEnvio | null>;
+  onBorrar: () => Promise<boolean>;
+}
+
+function textoConflicto(servidor: RegistroDiario | null): string {
+  if (!servidor) return 'Este día se ha borrado en el servidor desde que empezaste este borrador.';
+  const detalle =
+    servidor.tipo === 'trabajo'
+      ? `${ESTADOS_DIA.trabajo.texto}, ${formatoHoras(totalHoras(servidor))}`
+      : ESTADOS_DIA[servidor.tipo].texto;
+  const nota = servidor.observaciones ? `, «${servidor.observaciones}»` : '';
+  return `Este día ha cambiado en el servidor desde que empezaste este borrador. Ahora pone: ${detalle}${nota}. Elige cuál se queda.`;
 }
 
 function FormularioDia({
+  usuarioId,
+  dossierId,
+  fecha,
   actividades,
   existente,
+  ultimoTrabajo,
   bloqueado,
+  autoguardar,
+  cerrado,
+  onDescartado,
+  motivoBloqueo,
   guardando,
   aviso,
-  onGuardar,
+  onEnviar,
   onBorrar,
 }: PropsFormulario) {
+  const theme = useTheme();
   const [tipo, setTipo] = useState<TipoDia>(existente?.tipo ?? 'trabajo');
-  const [horas, setHoras] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      (existente?.horas ?? []).map((h) => [h.actividadId, String(h.horas).replace('.', ',')]),
-    ),
+  const [horas, setHoras] = useState<Record<string, number>>(() =>
+    Object.fromEntries((existente?.horas ?? []).map((h) => [h.actividadId, h.horas])),
   );
   const [observaciones, setObservaciones] = useState(existente?.observaciones ?? '');
+  /** Versión del servidor distinta de la del borrador; `undefined` si no hay conflicto. */
+  const [conflicto, setConflicto] = useState<RegistroDiario | null | undefined>(undefined);
 
-  // Se comprueba mientras se escribe, sin esperar a pulsar Guardar.
-  const leidas = actividades.map((a) => ({ id: a.id, lectura: leerHoras(horas[a.id] ?? '') }));
-  const total = leidas.reduce(
-    (s, { lectura }) => s + (lectura.tipo === 'ok' ? lectura.horas : 0),
-    0,
-  );
-  const hayErrores = leidas.some(({ lectura }) => lectura.tipo === 'error');
+  const total = actividades.reduce((s, a) => s + (horas[a.id] ?? 0), 0);
   const sinHoras = tipo === 'trabajo' && total === 0;
   const pasado = total > MAX_HORAS_DIA;
-  const puedeGuardar = !bloqueado && (tipo !== 'trabajo' || (!hayErrores && !sinHoras && !pasado));
+  const puedeGuardar = !bloqueado && (tipo !== 'trabajo' || (!sinHoras && !pasado));
+  // Por qué no se puede guardar, dicho junto al botón.
+  const motivo = bloqueado
+    ? motivoBloqueo
+    : sinHoras
+      ? 'Apunta las horas de al menos una actividad para guardar.'
+      : pasado
+        ? `Un día no puede pasar de ${MAX_HORAS_DIA} h: quita ${formatoHoras(total - MAX_HORAS_DIA)}.`
+        : null;
 
-  function enviar() {
-    onGuardar({
-      tipo,
-      observaciones,
-      horas: leidas.flatMap(({ id, lectura }) =>
-        lectura.tipo === 'ok' ? [{ actividadId: id, horas: lectura.horas }] : [],
-      ),
-    });
+  function cambiar(id: string, delta: number) {
+    if (bloqueado) return;
+    setHoras((h) => ({ ...h, [id]: pasoHoras(h[id] ?? 0, delta, MAX_HORAS_DIA) }));
   }
 
+  const valores: ValoresDia = {
+    tipo,
+    observaciones,
+    horas:
+      tipo === 'trabajo'
+        ? actividades.flatMap((a) =>
+            (horas[a.id] ?? 0) > 0 ? [{ actividadId: a.id, horas: horas[a.id] }] : [],
+          )
+        : [],
+  };
+  const borrador = useBorrador<ValoresDia>({
+    clave: claveDia(usuarioId, dossierId, fecha),
+    huellaActual: huellaRegistro(existente),
+    valores,
+    base: valoresDeRegistro(existente),
+    iguales: valoresDiaIguales,
+    validar: validarValoresDia,
+    guardable: autoguardar,
+    onRecuperar: (v) => {
+      setTipo(v.tipo);
+      setHoras(Object.fromEntries(v.horas.map((h) => [h.actividadId, h.horas])));
+      setObservaciones(v.observaciones);
+    },
+  });
+
+  async function enviar(forzar = false) {
+    setConflicto(undefined);
+    await borrador.volcar();
+    const envio = await onEnviar(valores, borrador.huella(), forzar);
+    if (envio?.resultado === 'guardado') await borrador.descartar();
+    else if (envio?.resultado === 'conflicto') setConflicto(envio.servidor);
+    else if (envio?.resultado === 'sin-conexion') borrador.marcarPendiente(envio.guardadoEn);
+  }
+
+  const estados = [
+    estadoEnvio({
+      hayBorrador: borrador.guardadoEn !== null,
+      pendienteEnvio: borrador.pendienteEnvio,
+      enServidor: existente !== null,
+    }),
+    estadoMes({ cerrado, enServidor: existente !== null }),
+  ].flatMap((e) => (e ? [e] : []));
+
+  const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
+
   return (
-    // Tocar fuera de un campo cierra el teclado (el numérico de iOS no tiene botón para cerrarlo).
+    // Tocar fuera de un campo cierra el teclado.
     <Pressable accessible={false} onPress={Keyboard.dismiss}>
       <Tarjeta titulo="Qué has hecho">
-        <Selector
-          opciones={TIPOS}
-          valor={tipo}
-          onCambio={(t) => {
-            Keyboard.dismiss();
-            if (!bloqueado) setTipo(t);
-          }}
-        />
+        {estados.length > 0 ? (
+          <View style={styles.estados}>
+            {estados.map((e) => (
+              <ChipEstado key={e.texto} texto={e.texto} estado={e.tono} />
+            ))}
+          </View>
+        ) : null}
+        <View style={styles.tipos} accessibilityRole="radiogroup">
+          {TIPOS.map((t) => {
+            const elegido = t.valor === tipo;
+            const { fondo, tinta } = ESTADOS_DIA[t.valor];
+            return (
+              <Pressable
+                key={t.valor}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: elegido, disabled: bloqueado }}
+                disabled={bloqueado}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setTipo(t.valor);
+                }}
+                style={[
+                  styles.tipo,
+                  elegido
+                    ? { borderColor: theme.primary, backgroundColor: theme.primarySuave }
+                    : { borderColor: theme.border, backgroundColor: theme.surface },
+                ]}>
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={[
+                    styles.punto,
+                    {
+                      backgroundColor: theme[fondo ?? 'subtle'],
+                      borderColor: theme[tinta ?? 'textSecondary'],
+                    },
+                  ]}
+                />
+                <ThemedText type={elegido ? 'smallBold' : 'small'}>{t.texto}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {tipo === 'trabajo' ? (
           <>
-            <ThemedText type="small" themeColor="textSecondary">
-              Horas por actividad, en tramos de 15 min (p. ej. 1,5). Deja en blanco las que no hayas
-              hecho.
+            <View style={styles.total}>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                Total del día
+              </ThemedText>
+              <ThemedText
+                type="smallBold"
+                themeColor={pasado ? 'danger' : 'text'}
+                style={styles.totalNumero}>
+                {formatoHoras(total)}
+              </ThemedText>
+            </View>
+            <BarraProgreso
+              porcentaje={(total / JORNADA) * 100}
+              etiqueta={`Total del día, ${formatoHoras(total)} de una jornada de ${JORNADA} h`}
+              color={pasado ? 'danger' : 'primary'}
+            />
+            <ThemedText type="small" themeColor={pasado ? 'danger' : 'textSecondary'}>
+              {pasado
+                ? `Máximo ${MAX_HORAS_DIA} h al día`
+                : `Jornada de referencia: ${JORNADA} h · máximo ${MAX_HORAS_DIA} h`}
             </ThemedText>
-            {actividades.map((a, i) => {
-              const lectura = leidas[i].lectura;
-              return (
-                <View key={a.id} style={styles.campo}>
-                  <Campo
-                    etiqueta={a.descripcion}
-                    placeholder="0"
-                    keyboardType="decimal-pad"
-                    returnKeyType="done"
-                    editable={!bloqueado}
-                    value={horas[a.id] ?? ''}
-                    onChangeText={(v) => setHoras((h) => ({ ...h, [a.id]: filtrarHoras(v) }))}
-                  />
-                  {lectura.tipo === 'error' ? (
-                    <ThemedText type="small" themeColor="danger">
-                      {lectura.motivo}
-                    </ThemedText>
-                  ) : null}
-                </View>
-              );
-            })}
+
+            {ultimoTrabajo && copiables.length > 0 && !bloqueado ? (
+              <Enlace
+                texto={`Copiar horas del ${fechaCorta(ultimoTrabajo.fecha)}`}
+                onPress={() =>
+                  setHoras(Object.fromEntries(copiables.map((h) => [h.actividadId, h.horas])))
+                }
+              />
+            ) : null}
+
+            <View>
+              {actividades.map((a, i) => {
+                const valor = horas[a.id] ?? 0;
+                return (
+                  <View key={a.id}>
+                    {i > 0 ? (
+                      <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
+                    ) : null}
+                    <View style={styles.fila}>
+                      <ThemedText
+                        style={styles.filaTexto}
+                        themeColor={valor > 0 ? 'text' : 'textSecondary'}>
+                        {a.descripcion}
+                      </ThemedText>
+                      <View
+                        style={styles.stepper}
+                        accessible
+                        accessibilityRole="adjustable"
+                        accessibilityLabel={`${a.descripcion}, ${formatoHoras(valor)}`}
+                        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+                        onAccessibilityAction={(e) =>
+                          cambiar(a.id, e.nativeEvent.actionName === 'increment' ? 0.5 : -0.5)
+                        }>
+                        <BotonIcono
+                          texto="−"
+                          etiqueta={`Quitar media hora a ${a.descripcion}`}
+                          desactivado={bloqueado || valor === 0}
+                          onPress={() => cambiar(a.id, -0.5)}
+                          // Mantener pulsado ajusta de 15 en 15 min.
+                          onLongPress={() => cambiar(a.id, -0.25)}
+                        />
+                        <ThemedText
+                          type="smallBold"
+                          themeColor={valor > 0 ? 'text' : 'textSecondary'}
+                          style={styles.valor}>
+                          {formatoHoras(valor)}
+                        </ThemedText>
+                        <BotonIcono
+                          texto="+"
+                          etiqueta={`Añadir media hora a ${a.descripcion}`}
+                          desactivado={bloqueado || total >= MAX_HORAS_DIA}
+                          onPress={() => cambiar(a.id, 0.5)}
+                          onLongPress={() => cambiar(a.id, 0.25)}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              Cada toque suma o resta media hora; mantén pulsado para ajustar 15 min.
+            </ThemedText>
           </>
         ) : null}
+
         <Campo
-          etiqueta="Observaciones"
+          etiqueta={tipo === 'trabajo' ? 'Observaciones' : 'Nota'}
           multiline
           editable={!bloqueado}
           value={observaciones}
           onChangeText={setObservaciones}
-          placeholder="Opcional"
+          placeholder={
+            tipo === 'ausencia'
+              ? 'Opcional: motivo (médico, examen…)'
+              : tipo === 'festivo'
+                ? 'Opcional: qué festivo es'
+                : 'Opcional'
+          }
         />
-        {tipo === 'trabajo' ? (
-          <View style={styles.total}>
-            <ThemedText type="smallBold">Total del día</ThemedText>
-            <ThemedText type="smallBold" themeColor={pasado ? 'danger' : 'text'}>
-              {formatoHoras(total)}
-              {pasado ? ` · máximo ${MAX_HORAS_DIA} h` : ''}
-            </ThemedText>
+        <AvisoBorrador
+          guardadoEn={borrador.guardadoEn}
+          fallo={borrador.fallo}
+          onDescartar={() => {
+            void borrador.descartar().then(onDescartado);
+          }}
+        />
+        {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+        {conflicto !== undefined ? (
+          <View style={styles.botones}>
+            <Mensaje tipo="error" texto={textoConflicto(conflicto)} />
+            <Boton
+              texto="Quedarme con el del servidor"
+              variante="secundario"
+              onPress={() => {
+                void borrador.descartar().then(onDescartado);
+              }}
+            />
+            <Boton
+              texto="Enviar el mío y reemplazar"
+              variante="peligro"
+              onPress={() => {
+                void enviar(true);
+              }}
+            />
           </View>
         ) : null}
-        {sinHoras && !bloqueado ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Apunta las horas de al menos una actividad para guardar.
-          </ThemedText>
-        ) : null}
-        {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
         <View style={styles.botones}>
+          {motivo ? (
+            <ThemedText type="small" themeColor={pasado ? 'danger' : 'textSecondary'}>
+              {motivo}
+            </ThemedText>
+          ) : null}
           <Boton
-            texto={existente ? 'Guardar cambios' : 'Guardar día'}
-            onPress={enviar}
+            texto={
+              borrador.pendienteEnvio
+                ? 'Reintentar envío'
+                : existente
+                  ? 'Guardar cambios'
+                  : 'Guardar día'
+            }
+            onPress={() => {
+              void enviar();
+            }}
             cargando={guardando}
             desactivado={!puedeGuardar}
           />
           {existente && !bloqueado ? (
-            <Boton texto="Borrar día" variante="peligro" onPress={onBorrar} />
+            <Boton
+              texto="Borrar día"
+              variante="peligro"
+              onPress={() => {
+                void onBorrar().then((borrado) => (borrado ? borrador.descartar() : undefined));
+              }}
+            />
           ) : null}
         </View>
       </Tarjeta>
