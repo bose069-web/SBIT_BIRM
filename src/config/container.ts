@@ -5,13 +5,16 @@ import type { ChatPort } from '@/core/ports/chat-port';
 import type { DossierPort } from '@/core/ports/dossier-port';
 import type { EventoPort } from '@/core/ports/evento-port';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
+import type { GrupoPort } from '@/core/ports/grupo-port';
 import type { HistorialPort } from '@/core/ports/historial-port';
 import type { IncidenciaPort } from '@/core/ports/incidencia-port';
 import type { InformePort } from '@/core/ports/informe-port';
 import type { PerfilPort } from '@/core/ports/perfil-port';
 import type { PreferenciasPort } from '@/core/ports/preferencias-port';
+import type { RecuperacionPort } from '@/core/ports/recuperacion-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
+import type { ToquePort } from '@/core/ports/toque-port';
 import type { ValoracionPort } from '@/core/ports/valoracion-port';
 import { BorradorLocalStorage } from '@/infrastructure/dispositivo/borrador-local-storage';
 import { PreferenciasLocalStorage } from '@/infrastructure/dispositivo/preferencias-local-storage';
@@ -21,13 +24,16 @@ import { ChatMemory } from '@/infrastructure/memory/chat-memory';
 import { DossierMemory } from '@/infrastructure/memory/dossier-memory';
 import { EventoMemory } from '@/infrastructure/memory/evento-memory';
 import { GestionCentroMemory } from '@/infrastructure/memory/gestion-centro-memory';
+import { GrupoMemory } from '@/infrastructure/memory/grupo-memory';
 import { HistorialMemory } from '@/infrastructure/memory/historial-memory';
 import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
 import { InformesMemory } from '@/infrastructure/memory/informes-memory';
 import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
 import { PreferenciasMemory } from '@/infrastructure/memory/preferencias-memory';
+import { RecuperacionMemory } from '@/infrastructure/memory/recuperacion-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
+import { ToqueMemory } from '@/infrastructure/memory/toque-memory';
 import { ValoracionMemory } from '@/infrastructure/memory/valoracion-memory';
 import { AuthSupabase } from '@/infrastructure/supabase/auth-supabase';
 import { ChatSupabase } from '@/infrastructure/supabase/chat-supabase';
@@ -35,12 +41,15 @@ import { crearClienteSupabase } from '@/infrastructure/supabase/client';
 import { DossierSupabase } from '@/infrastructure/supabase/dossier-supabase';
 import { EventoSupabase } from '@/infrastructure/supabase/evento-supabase';
 import { GestionCentroSupabase } from '@/infrastructure/supabase/gestion-centro-supabase';
+import { GrupoSupabase } from '@/infrastructure/supabase/grupo-supabase';
 import { HistorialSupabase } from '@/infrastructure/supabase/historial-supabase';
 import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
 import { InformesSupabase } from '@/infrastructure/supabase/informes-supabase';
 import { PerfilSupabase } from '@/infrastructure/supabase/perfil-supabase';
+import { RecuperacionSupabase } from '@/infrastructure/supabase/recuperacion-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
 import { TareaSupabase } from '@/infrastructure/supabase/tarea-supabase';
+import { ToqueSupabase } from '@/infrastructure/supabase/toque-supabase';
 import { ValoracionSupabase } from '@/infrastructure/supabase/valoracion-supabase';
 
 interface Container {
@@ -58,6 +67,9 @@ interface Container {
   borradores: BorradorPort;
   historial: HistorialPort;
   preferencias: PreferenciasPort;
+  grupos: GrupoPort;
+  toques: ToquePort;
+  recuperacion: RecuperacionPort;
 }
 
 /**
@@ -89,6 +101,9 @@ function crearContainer(): Container {
         registros: new RegistroDiarioSupabase(cliente),
         valoraciones: new ValoracionSupabase(cliente),
         centros: new GestionCentroSupabase(cliente),
+        grupos: new GrupoSupabase(cliente),
+        toques: new ToqueSupabase(cliente),
+        recuperacion: new RecuperacionSupabase(cliente),
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
         incidencias: new IncidenciaSupabase(cliente),
@@ -109,12 +124,16 @@ function crearContainer(): Container {
   const cuentas = new CuentasMemory();
   const auth = new AuthMemory(null, cuentas);
   const historial = new HistorialMemory(auth);
+  const registros = new RegistroDiarioMemory(undefined, historial);
   return {
     auth,
     dossiers: new DossierMemory(),
-    registros: new RegistroDiarioMemory(undefined, historial),
+    registros,
     valoraciones: new ValoracionMemory(auth, historial),
     centros: new GestionCentroMemory(cuentas),
+    grupos: new GrupoMemory(),
+    toques: new ToqueMemory(auth, registros),
+    recuperacion: new RecuperacionMemory(cuentas),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
     incidencias: new IncidenciaMemory(),

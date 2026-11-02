@@ -296,6 +296,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   innerContainer: {
+    // Permite recorrer todas las pestañas en web estrecha sin ensanchar la página.
+    width: '100%',
+    overflowX: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
     flexGrow: 1,

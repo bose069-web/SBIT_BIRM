@@ -1,3 +1,4 @@
+import { ClasesCentro } from './clases-centro';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -218,6 +219,11 @@ export function PanelInstituto() {
             </View>
             <View style={styles.lateral}>
               {bloqueAlumnos}
+              <ClasesCentro
+                key={datos.centro.id}
+                centroId={datos.centro.id}
+                alumnos={datos.alumnos}
+              />
               {bloqueConvenios}
               {fechasGenerales}
             </View>
@@ -229,6 +235,11 @@ export function PanelInstituto() {
             {bloqueIncidencias}
             {bloqueConvenios}
             {bloqueAlumnos}
+            <ClasesCentro
+              key={datos.centro.id}
+              centroId={datos.centro.id}
+              alumnos={datos.alumnos}
+            />
             {fechasGenerales}
           </View>
         )

@@ -26,6 +26,8 @@ export const TEXTO_TIPO_EVENTO: Record<TipoEvento, string> = {
   entrega: 'Entrega',
   reunion: 'Reunión',
   festivo: 'Festivo',
+  plazo: 'Plazo',
+  curso: 'Curso',
 };
 
 /** Eventos del mes actual y del siguiente (generales y de los dossiers que ve el usuario). */
@@ -105,12 +107,23 @@ export function ProximasFechas({
  * Formulario para poner una fecha en el calendario. Con `dossier`, es solo de ese alumno
  * (su profe, instituto o generalitat); sin él, general para todos (instituto o generalitat).
  */
-export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado?: () => void }) {
+export function NuevoEvento({
+  dossier,
+  onCreado,
+  tipos = [...TIPOS_EVENTO],
+  tipoInicial,
+}: {
+  dossier?: Dossier;
+  onCreado?: () => void;
+  /** Tipos que se pueden elegir (la generalitat solo pone los de la red). */
+  tipos?: TipoEvento[];
+  tipoInicial?: TipoEvento;
+}) {
   const usuario = useUsuario();
   const [abierto, setAbierto] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [fecha, setFecha] = useState('');
-  const [tipo, setTipo] = useState<TipoEvento>(dossier ? 'entrega' : 'evento');
+  const [tipo, setTipo] = useState<TipoEvento>(tipoInicial ?? (dossier ? 'entrega' : 'evento'));
   const [aviso, setAviso] = useState<{ tipo: 'error' | 'ok'; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const leida = leerFecha(fecha);
@@ -171,7 +184,7 @@ export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado
       ) : null}
       <Selector
         etiqueta="Tipo"
-        opciones={TIPOS_EVENTO.map((t) => ({ valor: t, texto: TEXTO_TIPO_EVENTO[t] }))}
+        opciones={tipos.map((t) => ({ valor: t, texto: TEXTO_TIPO_EVENTO[t] }))}
         valor={tipo}
         onCambio={setTipo}
       />

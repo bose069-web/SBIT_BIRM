@@ -3,11 +3,16 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
 
+import * as Linking from 'expo-linking';
+
+import { pedirRecuperacion } from '@/core/application/recuperacion';
+import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Mensaje } from '@/ui/components/mensaje';
@@ -47,6 +52,39 @@ export function VistaLogin() {
     }
   }
 
+  const [recuperando, setRecuperando] = useState(false);
+  const [pedida, setPedida] = useState(false);
+
+  async function pedir() {
+    setError(null);
+    setEnviando(true);
+    try {
+      await pedirRecuperacion(container.recuperacion, email, Linking.createURL('/restablecer'));
+      setPedida(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se ha podido enviar la solicitud');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function alternarRecuperacion() {
+    setError(null);
+    setPedida(false);
+    setRecuperando((v) => !v);
+  }
+
+  const enlaceRecuperar = (
+    <Pressable
+      accessibilityRole="button"
+      onPress={alternarRecuperacion}
+      style={({ pressed }) => [styles.enlace, pressed && { opacity: 0.6 }]}>
+      <ThemedText type="small" themeColor="primary">
+        {recuperando ? 'Volver a iniciar sesión' : '¿Has olvidado tu contraseña?'}
+      </ThemedText>
+    </Pressable>
+  );
+
   const { width } = useWindowDimensions();
   // En la web horizontal el acceso va dentro de la portada; en el móvil, solo.
   const conPortada = Platform.OS === 'web' && width >= 900;
@@ -74,16 +112,37 @@ export function VistaLogin() {
         keyboardType="email-address"
         placeholder="nombre@centro.cat"
       />
-      <Campo
-        etiqueta="Contraseña"
-        value={contrasena}
-        onChangeText={setContrasena}
-        secureTextEntry
-        autoComplete="current-password"
-        onSubmitEditing={() => enviar()}
-      />
-      {error ? <Mensaje tipo="error" texto={error} /> : null}
-      <Boton texto="Entrar" onPress={() => enviar()} cargando={enviando} />
+      {recuperando ? (
+        <>
+          {pedida ? (
+            <Mensaje
+              tipo="ok"
+              texto="Solicitud enviada. Si eres alumno, tu profe te pasará un enlace; si no, lo recibirás por correo."
+            />
+          ) : null}
+          {error ? <Mensaje tipo="error" texto={error} /> : null}
+          <Boton
+            texto="Pedir recuperación"
+            onPress={pedir}
+            cargando={enviando}
+            desactivado={pedida}
+          />
+        </>
+      ) : (
+        <>
+          <Campo
+            etiqueta="Contraseña"
+            value={contrasena}
+            onChangeText={setContrasena}
+            secureTextEntry
+            autoComplete="current-password"
+            onSubmitEditing={() => enviar()}
+          />
+          {error ? <Mensaje tipo="error" texto={error} /> : null}
+          <Boton texto="Entrar" onPress={() => enviar()} cargando={enviando} />
+        </>
+      )}
+      {enlaceRecuperar}
 
       {__DEV__ ? (
         <View style={[styles.demo, { borderTopColor: theme.border }]}>
@@ -131,6 +190,7 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
   },
+  enlace: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 170, height: 48 },
   demo: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
   filaDemo: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

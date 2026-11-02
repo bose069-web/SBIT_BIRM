@@ -28,10 +28,11 @@ import { Fonts, Radius, Spacing } from '@/ui/theme/theme';
 import { generarContrasena } from '@/ui/utils/contrasena';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { RepartoProfesCentro } from './reparto-profes';
 import { ContenidoSeguimiento } from './seguimiento-profe';
 
 const SIN_PROFE = 'sin-profe';
-type Seccion = 'personas' | 'seguimiento';
+type Seccion = 'personas' | 'seguimiento' | 'reparto';
 /** Vive solo en memoria, mientras se muestra: nunca se guarda ni se registra. */
 type AltaCreada = { nombre: string; email: string; contrasena: string };
 
@@ -73,12 +74,15 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
       <Selector<Seccion>
         opciones={[
           { valor: 'personas', texto: 'Tutores y altas' },
+          { valor: 'reparto', texto: 'Reparto por profesor' },
           { valor: 'seguimiento', texto: 'Seguimiento de prácticas' },
         ]}
         valor={seccion}
         onCambio={setSeccion}
       />
-      {seccion === 'seguimiento' ? (
+      {seccion === 'reparto' && centroId ? (
+        <RepartoProfesCentro key={centroId} centroId={centroId} onCambio={recargar} />
+      ) : seccion === 'seguimiento' ? (
         <ContenidoSeguimiento
           centroId={centroId}
           onFicha={(id) => router.push({ pathname: '/alumnos', params: { dossier: id } })}

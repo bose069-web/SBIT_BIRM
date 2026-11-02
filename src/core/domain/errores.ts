@@ -95,3 +95,10 @@ export class ConflictoRegistroError extends Error {
     this.name = 'ConflictoRegistroError';
   }
 }
+
+export class EnlaceCaducadoError extends Error {
+  constructor() {
+    super('Este enlace ya se ha usado o ha caducado. Pide uno nuevo a tu profe.');
+    this.name = 'EnlaceCaducadoError';
+  }
+}

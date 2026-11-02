@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { RegistroDiario } from '@/core/domain/registro-diario';
+import { totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
 import { DIAS_SEMANA, esFinDeSemana, estadoDia, semanasDelMes } from '@/ui/utils/calendario';
-import { fechaCorta, nombreMes } from '@/ui/utils/fechas';
+import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
 
 import { ESTADOS_DIA } from './calendario-mes';
 
@@ -18,6 +18,11 @@ interface Props {
   periodo?: { fechaInicio: string; fechaFin: string };
   /** Mes y enlace propios; sin ellos, los pone la tarjeta que lo contiene. */
   cabecera?: boolean;
+  /** `AAAA-MM` a mostrar; por defecto, el de hoy. */
+  mes?: string;
+  seleccionada?: string | null;
+  /** Qué hacer al tocar un día; por defecto, abrir su registro. */
+  onElegir?: (fecha: string) => void;
 }
 
 /**
@@ -25,9 +30,16 @@ interface Props {
  * apuntar, ausencia, festivo). Al tocar un día de las prácticas que ya ha llegado se abre su
  * registro; el enlace de la cabecera lleva a la pestaña Calendario.
  */
-export function MiniCalendario({ hoy, registros, periodo, cabecera = true }: Props) {
+export function MiniCalendario({
+  hoy,
+  registros,
+  periodo,
+  cabecera = true,
+  mes = hoy.slice(0, 7),
+  seleccionada,
+  onElegir,
+}: Props) {
   const theme = useTheme();
-  const mes = hoy.slice(0, 7);
   const porFecha = new Map(registros?.map((r) => [r.fecha, r]));
   return (
     <View style={styles.caja}>
@@ -59,7 +71,8 @@ export function MiniCalendario({ hoy, registros, periodo, cabecera = true }: Pro
           {semana.map((fecha, j) => {
             if (!fecha) return <View key={j} style={styles.celda} />;
             const esHoy = fecha === hoy;
-            const clave = periodo ? estadoDia(fecha, porFecha.get(fecha), periodo, hoy) : null;
+            const registro = porFecha.get(fecha);
+            const clave = periodo ? estadoDia(fecha, registro, periodo, hoy) : null;
             const estado = clave ? ESTADOS_DIA[clave] : null;
             // Solo se registran días de las prácticas que ya han llegado.
             const registrable = !!clave && clave !== 'fuera' && fecha <= hoy;
@@ -71,16 +84,25 @@ export function MiniCalendario({ hoy, registros, periodo, cabecera = true }: Pro
                 disabled={!registrable}
                 accessibilityRole={registrable ? 'button' : undefined}
                 accessibilityLabel={
-                  registrable
-                    ? `${fechaCorta(fecha)}, ${estado?.texto}. Registrar el día`
-                    : undefined
+                  !registrable
+                    ? undefined
+                    : onElegir
+                      ? `${fechaCorta(fecha)}, ${estado?.texto}${registro && clave === 'trabajo' ? `, ${formatoHoras(totalHoras(registro))}` : ''}`
+                      : `${fechaCorta(fecha)}, ${estado?.texto}. Registrar el día`
                 }
-                onPress={() => router.push({ pathname: '/registro', params: { fecha } })}
+                accessibilityState={{ selected: fecha === seleccionada }}
+                onPress={() =>
+                  onElegir
+                    ? onElegir(fecha)
+                    : router.push({ pathname: '/registro', params: { fecha } })
+                }
                 style={({ pressed }) => [styles.celda, pressed && { opacity: 0.6 }]}>
                 <View
                   style={[
                     styles.dia,
                     fondo ? { backgroundColor: fondo } : null,
+                    fecha === seleccionada && styles.elegido,
+                    fecha === seleccionada && { borderColor: theme.text },
                     !esHoy &&
                       estado?.fondo === 'fondoPendiente' && {
                         borderWidth: 1.5,
@@ -133,6 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  elegido: { borderWidth: 2 },
   numero: { fontSize: 14, lineHeight: 18 },
   numeroHoy: { fontFamily: FontFamily.semibold },
 });
