@@ -1,3 +1,4 @@
+import { CuentasMemory } from './cuentas-memory';
 import type { Centro, Convenio, Empresa, Persona } from '@/core/domain/centro';
 import { CorreoYaRegistradoError } from '@/core/domain/errores';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
@@ -82,6 +83,7 @@ const TUTORES_DEMO: (Persona & { empresaId: string })[] = [
 ];
 
 export class GestionCentroMemory implements GestionCentroPort {
+  constructor(private readonly cuentas = new CuentasMemory()) {}
   private centros = CENTROS.map((c) => ({ ...c }));
   private personas = PERSONAS_DEMO.map((p) => ({ ...p }));
   private empresas = [...EMPRESAS_DEMO];
@@ -122,7 +124,7 @@ export class GestionCentroMemory implements GestionCentroPort {
     this.cambiar(personaId, { centroId });
   }
 
-  // La contraseña no se guarda: en memoria solo entran los usuarios demo.
+  // La cuenta queda disponible para el autenticador de esta demo.
   async crearAlumno(
     datos: { nombre: string; email: string; contrasena: string },
     centroId: string,
@@ -137,6 +139,7 @@ export class GestionCentroMemory implements GestionCentroPort {
       centroId,
       profeId: null,
     };
+    this.cuentas.crear(alumno, datos.contrasena);
     this.personas.push(alumno);
     return { ...alumno };
   }

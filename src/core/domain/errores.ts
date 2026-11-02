@@ -1,3 +1,4 @@
+import type { RegistroDiario } from './registro-diario';
 export class CredencialesInvalidasError extends Error {
   constructor() {
     super('Email o contraseña incorrectos');
@@ -78,4 +79,12 @@ export function esFalloDeRed(error: unknown): boolean {
   if (error instanceof SinConexionError) return true;
   const mensaje = error instanceof Error ? error.message : String(error);
   return PATRON_FALLO_RED.test(mensaje);
+}
+
+/** La versión cambió antes de escribir: no se ha modificado ningún dato. */
+export class ConflictoRegistroError extends Error {
+  constructor(readonly servidor: RegistroDiario | null) {
+    super('El registro ha cambiado en el servidor');
+    this.name = 'ConflictoRegistroError';
+  }
 }

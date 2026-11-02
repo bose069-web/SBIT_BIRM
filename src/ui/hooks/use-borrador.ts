@@ -87,6 +87,8 @@ export function useBorrador<T>({
           persistidos.current = null;
           setGuardadoEn(null);
           setFallo(true);
+          pendiente.current = false;
+          setPendienteEnvio(false);
         },
       );
     }
@@ -154,8 +156,7 @@ export function useBorrador<T>({
 
   /** Escribe ya lo pendiente: lo que se va a enviar tiene que estar a salvo antes. */
   const volcar = useCallback(async () => {
-    if (temporizador.current === null) return;
-    clearTimeout(temporizador.current);
+    if (temporizador.current !== null) clearTimeout(temporizador.current);
     await escribir();
   }, [escribir]);
 
@@ -164,6 +165,7 @@ export function useBorrador<T>({
     if (huellaBase.current === undefined) huellaBase.current = actual.current.huellaActual;
     persistidos.current = actual.current.valores;
     pendiente.current = true;
+    setFallo(false);
     setPendienteEnvio(true);
     setGuardadoEn(instante);
   }, []);
@@ -174,5 +176,22 @@ export function useBorrador<T>({
     return base === undefined ? (actual.current.huellaActual ?? null) : base;
   }, []);
 
-  return { guardadoEn, fallo, pendienteEnvio, descartar, volcar, marcarPendiente, huella };
+  const marcarFallo = useCallback(() => {
+    persistidos.current = null;
+    pendiente.current = false;
+    setGuardadoEn(null);
+    setPendienteEnvio(false);
+    setFallo(true);
+  }, []);
+
+  return {
+    guardadoEn,
+    fallo,
+    pendienteEnvio,
+    descartar,
+    volcar,
+    marcarPendiente,
+    marcarFallo,
+    huella,
+  };
 }
