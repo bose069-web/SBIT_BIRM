@@ -1,5 +1,10 @@
 import { DatosInvalidosError } from '@/core/domain/errores';
-import { nombreGrupo, type AlumnoEnClase, type BorradorGrupo, type Grupo } from '@/core/domain/grupo';
+import {
+  nombreGrupo,
+  type AlumnoEnClase,
+  type BorradorGrupo,
+  type Grupo,
+} from '@/core/domain/grupo';
 import type { GrupoPort } from '@/core/ports/grupo-port';
 
 import { IDS_DEMO } from './datos-demo';

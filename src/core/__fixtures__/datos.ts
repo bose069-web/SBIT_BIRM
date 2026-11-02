@@ -204,7 +204,8 @@ export class ValoracionesFalsas implements ValoracionPort {
   }
   private cambiarConfirmacion(dossierId: string, mes: string, confirmar: boolean) {
     const indice = this.mensuales.findIndex((m) => m.dossierId === dossierId && m.mes === mes);
-    if (indice === -1) throw new ValoracionInvalidaError('La empresa todavía no ha valorado este mes');
+    if (indice === -1)
+      throw new ValoracionInvalidaError('La empresa todavía no ha valorado este mes');
     const v: ValoracionMensual = {
       ...this.mensuales[indice],
       confirmadaPor: confirmar ? 'x' : null,

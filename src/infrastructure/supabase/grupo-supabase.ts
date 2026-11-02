@@ -92,9 +92,7 @@ export class GrupoSupabase implements GrupoPort {
       .order('nombre')
       .returns<FilaAlumno[]>();
     if (error) lanzar(error);
-    return data.map(
-      (f): AlumnoEnClase => ({ id: f.id, nombre: f.nombre, grupoId: f.grupo_id }),
-    );
+    return data.map((f): AlumnoEnClase => ({ id: f.id, nombre: f.nombre, grupoId: f.grupo_id }));
   }
 
   async asignarEnBloque(grupoId: string, alumnoIds: string[]) {

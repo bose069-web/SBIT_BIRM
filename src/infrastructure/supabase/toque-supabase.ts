@@ -14,7 +14,8 @@ interface FilaToque {
   resuelto_en: string | null;
 }
 
-const COLUMNAS = 'id, dossier_id, dado_por, dias_sin_apuntar, fecha, creado_en, visto_en, resuelto_en';
+const COLUMNAS =
+  'id, dossier_id, dado_por, dias_sin_apuntar, fecha, creado_en, visto_en, resuelto_en';
 
 function aToque(f: FilaToque): Toque {
   return {

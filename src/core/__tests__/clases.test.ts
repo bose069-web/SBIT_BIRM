@@ -137,9 +137,9 @@ describe('repartir alumnos en clases', () => {
     const grupos = new GruposFalsos();
     const clase = { id: 'g1', centroId: 'c1', ciclo: 'DAM', curso: 2, letra: 'A' };
     await expect(asignarAlumnosAClase(grupos, instituto, clase, [])).rejects.toThrow('al menos un');
-    await expect(
-      asignarAlumnosAClase(grupos, instituto, clase, ['desconocido']),
-    ).rejects.toThrow('Solo los alumnos del centro');
+    await expect(asignarAlumnosAClase(grupos, instituto, clase, ['desconocido'])).rejects.toThrow(
+      'Solo los alumnos del centro',
+    );
     expect(grupos.asignados).toBeNull();
   });
 

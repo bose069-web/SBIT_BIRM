@@ -75,9 +75,7 @@ export class ToqueMemory implements ToquePort {
   async pendientesDelAlumno() {
     const usuario = await this.auth.usuarioActual();
     if (!usuario) return [];
-    const suyos = new Set(
-      DOSSIERS_DEMO.filter((d) => d.alumnoId === usuario.id).map((d) => d.id),
-    );
+    const suyos = new Set(DOSSIERS_DEMO.filter((d) => d.alumnoId === usuario.id).map((d) => d.id));
     const pendientes = this.toques
       .filter((t) => suyos.has(t.dossierId) && estaPendiente(t))
       .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));

@@ -24,7 +24,11 @@ describe('días sin apuntar', () => {
 
   it('cuenta los laborables sin ningún día apuntado', () => {
     expect(
-      diasSinApuntar([{ fecha: '2026-10-27' }, { fecha: '2026-10-29' }], '2026-10-26', '2026-10-30'),
+      diasSinApuntar(
+        [{ fecha: '2026-10-27' }, { fecha: '2026-10-29' }],
+        '2026-10-26',
+        '2026-10-30',
+      ),
     ).toBe(3);
   });
 

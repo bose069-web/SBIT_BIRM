@@ -63,11 +63,11 @@ export function comprobarGrupo(borrador: BorradorGrupo): void {
 }
 
 /** Por ciclo, curso y letra: el mismo orden en el que se leen en el centro. */
-export function ordenarGrupos<T extends Pick<Grupo, 'ciclo' | 'curso' | 'letra'>>(grupos: T[]): T[] {
+export function ordenarGrupos<T extends Pick<Grupo, 'ciclo' | 'curso' | 'letra'>>(
+  grupos: T[],
+): T[] {
   return [...grupos].sort(
     (a, b) =>
-      a.ciclo.localeCompare(b.ciclo, 'es') ||
-      a.curso - b.curso ||
-      a.letra.localeCompare(b.letra),
+      a.ciclo.localeCompare(b.ciclo, 'es') || a.curso - b.curso || a.letra.localeCompare(b.letra),
   );
 }
