@@ -21,6 +21,8 @@ const valoracion = (mes: string, cambios: Partial<ValoracionMensual> = {}): Valo
   comentario: null,
   valoradaPor: 'e1',
   valoradaEn: '2026-11-02T10:00:00.000Z',
+  confirmadaPor: null,
+  confirmadaEn: null,
   ...cambios,
 });
 
@@ -28,6 +30,7 @@ const seguimiento = (mensuales: ValoracionMensual[] = []): Seguimiento => ({
   mensuales,
   final: null,
   sinValorar: [],
+  sinConfirmar: [],
 });
 
 const seguimientoCerrado = (): Seguimiento => ({
@@ -40,6 +43,7 @@ const seguimientoCerrado = (): Seguimiento => ({
     valoradaEn: '2027-03-20T09:00:00.000Z',
   },
   sinValorar: [],
+  sinConfirmar: [],
 });
 
 describe('mesesPorValidar', () => {

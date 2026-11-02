@@ -19,6 +19,10 @@ export interface ValoracionMensual {
   valoradaPor: string;
   /** Fecha y hora ISO. */
   valoradaEn: string;
+  /** Profe tutor que confirmó el mes; `null` mientras no lo confirme. */
+  confirmadaPor: string | null;
+  /** Fecha y hora ISO de la confirmación; `null` mientras no la haya. */
+  confirmadaEn: string | null;
 }
 
 /** Lo que envía la empresa; quién valora y cuándo lo pone el sistema. */
@@ -72,6 +76,39 @@ export function mesCerrado(
   final: ValoracionFinal | null,
 ): boolean {
   return final !== null || mensuales.some((v) => v.mes === mesDe(fecha));
+}
+
+/** El profe tutor ya ha confirmado ese mes. */
+export function mesConfirmado(
+  mensuales: Pick<ValoracionMensual, 'mes' | 'confirmadaEn'>[],
+  mes: string,
+): boolean {
+  return mensuales.some((v) => v.mes === mes && v.confirmadaEn !== null);
+}
+
+/** Meses que la empresa ya valoró y el profe todavía no ha confirmado, en orden. */
+export function mesesSinConfirmar(
+  mensuales: Pick<ValoracionMensual, 'mes' | 'confirmadaEn'>[],
+): string[] {
+  return [...new Set(mensuales.filter((v) => v.confirmadaEn === null).map((v) => v.mes))].sort();
+}
+
+/** Reglas de la confirmación del mes, iguales para confirmar y para quitar la confirmación. */
+export function comprobarConfirmacion(
+  mensuales: Pick<ValoracionMensual, 'mes' | 'confirmadaEn'>[],
+  mes: string,
+  confirmar: boolean,
+): void {
+  if (!/^\d{4}-\d{2}$/.test(mes)) throw new ValoracionInvalidaError('Mes no válido');
+  if (!mensuales.some((v) => v.mes === mes)) {
+    throw new ValoracionInvalidaError('La empresa todavía no ha valorado este mes');
+  }
+  if (confirmar && mesConfirmado(mensuales, mes)) {
+    throw new ValoracionInvalidaError('Este mes ya está confirmado');
+  }
+  if (!confirmar && !mesConfirmado(mensuales, mes)) {
+    throw new ValoracionInvalidaError('Este mes no está confirmado');
+  }
 }
 
 /** Meses ya acabados (o el actual) que la empresa todavía no ha valorado. */

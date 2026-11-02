@@ -345,6 +345,8 @@ export const VALORACIONES_DEMO: ValoracionMensual[] = [
     comentario: 'Buen inicio, se adapta rápido al equipo.',
     valoradaPor: EMPRESA_1,
     valoradaEn: '2026-10-01T09:00:00.000Z',
+    confirmadaPor: null,
+    confirmadaEn: null,
   },
   {
     id: 'valoracion-demo-2',
@@ -354,6 +356,8 @@ export const VALORACIONES_DEMO: ValoracionMensual[] = [
     comentario: 'Muy buen ritmo y buena comunicación con el equipo.',
     valoradaPor: EMPRESA_2,
     valoradaEn: '2026-10-02T10:30:00.000Z',
+    confirmadaPor: null,
+    confirmadaEn: null,
   },
   {
     id: 'valoracion-demo-3',
@@ -363,5 +367,7 @@ export const VALORACIONES_DEMO: ValoracionMensual[] = [
     comentario: 'Debe ganar autonomía al resolver incidencias sencillas.',
     valoradaPor: EMPRESA_2,
     valoradaEn: '2026-10-02T11:15:00.000Z',
+    confirmadaPor: null,
+    confirmadaEn: null,
   },
 ];

@@ -1,4 +1,4 @@
-import { ValoracionYaExisteError } from '@/core/domain/errores';
+import { ValoracionInvalidaError, ValoracionYaExisteError } from '@/core/domain/errores';
 import type {
   BorradorValoracionFinal,
   BorradorValoracionMensual,
@@ -36,11 +36,17 @@ export class ValoracionMemory implements ValoracionPort {
 
   async guardarMensual(b: BorradorValoracionMensual) {
     const existente = this.mensuales.find((v) => v.dossierId === b.dossierId && v.mes === b.mes);
+    // Como el trigger de la base de datos: un mes confirmado por el profe no lo cambia nadie más.
+    if (existente?.confirmadaEn) {
+      throw new ValoracionInvalidaError('El profe ya ha confirmado este mes: no se puede cambiar');
+    }
     const valoracion: ValoracionMensual = {
       ...b,
       id: existente?.id ?? `valoracion-${this.siguienteId++}`,
       valoradaPor: await this.quienValora(),
       valoradaEn: new Date().toISOString(),
+      confirmadaPor: null,
+      confirmadaEn: null,
     };
     this.mensuales = [...this.mensuales.filter((v) => v.id !== valoracion.id), valoracion];
     await this.historial?.anotar(
@@ -57,6 +63,30 @@ export class ValoracionMemory implements ValoracionPort {
       throw new ValoracionYaExisteError();
     }
     return this.guardarMensual(b);
+  }
+
+  async confirmarMes(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, true);
+  }
+
+  async quitarConfirmacion(dossierId: string, mes: string) {
+    return this.cambiarConfirmacion(dossierId, mes, false);
+  }
+
+  /** Solo toca la confirmación: la valoración de la empresa se queda como estaba. */
+  private async cambiarConfirmacion(dossierId: string, mes: string, confirmar: boolean) {
+    const persona = await this.quienValora();
+    const indice = this.mensuales.findIndex((v) => v.dossierId === dossierId && v.mes === mes);
+    if (indice === -1) {
+      throw new ValoracionInvalidaError('La empresa todavía no ha valorado este mes');
+    }
+    const valoracion: ValoracionMensual = {
+      ...this.mensuales[indice],
+      confirmadaPor: confirmar ? persona : null,
+      confirmadaEn: confirmar ? new Date().toISOString() : null,
+    };
+    this.mensuales = this.mensuales.map((v, i) => (i === indice ? valoracion : v));
+    return valoracion;
   }
 
   async obtenerFinal(dossierId: string) {
