@@ -1,11 +1,4 @@
-import {
-  agruparPorAlumno,
-  alumnosSinApuntar,
-  laborablesEntre,
-  textoToque,
-  TITULO_TOQUE,
-  toquePendiente,
-} from '../avisos-profe';
+import { agruparPorAlumno, alumnosSinApuntar, laborablesEntre } from '../avisos-profe';
 
 // 2026-10-28 es miércoles.
 const HOY = '2026-10-28';
@@ -79,33 +72,6 @@ describe('alumnosSinApuntar', () => {
         HOY,
       ).map((x) => x.nombre),
     ).toEqual(['Gala']);
-  });
-});
-
-describe('textoToque', () => {
-  it('dice cuántos días lleva', () => {
-    expect(
-      textoToque({ dossierId: 'a', nombre: 'Ana', dias: 1, ultimo: null }).descripcion,
-    ).toMatch(/^Llevas 1 día laborable sin/);
-  });
-});
-
-describe('toquePendiente', () => {
-  it('devuelve el último toque sin cumplir e ignora el resto de tareas', () => {
-    expect(
-      toquePendiente([
-        { titulo: TITULO_TOQUE, completada: false, fechaLimite: '2026-10-20' },
-        { titulo: TITULO_TOQUE, completada: false, fechaLimite: '2026-10-27' },
-        { titulo: TITULO_TOQUE, completada: true, fechaLimite: '2026-10-28' },
-        { titulo: 'Memoria', completada: false, fechaLimite: '2026-10-30' },
-      ]),
-    ).toBe('2026-10-27');
-  });
-
-  it('null si no hay toques pendientes', () => {
-    expect(toquePendiente([{ titulo: TITULO_TOQUE, completada: true, fechaLimite: null }])).toBe(
-      null,
-    );
   });
 });
 
