@@ -1,6 +1,11 @@
 import {
   esCuentaNueva,
+  estaDeBaja,
+  juntarCifras,
+  resumirRed,
   type Centro,
+  type CentroConCifras,
+  type ResumenRed,
   type Convenio,
   type Empresa,
   type Persona,
@@ -56,13 +61,70 @@ export async function crearCentro(
   datos: { nombre: string; codigo: string },
 ): Promise<Centro> {
   if (usuario.rol !== 'generalitat') throw new SinPermisoError('crear centros');
+  return port.crearCentro(comprobarDatosCentro(datos));
+}
+
+function comprobarDatosCentro(datos: { nombre: string; codigo: string }) {
   const nombre = datos.nombre.trim();
   const codigo = datos.codigo.trim();
   if (!nombre) throw new GestionCentroError('Escribe el nombre del centro');
   if (!/^[0-9]{8}$/.test(codigo)) {
     throw new GestionCentroError('El código del centro debe tener 8 dígitos');
   }
-  return port.crearCentro({ nombre, codigo });
+  return { nombre, codigo };
+}
+
+export interface PanelGeneralitat {
+  institutos: CentroConCifras[];
+  resumen: ResumenRed;
+}
+
+/** Todos los institutos de la red con sus cifras y los totales. Solo para la generalitat. */
+export async function obtenerPanelGeneralitat(
+  port: GestionCentroPort,
+  usuario: Usuario,
+): Promise<PanelGeneralitat> {
+  if (usuario.rol !== 'generalitat') throw new SinPermisoError('ver todos los institutos');
+  const [centros, cifras] = await Promise.all([port.listarCentros(), port.cifrasCentros()]);
+  const institutos = juntarCifras(centros, cifras);
+  return { institutos, resumen: resumirRed(institutos) };
+}
+
+/** La generalitat cambia el nombre y el código de cualquier instituto; el instituto, el suyo. */
+export async function editarCentro(
+  port: GestionCentroPort,
+  usuario: Usuario,
+  centroId: string,
+  datos: { nombre: string; codigo: string },
+): Promise<void> {
+  exigirAdministrar(usuario, centroId);
+  await port.editarCentro(centroId, comprobarDatosCentro(datos));
+}
+
+/** Solo la generalitat da de baja un instituto, y siempre con motivo. */
+export async function darDeBajaCentro(
+  port: GestionCentroPort,
+  usuario: Usuario,
+  centro: Centro,
+  motivo: string,
+): Promise<void> {
+  if (usuario.rol !== 'generalitat') throw new SinPermisoError('dar de baja institutos');
+  if (estaDeBaja(centro)) throw new GestionCentroError('Este instituto ya está de baja');
+  const limpio = motivo.trim();
+  if (!limpio) throw new GestionCentroError('Escribe el motivo de la baja');
+  if (limpio.length > 300)
+    throw new GestionCentroError('El motivo no puede pasar de 300 caracteres');
+  await port.cambiarBajaCentro(centro.id, limpio);
+}
+
+export async function reactivarCentro(
+  port: GestionCentroPort,
+  usuario: Usuario,
+  centro: Centro,
+): Promise<void> {
+  if (usuario.rol !== 'generalitat') throw new SinPermisoError('reactivar institutos');
+  if (!estaDeBaja(centro)) throw new GestionCentroError('Este instituto ya está activo');
+  await port.cambiarBajaCentro(centro.id, null);
 }
 
 export async function obtenerPanelCentro(

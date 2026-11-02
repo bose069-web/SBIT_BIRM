@@ -77,7 +77,7 @@ function useIncidenciasCentro(centroId: string | null) {
  * Inicio del instituto y de la generalitat: el panel de gestión del centro. Primero el centro y lo
  * que pide una acción; después incidencias y convenios. Los alumnos se gestionan en segundo nivel.
  */
-export function PanelInstituto() {
+export function PanelInstituto({ centroPedido = null }: { centroPedido?: string | null } = {}) {
   const usuario = useUsuario();
   const ancho = useWebAncha();
   const {
@@ -91,7 +91,7 @@ export function PanelInstituto() {
     recargar,
     aviso,
     hacer,
-  } = usePanelCentro();
+  } = usePanelCentro(centroPedido);
   const incidencias = useIncidenciasCentro(centroId);
   const titulo = `Hola, ${usuario.nombre.split(' ')[0]}`;
   const subtitulo = esGeneralitat ? 'Gestión de los institutos' : 'Gestión de tu centro';
@@ -140,7 +140,16 @@ export function PanelInstituto() {
     <Tarjeta
       titulo={esGeneralitat ? 'Institutos que gestionas' : 'Tu centro'}
       style={estiloTarjeta}>
-      {esGeneralitat ? (
+      {esGeneralitat && centroPedido ? (
+        <>
+          <Boton
+            texto="‹ Todos los institutos"
+            variante="secundario"
+            onPress={() => router.replace('/')}
+          />
+          {datos ? <CabeceraCentro centro={datos.centro} /> : null}
+        </>
+      ) : esGeneralitat ? (
         <SelectorCentros centros={centros.datos ?? []} valor={centroId} onCambio={elegirCentro} />
       ) : datos ? (
         <CabeceraCentro centro={datos.centro} />

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { Centro, Convenio, Persona } from '@/core/domain/centro';
+import type { Centro, CifrasCentro, Convenio, Persona } from '@/core/domain/centro';
 import {
   CorreoYaRegistradoError,
   DatosInvalidosError,
@@ -55,6 +55,32 @@ function comprobar(error: { message: string; code?: string } | null) {
   throw new Error(error.message);
 }
 
+interface FilaCentro {
+  id: string;
+  nombre: string;
+  codigo: string | null;
+  dado_de_baja_en: string | null;
+  motivo_baja: string | null;
+}
+
+interface FilaCifras {
+  centro_id: string;
+  alumnos: number;
+  profes: number;
+  dossiers_activos: number;
+  empresas_convenio: number;
+  horas_hechas: number | string;
+  horas_previstas: number;
+}
+
+const aCentro = (f: FilaCentro): Centro => ({
+  id: f.id,
+  nombre: f.nombre,
+  codigo: f.codigo,
+  dadoDeBajaEn: f.dado_de_baja_en,
+  motivoBaja: f.motivo_baja,
+});
+
 // RLS y el trigger proteger_perfil deciden qué puede ver y cambiar cada uno.
 export class GestionCentroSupabase implements GestionCentroPort {
   constructor(private readonly cliente: SupabaseClient) {}
@@ -62,11 +88,46 @@ export class GestionCentroSupabase implements GestionCentroPort {
   async listarCentros(): Promise<Centro[]> {
     const { data, error } = await this.cliente
       .from('centros')
-      .select('id, nombre, codigo')
+      .select('id, nombre, codigo, dado_de_baja_en, motivo_baja')
       .order('nombre')
-      .returns<Centro[]>();
+      .returns<FilaCentro[]>();
     comprobar(error);
-    return data ?? [];
+    return (data ?? []).map(aCentro);
+  }
+
+  async editarCentro(centroId: string, datos: { nombre: string; codigo: string }) {
+    const { data, error } = await this.cliente
+      .from('centros')
+      .update({ nombre: datos.nombre, codigo: datos.codigo })
+      .eq('id', centroId)
+      .select('id');
+    comprobar(error);
+    if (!data?.length) throw new Error('No tienes permiso para cambiar este centro');
+  }
+
+  async cambiarBajaCentro(centroId: string, motivo: string | null) {
+    // La hora de la baja la pone la base de datos.
+    const { data, error } = await this.cliente
+      .from('centros')
+      .update({ dado_de_baja_en: motivo ? new Date().toISOString() : null, motivo_baja: motivo })
+      .eq('id', centroId)
+      .select('id');
+    comprobar(error);
+    if (!data?.length) throw new Error('No tienes permiso para cambiar este centro');
+  }
+
+  async cifrasCentros(): Promise<CifrasCentro[]> {
+    const { data, error } = await this.cliente.rpc('cifras_centros');
+    comprobar(error);
+    return ((data ?? []) as FilaCifras[]).map((f) => ({
+      centroId: f.centro_id,
+      alumnos: f.alumnos,
+      profes: f.profes,
+      dossiersActivos: f.dossiers_activos,
+      empresasConvenio: f.empresas_convenio,
+      horasHechas: Number(f.horas_hechas),
+      horasPrevistas: f.horas_previstas,
+    }));
   }
 
   async crearCentro(datos: { nombre: string; codigo: string }): Promise<Centro> {
@@ -83,11 +144,11 @@ export class GestionCentroSupabase implements GestionCentroPort {
   async obtenerCentro(centroId: string) {
     const { data, error } = await this.cliente
       .from('centros')
-      .select('id, nombre, codigo')
+      .select('id, nombre, codigo, dado_de_baja_en, motivo_baja')
       .eq('id', centroId)
-      .maybeSingle<Centro>();
+      .maybeSingle<FilaCentro>();
     comprobar(error);
-    return data;
+    return data ? aCentro(data) : null;
   }
 
   async listarPersonas(centroId: string) {
