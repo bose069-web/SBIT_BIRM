@@ -1,5 +1,5 @@
 -- La Generalitat gestiona los institutos de la red: los da de alta (ya podía), los edita, los da
--- de baja y los reactiva, y ve las cifras de cada uno en una sola consulta.
+-- de baja y los reactiva. Los datos de dentro (alumnos, horas…) solo los ve al entrar en uno.
 --
 -- Un instituto no se borra: si tiene dossiers la base no lo deja, y si no, se llevaría sus
 -- convenios y clases. Se da de baja: queda en la lista, en solo lectura para crear dossiers
@@ -47,33 +47,3 @@ for each row execute function public.dossier_en_centro_activo();
 
 revoke execute on function public.proteger_baja_centro() from public, anon, authenticated;
 revoke execute on function public.dossier_en_centro_activo() from public, anon, authenticated;
-
--- Cifras de cada instituto para el panel de la generalitat, en una sola llamada
--- (`rpc('cifras_centros')`). A cualquier otro rol le devuelve una lista vacía.
-create function public.cifras_centros()
-returns table (
-  centro_id uuid,
-  alumnos int,
-  profes int,
-  dossiers_activos int,
-  empresas_convenio int,
-  horas_hechas numeric,
-  horas_previstas int
-)
-language sql stable security definer set search_path = '' as $$
-  select
-    c.id,
-    (select count(*)::int from public.perfiles p where p.centro_id = c.id and p.rol = 'alumno'),
-    (select count(*)::int from public.perfiles p where p.centro_id = c.id and p.rol = 'profe'),
-    (select count(*)::int from public.dossiers d
-       where d.centro_id = c.id and current_date between d.fecha_inicio and d.fecha_fin),
-    (select count(*)::int from public.convenios v where v.centro_id = c.id),
-    coalesce((select sum(h.horas) from public.horas_actividad h
-       join public.dossiers d on d.id = h.dossier_id where d.centro_id = c.id), 0),
-    coalesce((select sum(d.horas_totales)::int from public.dossiers d where d.centro_id = c.id), 0)
-  from public.centros c
-  where public.es_generalitat()
-$$;
-
-revoke execute on function public.cifras_centros() from public, anon;
-grant execute on function public.cifras_centros() to authenticated;

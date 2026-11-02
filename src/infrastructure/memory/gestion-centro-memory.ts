@@ -1,10 +1,9 @@
 import { CuentasMemory } from './cuentas-memory';
-import type { Centro, CifrasCentro, Convenio, Empresa, Persona } from '@/core/domain/centro';
-import { totalHoras } from '@/core/domain/registro-diario';
+import type { Centro, Convenio, Empresa, Persona } from '@/core/domain/centro';
 import { CorreoYaRegistradoError } from '@/core/domain/errores';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
-import { DOSSIERS_DEMO, IDS_DEMO, REGISTROS_DEMO, USUARIOS_DEMO } from './datos-demo';
+import { IDS_DEMO, USUARIOS_DEMO } from './datos-demo';
 
 // Mismos IDs que datos-demo: el instituto demo administra IDS_DEMO.centro.
 const CENTROS: Centro[] = [
@@ -124,27 +123,6 @@ export class GestionCentroMemory implements GestionCentroPort {
     if (!centro) throw new Error('No se encuentra el centro');
     centro.dadoDeBajaEn = motivo ? new Date().toISOString() : null;
     centro.motivoBaja = motivo;
-  }
-
-  // Dossiers y horas salen de los datos demo (este adaptador no ve los que se crean en memoria).
-  async cifrasCentros(): Promise<CifrasCentro[]> {
-    const hoy = new Date().toISOString().slice(0, 10);
-    return this.centros.map((c) => {
-      const dossiers = DOSSIERS_DEMO.filter((d) => d.centroId === c.id);
-      const ids = new Set(dossiers.map((d) => d.id));
-      return {
-        centroId: c.id,
-        alumnos: this.personas.filter((p) => p.centroId === c.id && p.rol === 'alumno').length,
-        profes: this.personas.filter((p) => p.centroId === c.id && p.rol === 'profe').length,
-        dossiersActivos: dossiers.filter((d) => d.fechaInicio <= hoy && hoy <= d.fechaFin).length,
-        empresasConvenio: this.convenios.filter((v) => v.centroId === c.id).length,
-        horasHechas: REGISTROS_DEMO.filter((r) => ids.has(r.dossierId)).reduce(
-          (t, r) => t + totalHoras(r),
-          0,
-        ),
-        horasPrevistas: dossiers.reduce((t, d) => t + d.horasTotales, 0),
-      };
-    });
   }
 
   async obtenerCentro(centroId: string) {

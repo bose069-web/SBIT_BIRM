@@ -5,81 +5,37 @@ import {
   obtenerPanelGeneralitat,
   reactivarCentro,
 } from '../application/centro';
-import { juntarCifras, resumirRed, type CifrasCentro } from '../domain/centro';
+import { buscarInstitutos, ordenarInstitutos } from '../domain/centro';
 import { SinPermisoError } from '../domain/errores';
 import { generalitat, instituto, otroInstituto, profe, CentrosFalsos } from '../__fixtures__/datos';
 
-const cifras = (centroId: string, extra: Partial<CifrasCentro> = {}): CifrasCentro => ({
-  centroId,
-  alumnos: 0,
-  profes: 0,
-  dossiersActivos: 0,
-  empresasConvenio: 0,
-  horasHechas: 0,
-  horasPrevistas: 0,
-  ...extra,
-});
-
-describe('juntarCifras y resumirRed', () => {
+describe('ordenar y buscar institutos', () => {
   const centros = [
     { id: 'b', nombre: 'Zeta', codigo: '08000002', dadoDeBajaEn: '2026-10-01T00:00:00Z' },
-    { id: 'a', nombre: 'Beta', codigo: '08000001' },
-    { id: 'c', nombre: 'Alfa', codigo: null },
+    { id: 'a', nombre: 'Institut Vidal i Barraquer', codigo: '43000001' },
+    { id: 'c', nombre: 'Àlfa', codigo: null },
   ];
 
-  it('pone los activos primero, por nombre, y cifras a cero si faltan', () => {
-    const r = juntarCifras(centros, [cifras('a', { alumnos: 3 })]);
-    expect(r.map((c) => c.nombre)).toEqual(['Alfa', 'Beta', 'Zeta']);
-    expect(r[0].cifras).toEqual(cifras('c'));
-    expect(r[1].cifras.alumnos).toBe(3);
+  it('pone los activos primero, por nombre, y los de baja al final', () => {
+    expect(ordenarInstitutos(centros).map((c) => c.id)).toEqual(['c', 'a', 'b']);
   });
 
-  it('suma la red y calcula el porcentaje de horas', () => {
-    const r = resumirRed(
-      juntarCifras(centros, [
-        cifras('a', {
-          alumnos: 3,
-          dossiersActivos: 2,
-          empresasConvenio: 1,
-          horasHechas: 150,
-          horasPrevistas: 400,
-        }),
-        cifras('b', { alumnos: 1, horasHechas: 50, horasPrevistas: 100 }),
-      ]),
-    );
-    expect(r).toEqual({
-      institutos: 2,
-      institutosDeBaja: 1,
-      alumnos: 4,
-      dossiersActivos: 2,
-      empresasConvenio: 1,
-      porcentajeHoras: 40,
-    });
-  });
-
-  it('sin horas previstas el porcentaje es 0', () => {
-    expect(resumirRed([]).porcentajeHoras).toBe(0);
+  it('busca por nombre sin acentos ni mayúsculas, o por código', () => {
+    expect(buscarInstitutos(centros, 'vidal').map((c) => c.id)).toEqual(['a']);
+    expect(buscarInstitutos(centros, 'alfa').map((c) => c.id)).toEqual(['c']);
+    expect(buscarInstitutos(centros, '0800').map((c) => c.id)).toEqual(['b']);
+    expect(buscarInstitutos(centros, '  ')).toHaveLength(3);
   });
 });
 
 describe('panel de la generalitat', () => {
-  it('solo lo ve la generalitat', async () => {
+  it('solo lo ve la generalitat y cuenta activos y de baja, sin datos de dentro', async () => {
     const port = new CentrosFalsos();
-    port.cifras = [cifras('c1', { alumnos: 2 })];
+    port.centros.push({ id: 'c2', nombre: 'Baja', codigo: null, dadoDeBajaEn: '2026-10-01' });
     const panel = await obtenerPanelGeneralitat(port, generalitat);
-    expect(panel.institutos[0].cifras.alumnos).toBe(2);
-    expect(panel.resumen.institutos).toBe(1);
+    expect(panel).toMatchObject({ activos: 1, deBaja: 1 });
+    expect(panel.institutos.map((c) => c.id)).toEqual(['c1', 'c2']);
     await expect(obtenerPanelGeneralitat(port, instituto)).rejects.toBeInstanceOf(SinPermisoError);
-  });
-
-  it('si fallan las cifras, la lista sigue saliendo con un aviso', async () => {
-    const port = new CentrosFalsos();
-    port.cifrasCentros = async () => {
-      throw new Error('Could not find the function public.cifras_centros');
-    };
-    const panel = await obtenerPanelGeneralitat(port, generalitat);
-    expect(panel.sinCifras).toBe(true);
-    expect(panel.institutos).toHaveLength(1);
   });
 });
 

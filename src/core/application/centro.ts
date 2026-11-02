@@ -1,11 +1,8 @@
 import {
   esCuentaNueva,
   estaDeBaja,
-  juntarCifras,
-  resumirRed,
+  ordenarInstitutos,
   type Centro,
-  type CentroConCifras,
-  type ResumenRed,
   type Convenio,
   type Empresa,
   type Persona,
@@ -75,28 +72,24 @@ function comprobarDatosCentro(datos: { nombre: string; codigo: string }) {
 }
 
 export interface PanelGeneralitat {
-  institutos: CentroConCifras[];
-  resumen: ResumenRed;
-  /** Las cifras no se han podido cargar: se muestran a cero con un aviso. */
-  sinCifras: boolean;
+  /** Activos primero y después los de baja. */
+  institutos: Centro[];
+  activos: number;
+  deBaja: number;
 }
 
-/** Todos los institutos de la red con sus cifras y los totales. Solo para la generalitat. */
+/**
+ * La lista de institutos de la red, sin datos de dentro: alumnos, horas o prácticas solo se ven
+ * al entrar en cada instituto. Solo para la generalitat.
+ */
 export async function obtenerPanelGeneralitat(
   port: GestionCentroPort,
   usuario: Usuario,
 ): Promise<PanelGeneralitat> {
   if (usuario.rol !== 'generalitat') throw new SinPermisoError('ver todos los institutos');
-  // Si las cifras fallan (p. ej. la base aún no tiene cifras_centros), la lista sigue saliendo.
-  const [centros, cifras] = await Promise.all([
-    port.listarCentros(),
-    port.cifrasCentros().then(
-      (c) => ({ ok: true as const, c }),
-      () => ({ ok: false as const, c: [] }),
-    ),
-  ]);
-  const institutos = juntarCifras(centros, cifras.c);
-  return { institutos, resumen: resumirRed(institutos), sinCifras: !cifras.ok };
+  const institutos = ordenarInstitutos(await port.listarCentros());
+  const deBaja = institutos.filter(estaDeBaja).length;
+  return { institutos, activos: institutos.length - deBaja, deBaja };
 }
 
 /** La generalitat cambia el nombre y el código de cualquier instituto; el instituto, el suyo. */

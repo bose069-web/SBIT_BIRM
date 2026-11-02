@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { Centro, CifrasCentro, Convenio, Persona } from '@/core/domain/centro';
+import type { Centro, Convenio, Persona } from '@/core/domain/centro';
 import {
   CorreoYaRegistradoError,
   DatosInvalidosError,
@@ -63,16 +63,6 @@ interface FilaCentro {
   motivo_baja: string | null;
 }
 
-interface FilaCifras {
-  centro_id: string;
-  alumnos: number;
-  profes: number;
-  dossiers_activos: number;
-  empresas_convenio: number;
-  horas_hechas: number | string;
-  horas_previstas: number;
-}
-
 const aCentro = (f: FilaCentro): Centro => ({
   id: f.id,
   nombre: f.nombre,
@@ -114,20 +104,6 @@ export class GestionCentroSupabase implements GestionCentroPort {
       .select('id');
     comprobar(error);
     if (!data?.length) throw new Error('No tienes permiso para cambiar este centro');
-  }
-
-  async cifrasCentros(): Promise<CifrasCentro[]> {
-    const { data, error } = await this.cliente.rpc('cifras_centros');
-    comprobar(error);
-    return ((data ?? []) as FilaCifras[]).map((f) => ({
-      centroId: f.centro_id,
-      alumnos: f.alumnos,
-      profes: f.profes,
-      dossiersActivos: f.dossiers_activos,
-      empresasConvenio: f.empresas_convenio,
-      horasHechas: Number(f.horas_hechas),
-      horasPrevistas: f.horas_previstas,
-    }));
   }
 
   async crearCentro(datos: { nombre: string; codigo: string }): Promise<Centro> {

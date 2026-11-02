@@ -5,7 +5,7 @@ import {
   ValoracionInvalidaError,
   ValoracionYaExisteError,
 } from '../domain/errores';
-import type { Centro, CifrasCentro, Convenio, Empresa, Persona } from '../domain/centro';
+import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
 import type { AlumnoEnClase, BorradorGrupo, Grupo } from '../domain/grupo';
@@ -358,7 +358,6 @@ export class CentrosFalsos implements GestionCentroPort {
   async obtenerCentro(id: string) {
     return this.centros.find((c) => c.id === id) ?? null;
   }
-  cifras: CifrasCentro[] = [];
   async editarCentro(id: string, datos: { nombre: string; codigo: string }) {
     Object.assign(
       this.centros.find((c) => c.id === id)!,
@@ -369,9 +368,6 @@ export class CentrosFalsos implements GestionCentroPort {
     const c = this.centros.find((x) => x.id === id)!;
     c.dadoDeBajaEn = motivo ? '2026-11-02T10:00:00Z' : null;
     c.motivoBaja = motivo;
-  }
-  async cifrasCentros() {
-    return this.cifras;
   }
   async listarPersonas() {
     return this.personas;

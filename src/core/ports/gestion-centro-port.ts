@@ -1,4 +1,4 @@
-import type { Centro, CifrasCentro, Convenio, Empresa, Persona } from '../domain/centro';
+import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 
 export interface GestionCentroPort {
   listarCentros(): Promise<Centro[]>;
@@ -6,8 +6,6 @@ export interface GestionCentroPort {
   editarCentro(centroId: string, datos: { nombre: string; codigo: string }): Promise<void>;
   /** Con motivo da de baja el instituto; con null lo reactiva. */
   cambiarBajaCentro(centroId: string, motivo: string | null): Promise<void>;
-  /** Cifras de todos los institutos (solo para la generalitat; a otros, lista vacía). */
-  cifrasCentros(): Promise<CifrasCentro[]>;
   obtenerCentro(centroId: string): Promise<Centro | null>;
   /** Alumnos, profes e institutos del centro, más las cuentas nuevas sin centro. */
   listarPersonas(centroId: string): Promise<Persona[]>;
