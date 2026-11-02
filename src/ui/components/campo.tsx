@@ -4,6 +4,7 @@ import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
+import { traducirHijos } from '@/ui/utils/idioma';
 
 interface Props extends TextInputProps {
   etiqueta: string;
@@ -19,7 +20,7 @@ export function Campo({ etiqueta, ayuda, style, multiline, ...props }: Props) {
         {etiqueta}
       </ThemedText>
       <TextInput
-        accessibilityLabel={etiqueta}
+        accessibilityLabel={traducirHijos(etiqueta)}
         accessibilityLabelledBy={idEtiqueta}
         accessibilityHint={ayuda}
         placeholderTextColor={theme.textSecondary}
@@ -37,6 +38,7 @@ export function Campo({ etiqueta, ayuda, style, multiline, ...props }: Props) {
           style,
         ]}
         {...props}
+        placeholder={props.placeholder ? traducirHijos(props.placeholder) : props.placeholder}
       />
       {ayuda ? (
         <ThemedText type="small" themeColor="textSecondary">

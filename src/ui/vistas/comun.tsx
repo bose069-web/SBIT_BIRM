@@ -16,6 +16,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import type { ThemeColor } from '@/ui/theme/theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { nombreMes } from '@/ui/utils/fechas';
+import { t } from '@/ui/utils/idioma';
 
 export const TEXTO_VALORACION: Record<ValoracionMes, string> = {
   positiva: 'Positiva',
@@ -41,7 +42,7 @@ export function ListaValoraciones({
   if (mensuales.length === 0 && !final) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
-        Todavía no hay valoraciones.
+        {t('Todavía no hay valoraciones.')}
       </ThemedText>
     );
   }
@@ -49,7 +50,7 @@ export function ListaValoraciones({
     <View style={styles.lista}>
       {final ? (
         <View style={[styles.fila, { borderBottomColor: theme.border }]}>
-          <ThemedText type="smallBold">Valoración final</ThemedText>
+          <ThemedText type="smallBold">{t('Valoración final')}</ThemedText>
           <Chip
             texto={TEXTO_RESULTADO[final.resultado]}
             color={final.resultado === 'apto' ? 'estadoValidado' : 'danger'}
@@ -96,7 +97,7 @@ export function CabeceraAlumno({
         <ThemedText type="subtitle">{nombre}</ThemedText>
         {onAbrir ? (
           <ThemedText type="small" themeColor="textSecondary">
-            Ver ficha ›
+            {t('Ver ficha ›')}
           </ThemedText>
         ) : null}
       </View>
@@ -111,7 +112,7 @@ export function CabeceraAlumno({
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`Ver la ficha del dossier de ${nombre}`}
+      accessibilityLabel={t('Ver la ficha del dossier de {nombre}', { nombre })}
       onPress={onAbrir}
       style={({ pressed }) => [styles.cabeceraAlumno, pressed && { opacity: 0.6 }]}>
       {contenido}
@@ -149,7 +150,10 @@ export function EsqueletoPanel({ tarjetas = 2 }: { tarjetas?: number }) {
   }, [opacidad]);
 
   return (
-    <View accessibilityRole="progressbar" accessibilityLabel="Cargando" style={styles.esqueleto}>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={t('Cargando')}
+      style={styles.esqueleto}>
       {Array.from({ length: tarjetas }, (_, i) => (
         <Animated.View
           key={i}
@@ -199,8 +203,8 @@ export function EstadoVacio({
 export function ErrorCarga({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
   return (
     <View style={styles.error}>
-      <Mensaje tipo="error" texto={`No se ha podido cargar: ${texto}`} />
-      <Boton texto="Reintentar" variante="secundario" onPress={onReintentar} />
+      <Mensaje tipo="error" texto={t('No se ha podido cargar: {error}', { error: t(texto) })} />
+      <Boton texto={t('Reintentar')} variante="secundario" onPress={onReintentar} />
     </View>
   );
 }

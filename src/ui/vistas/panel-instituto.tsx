@@ -31,6 +31,7 @@ import { pendientesCentro } from '@/ui/utils/pendientes';
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 /** Hasta aquí se eligen en tarjetas; con más centros se busca por nombre. */
 const MAXIMO_TARJETAS_CENTRO = 6;
@@ -94,15 +95,15 @@ export function PanelInstituto() {
     hacer,
   } = usePanelCentro();
   const incidencias = useIncidenciasCentro(centroId);
-  const titulo = `Hola, ${usuario.nombre.split(' ')[0]}`;
-  const subtitulo = esGeneralitat ? 'Gestión de los institutos' : 'Gestión de tu centro';
+  const titulo = t('Hola, {nombre}', { nombre: usuario.nombre.split(' ')[0] });
+  const subtitulo = esGeneralitat ? t('Gestión de los institutos') : t('Gestión de tu centro');
   const estiloTarjeta = ancho ? styles.tarjetaAncha : undefined;
   const hoy = hoyISO();
 
   const fechasGenerales = (
-    <Tarjeta titulo="Fechas para todos" style={estiloTarjeta}>
+    <Tarjeta titulo={t('Fechas para todos')} style={estiloTarjeta}>
       <ThemedText type="small" themeColor="textSecondary">
-        Festivos, entregas o reuniones generales: los ven todos los alumnos en su calendario.
+        {t('Festivos, entregas o reuniones generales: los ven todos los alumnos en su calendario.')}
       </ThemedText>
       <ProximasFechas hoy={hoy} soloGenerales />
       <NuevoEvento />
@@ -117,15 +118,18 @@ export function PanelInstituto() {
             <ErrorCarga texto={centros.error} onReintentar={centros.recargar} />
           ) : centros.datos ? (
             <EstadoVacio
-              titulo="Todavía no hay institutos"
-              texto="Cuando se dé de alta un centro, aparecerá aquí para poder gestionarlo."
-              accion={{ texto: 'Volver a mirar', onPress: centros.recargar }}
+              titulo={t('Todavía no hay institutos')}
+              texto={t('Cuando se dé de alta un centro, aparecerá aquí para poder gestionarlo.')}
+              accion={{ texto: t('Volver a mirar'), onPress: centros.recargar }}
             />
           ) : (
             <EsqueletoPanel tarjetas={2} />
           )
         ) : (
-          <ErrorCarga texto="Tu cuenta no está asociada a ningún centro." onReintentar={recargar} />
+          <ErrorCarga
+            texto={t('Tu cuenta no está asociada a ningún centro.')}
+            onReintentar={recargar}
+          />
         )}
         {esGeneralitat ? fechasGenerales : null}
       </Pantalla>
@@ -168,16 +172,18 @@ export function PanelInstituto() {
 
   const bloqueIncidencias = (
     <Tarjeta
-      titulo="Incidencias recientes"
+      titulo={t('Incidencias recientes')}
       style={estiloTarjeta}
-      accion={<Enlace texto="Abrir chat ›" onPress={() => router.navigate('/chat')} />}>
+      accion={<Enlace texto={t('Abrir chat ›')} onPress={() => router.navigate('/chat')} />}>
       {incidencias.error && !incidencias.datos ? (
         <ErrorCarga texto={incidencias.error} onReintentar={incidencias.recargar} />
       ) : !incidencias.datos ? (
         <EsqueletoPanel tarjetas={1} />
       ) : incidencias.datos.recientes.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          No hay incidencias en este centro. Cuando alguien avise de un problema, aparecerá aquí.
+          {t(
+            'No hay incidencias en este centro. Cuando alguien avise de un problema, aparecerá aquí.',
+          )}
         </ThemedText>
       ) : (
         <View style={styles.lista}>
@@ -204,8 +210,8 @@ export function PanelInstituto() {
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
         <EstadoVacio
-          titulo="No se pudo cargar el centro"
-          texto="Revisa la conexión y vuelve a intentarlo."
+          titulo={t('No se pudo cargar el centro')}
+          texto={t('Revisa la conexión y vuelve a intentarlo.')}
           accion={{ texto: 'Reintentar', onPress: recargar }}
         />
       ) : null}
@@ -278,8 +284,8 @@ function SelectorCentros({
   if (centros.length > MAXIMO_TARJETAS_CENTRO) {
     return (
       <Buscador
-        etiqueta="Instituto"
-        placeholder="Busca por nombre"
+        etiqueta={t('Instituto')}
+        placeholder={t('Busca por nombre')}
         opciones={centros.map((c) => ({
           valor: c.id,
           texto: c.nombre,
@@ -291,7 +297,7 @@ function SelectorCentros({
     );
   }
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel="Instituto" style={styles.rejilla}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={t('Instituto')} style={styles.rejilla}>
       {centros.map((c) => {
         const activo = c.id === valor;
         return (
@@ -337,14 +343,14 @@ function CifrasCentro({
   const estilo = ancho ? styles.cifraAncha : undefined;
   return (
     <View style={styles.cifras}>
-      <Cifra style={estilo} valor={`${datos.alumnos.length}`} etiqueta="Alumnos" />
-      <Cifra style={estilo} valor={`${datos.profes.length}`} etiqueta="Profes" />
-      <Cifra style={estilo} valor={`${datos.convenios.length}`} etiqueta="Convenios" />
+      <Cifra style={estilo} valor={`${datos.alumnos.length}`} etiqueta={t('Alumnos')} />
+      <Cifra style={estilo} valor={`${datos.profes.length}`} etiqueta={t('Profes')} />
+      <Cifra style={estilo} valor={`${datos.convenios.length}`} etiqueta={t('Convenios')} />
       <Cifra
         style={estilo}
         valor={pendientes === undefined ? '–' : `${pendientes}`}
-        etiqueta="Incidencias"
-        detalle="pendientes"
+        etiqueta={t('Incidencias')}
+        detalle={t('pendientes')}
         color={pendientes ? 'estadoPendiente' : 'text'}
       />
     </View>
@@ -393,10 +399,10 @@ function RequiereAccion({
         cuentas.length > 0 ? (
           <View style={[styles.cuentas, { borderTopColor: theme.border }]}>
             <ThemedText type="smallBold">
-              {cuentas.length === 1 ? '1 cuenta nueva' : `${cuentas.length} cuentas nuevas`}
+              {tPlural(cuentas.length, '{n} cuenta nueva', '{n} cuentas nuevas')}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Se han registrado y aún no son de ningún centro.
+              {t('Se han registrado y aún no son de ningún centro.')}
             </ThemedText>
             {cuentas.slice(0, CUENTAS_EN_INICIO).map((p) => (
               <View key={p.id} style={styles.cuentaNueva}>
@@ -410,19 +416,25 @@ function RequiereAccion({
                   </View>
                 </View>
                 <Boton
-                  texto="Añadir como alumno"
+                  texto={t('Añadir como alumno')}
                   variante="secundario"
                   onPress={() =>
                     hacer(
                       () => incorporarAlumno(container.centros, usuario, p, datos.centro.id),
-                      `${p.nombre} ya es alumno de ${datos.centro.nombre}`,
+                      t('{nombre} ya es alumno de {centro}', {
+                        nombre: p.nombre,
+                        centro: datos.centro.nombre,
+                      }),
                     )
                   }
                 />
               </View>
             ))}
             {cuentas.length > CUENTAS_EN_INICIO ? (
-              <Enlace texto={`Ver las ${cuentas.length} cuentas ›`} onPress={onAlumnos} />
+              <Enlace
+                texto={t('Ver las {n} cuentas ›', { n: cuentas.length })}
+                onPress={onAlumnos}
+              />
             ) : null}
           </View>
         ) : null
@@ -437,7 +449,10 @@ function FilaIncidencia({ conversacion }: { conversacion: ConversacionReciente }
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${i.titulo}, ${TEXTO_ESTADO[i.estado]}. Abrir conversación`}
+      accessibilityLabel={t('{titulo}, {estado}. Abrir conversación', {
+        titulo: i.titulo,
+        estado: t(TEXTO_ESTADO[i.estado]),
+      })}
       onPress={() => router.push({ pathname: '/chat', params: { incidencia: i.id } })}
       style={({ pressed }) => [styles.filaAccion, pressed && styles.pulsada]}>
       <Avatar nombre={autor} />
@@ -468,7 +483,7 @@ function ResumenConvenios({
 }) {
   const resto = datos.convenios.length - CONVENIOS_EN_INICIO;
   return (
-    <Tarjeta titulo={`Convenios (${datos.convenios.length})`} style={estilo}>
+    <Tarjeta titulo={t('Convenios ({n})', { n: datos.convenios.length })} style={estilo}>
       {datos.convenios.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
           Todavía no hay convenios. Los alumnos solo pueden hacer prácticas en empresas con
@@ -482,19 +497,21 @@ function ResumenConvenios({
               <View style={styles.flex}>
                 <ThemedText type="smallBold">{c.empresaNombre}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {c.firmadoEn ? `Firmado el ${fechaCorta(c.firmadoEn)}` : 'Sin fecha de firma'}
+                  {c.firmadoEn
+                    ? t('Firmado el {fecha}', { fecha: fechaCorta(c.firmadoEn) })
+                    : t('Sin fecha de firma')}
                 </ThemedText>
               </View>
             </View>
           ))}
           {resto > 0 ? (
             <ThemedText type="small" themeColor="textSecondary">
-              Y {resto} más
+              {t('Y {n} más', { n: resto })}
             </ThemedText>
           ) : null}
         </View>
       )}
-      <Boton texto="Gestionar convenios" variante="secundario" onPress={onGestionar} />
+      <Boton texto={t('Gestionar convenios')} variante="secundario" onPress={onGestionar} />
     </Tarjeta>
   );
 }
@@ -511,17 +528,14 @@ function ResumenAlumnos({
 }) {
   const sinProfe = datos.alumnos.filter((a) => !a.profeId).length;
   return (
-    <Tarjeta titulo={`Alumnos (${datos.alumnos.length})`} style={estilo}>
+    <Tarjeta titulo={t('Alumnos ({n})', { n: datos.alumnos.length })} style={estilo}>
       <ThemedText type="small" themeColor="textSecondary">
-        Profe tutor de cada uno, altas, dossiers y seguimiento de las prácticas.
+        {t('Profe tutor de cada uno, altas, dossiers y seguimiento de las prácticas.')}
       </ThemedText>
       {sinProfe > 0 ? (
-        <Chip
-          texto={sinProfe === 1 ? '1 sin profe asignado' : `${sinProfe} sin profe asignado`}
-          color="estadoPendiente"
-        />
+        <Chip texto={t('{n} sin profe asignado', { n: sinProfe })} color="estadoPendiente" />
       ) : null}
-      <Boton texto="Gestionar alumnos" onPress={onGestionar} />
+      <Boton texto={t('Gestionar alumnos')} onPress={onGestionar} />
     </Tarjeta>
   );
 }

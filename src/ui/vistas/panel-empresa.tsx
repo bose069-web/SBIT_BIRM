@@ -77,6 +77,7 @@ import {
   estilosComunes,
   porAlumno,
 } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 interface CargaDossier {
   dossier: Dossier;
@@ -130,9 +131,9 @@ export function PanelEmpresa({
     const elegido = datos?.find((d) => d.dossier.id === validar);
     if (!elegido) {
       return (
-        <Pantalla titulo="Valorar el mes" subtitulo="Informes de prácticas">
+        <Pantalla titulo={t('Valorar el mes')} subtitulo={t('Informes de prácticas')}>
           <Boton
-            texto="‹ Volver a Inicio"
+            texto={t('‹ Volver a Inicio')}
             variante="secundario"
             onPress={() => router.replace('/')}
           />
@@ -140,8 +141,10 @@ export function PanelEmpresa({
           {cargando ? <EsqueletoPanel tarjetas={1} /> : null}
           {!cargando && !error ? (
             <EstadoVacio
-              titulo="No se encuentra el alumno"
-              texto="Puede que ya no esté en prácticas contigo. Vuelve a Inicio para ver los que tienes."
+              titulo={t('No se encuentra el alumno')}
+              texto={t(
+                'Puede que ya no esté en prácticas contigo. Vuelve a Inicio para ver los que tienes.',
+              )}
             />
           ) : null}
         </Pantalla>
@@ -149,8 +152,8 @@ export function PanelEmpresa({
     }
     return (
       <Pantalla
-        titulo={`Valorar a ${elegido.dossier.alumnoNombre}`}
-        subtitulo="Cierra cada mes con tu valoración del trabajo del alumno"
+        titulo={t('Valorar a {nombre}', { nombre: elegido.dossier.alumnoNombre })}
+        subtitulo={t('Cierra cada mes con tu valoración del trabajo del alumno')}
         amplia={ancho}>
         <ValorarDossier
           dossier={elegido.dossier}
@@ -159,7 +162,7 @@ export function PanelEmpresa({
         />
         {/* Abajo también, para salir sin tener que subir hasta la cabecera. */}
         <Boton
-          texto="‹ Volver a Inicio"
+          texto={t('‹ Volver a Inicio')}
           variante="secundario"
           onPress={() => router.replace('/')}
         />
@@ -211,7 +214,7 @@ export function PanelEmpresa({
     <TarjetaPendientes
       pendientes={pendientesEmpresa(informes)}
       textoAlDia="Todos los meses abiertos están valorados."
-      descripcion={`El mes en curso cierra el ${fechaCorta(finDeMes)}.`}
+      descripcion={t('El mes en curso cierra el {fecha}.', { fecha: fechaCorta(finDeMes) })}
       style={tarjetaAncha}
     />
   );
@@ -221,36 +224,36 @@ export function PanelEmpresa({
       <Cifra
         valor={`${ritmos.length}`}
         etiqueta={ritmos.length === 1 ? 'Alumno' : 'Alumnos'}
-        detalle="en prácticas"
+        detalle={t('en prácticas')}
       />
       <Cifra
         valor={`${alRitmo}`}
-        etiqueta="Al ritmo"
-        detalle={`de ${ritmos.length}`}
+        etiqueta={t('Al ritmo')}
+        detalle={t('de {n}', { n: ritmos.length })}
         color={alRitmo ? 'estadoValidado' : 'text'}
       />
       <Cifra
         valor={`${atencion.length}`}
-        etiqueta="Con avisos"
-        detalle="para revisar"
+        etiqueta={t('Con avisos')}
+        detalle={t('para revisar')}
         color={atencion.length ? 'estadoPendiente' : 'text'}
       />
       <Cifra
         valor={`${sinLeer}`}
-        etiqueta="Sin leer"
-        detalle="mensajes"
+        etiqueta={t('Sin leer')}
+        detalle={t('mensajes')}
         color={sinLeer ? 'primary' : 'text'}
       />
     </View>
   );
 
   const necesitanAtencion = (
-    <Tarjeta titulo="Necesitan atención" style={tarjetaAncha}>
+    <Tarjeta titulo={t('Necesitan atención')} style={tarjetaAncha}>
       {atencion.length === 0 ? (
         <View style={styles.filaCentrada}>
           <Correcto />
           <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
-            Todos apuntan sus días y van al ritmo del calendario.
+            {t('Todos apuntan sus días y van al ritmo del calendario.')}
           </ThemedText>
         </View>
       ) : (
@@ -280,7 +283,7 @@ export function PanelEmpresa({
   );
 
   const alumnos = (
-    <Tarjeta titulo="Tus alumnos" style={tarjetaAncha}>
+    <Tarjeta titulo={t('Tus alumnos')} style={tarjetaAncha}>
       <View style={styles.rejilla}>
         {[...ritmos]
           .sort((a, b) => a.ritmo.desviacion - b.ritmo.desviacion)
@@ -303,16 +306,16 @@ export function PanelEmpresa({
   );
 
   const fechas = (
-    <Tarjeta titulo="Fechas" style={tarjetaAncha}>
+    <Tarjeta titulo={t('Fechas')} style={tarjetaAncha}>
       <Fechas datos={datos ?? []} hoy={hoy} pendientes={informes.length} />
     </Tarjeta>
   );
 
   const bandeja = (
     <Tarjeta
-      titulo="Mensajes"
+      titulo={t('Mensajes')}
       style={tarjetaAncha}
-      accion={<Enlace texto="Abrir chat ›" onPress={() => router.navigate('/chat')} />}>
+      accion={<Enlace texto={t('Abrir chat ›')} onPress={() => router.navigate('/chat')} />}>
       <Inbox
         conversaciones={conversaciones}
         mensajes={mensajes}
@@ -323,10 +326,10 @@ export function PanelEmpresa({
   );
 
   const valoraciones = (
-    <Tarjeta titulo="Últimas valoraciones" style={tarjetaAncha}>
+    <Tarjeta titulo={t('Últimas valoraciones')} style={tarjetaAncha}>
       {ultimas.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no has valorado ningún mes de estos alumnos.
+          {t('Todavía no has valorado ningún mes de estos alumnos.')}
         </ThemedText>
       ) : (
         <View style={styles.rejilla}>
@@ -372,8 +375,10 @@ export function PanelEmpresa({
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {datos && datos.length === 0 && !cargando ? (
         <EstadoVacio
-          titulo="No tienes alumnos asignados"
-          texto="Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus informes para validar y podrás hablar con él y con su profe."
+          titulo={t('No tienes alumnos asignados')}
+          texto={t(
+            'Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus informes para validar y podrás hablar con él y con su profe.',
+          )}
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
@@ -447,7 +452,9 @@ function TarjetaAlumno({
     <View style={[styles.azulejo, { borderColor: theme.border }]}>
       <Pressable
         accessibilityRole="link"
-        accessibilityLabel={`Ver la ficha del dossier de ${dossier.alumnoNombre}`}
+        accessibilityLabel={t('Ver la ficha del dossier de {nombre}', {
+          nombre: dossier.alumnoNombre,
+        })}
         onPress={() => router.push({ pathname: '/', params: { dossier: dossier.id } })}
         style={({ pressed }) => [styles.filaCentrada, styles.tactil, pressed && styles.pulsada]}>
         <Avatar nombre={dossier.alumnoNombre} />
@@ -465,7 +472,7 @@ function TarjetaAlumno({
         <AnilloProgreso
           porcentaje={resumen.porcentaje}
           marca={ritmo.porcentajeEsperado}
-          etiqueta={`Horas de ${dossier.alumnoNombre}`}
+          etiqueta={t('Horas de {nombre}', { nombre: dossier.alumnoNombre })}
         />
         <View style={[styles.flex, styles.datosAlumno]}>
           <View style={styles.horas}>
@@ -483,17 +490,20 @@ function TarjetaAlumno({
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {ultimoDia
-            ? `Último día: ${fechaCorta(ultimoDia.fecha)} · ${formatoHoras(totalHoras(ultimoDia))}`
+            ? t('Último día: {fecha} · {horas}', {
+                fecha: fechaCorta(ultimoDia.fecha),
+                horas: formatoHoras(totalHoras(ultimoDia)),
+              })
             : 'Todavía no ha apuntado ningún día'}
         </ThemedText>
       </View>
       <View style={styles.filaArriba}>
         {pendientes ? (
-          <Chip texto={`${pendientes} por validar`} color="estadoPendiente" />
+          <Chip texto={t('{n} por validar', { n: pendientes })} color="estadoPendiente" />
         ) : (
-          <Chip texto="Todo validado" color="estadoValidado" />
+          <Chip texto={t('Todo validado')} color="estadoValidado" />
         )}
-        <Enlace texto="Valorar meses ›" onPress={onValorar} />
+        <Enlace texto={t('Valorar meses ›')} onPress={onValorar} />
       </View>
     </View>
   );
@@ -501,14 +511,21 @@ function TarjetaAlumno({
 
 /** Lo que debería llevar hoy, o cómo acabó si ya terminó, para dar sentido a las horas. */
 function detalleRitmo(ritmo: Ritmo, resumen: ResumenHoras, dossier: Dossier): string {
-  if (ritmo.estado === 'sin_empezar') return `Empieza el ${fechaCorta(dossier.fechaInicio)}`;
+  if (ritmo.estado === 'sin_empezar')
+    return t('Empieza el {fecha}', { fecha: fechaCorta(dossier.fechaInicio) });
   if (ritmo.estado === 'terminadas') {
-    return `Acabó con ${formatoHoras(resumen.realizadas)} de ${formatoHoras(resumen.totales)}`;
+    return t('Acabó con {hechas} de {totales}', {
+      hechas: formatoHoras(resumen.realizadas),
+      totales: formatoHoras(resumen.totales),
+    });
   }
-  const deberia = `Debería llevar ${formatoHoras(ritmo.esperadas)}`;
-  if (Math.abs(ritmo.desviacion) < 0.5) return `${deberia} · justo al ritmo`;
-  return `${deberia} · ${formatoHoras(Math.abs(ritmo.desviacion))} ${
-    ritmo.desviacion > 0 ? 'por delante' : 'por debajo'
+  const deberia = t('Debería llevar {horas}', { horas: formatoHoras(ritmo.esperadas) });
+  if (Math.abs(ritmo.desviacion) < 0.5) return `${deberia} · ${t('justo al ritmo')}`;
+  const diferencia = formatoHoras(Math.abs(ritmo.desviacion));
+  return `${deberia} · ${
+    ritmo.desviacion > 0
+      ? t('{horas} por delante', { horas: diferencia })
+      : t('{horas} por debajo', { horas: diferencia })
   }`;
 }
 
@@ -518,7 +535,7 @@ function CuentaAtras({ dias }: { dias: number }) {
   return (
     <View style={[styles.cuenta, { backgroundColor: theme.subtle }]}>
       {dias < 0 ? (
-        <ThemedText type="smallBold">Fin</ThemedText>
+        <ThemedText type="smallBold">{t('Fin')}</ThemedText>
       ) : (
         <>
           <ThemedText type="smallBold">{dias}</ThemedText>
@@ -547,9 +564,10 @@ function Fechas({
       <View style={styles.filaCentrada}>
         <CuentaAtras dias={diasHasta(finDeMes, hoy)} />
         <View style={styles.flex}>
-          <ThemedText type="smallBold">Cierre del mes</ThemedText>
+          <ThemedText type="smallBold">{t('Cierre del mes')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {fechaCorta(finDeMes)} · {pendientes ? `${pendientes} sin validar` : 'todo validado'}
+            {fechaCorta(finDeMes)} ·{' '}
+            {pendientes ? t('{n} sin validar', { n: pendientes }) : t('todo validado')}
           </ThemedText>
         </View>
       </View>
@@ -596,7 +614,7 @@ function Inbox({
   if (ultimos.length === 0) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
-        Todavía no hay mensajes de tus alumnos ni de sus profes.
+        {t('Todavía no hay mensajes de tus alumnos ni de sus profes.')}
       </ThemedText>
     );
   }
@@ -614,8 +632,8 @@ function Inbox({
           <Pressable
             key={`${conversacion.id}-${mensaje.id}`}
             accessibilityRole="button"
-            accessibilityLabel={`Abrir el chat con ${conversacion.titulo}${
-              nuevos ? `, ${nuevos} sin leer` : ''
+            accessibilityLabel={`${t('Abrir el chat con {nombre}', { nombre: conversacion.titulo })}${
+              nuevos ? t(', {n} sin leer', { n: nuevos }) : ''
             }`}
             onPress={() =>
               router.push({ pathname: '/chat', params: { conversacion: conversacion.id } })
@@ -690,7 +708,7 @@ function ValorarDossier({
 
   async function guardar() {
     if (!mesElegido || !valoracion) {
-      setAviso({ tipo: 'error', texto: 'Elige el mes y la valoración' });
+      setAviso({ tipo: 'error', texto: t('Elige el mes y la valoración') });
       return;
     }
     setAviso(null);
@@ -708,14 +726,14 @@ function ValorarDossier({
         },
         hoy,
       );
-      setAviso({ tipo: 'ok', texto: `Valorado ${nombreMes(mesElegido)}` });
+      setAviso({ tipo: 'ok', texto: t('Valorado {mes}', { mes: nombreMes(mesElegido) }) });
       setValoracion(null);
       setComentario('');
       setMes(null);
       recargar();
       onTerminar();
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({ tipo: 'error', texto: e instanceof Error ? t(e.message) : String(e) });
     } finally {
       setGuardando(false);
     }
@@ -727,23 +745,26 @@ function ValorarDossier({
         nombre={dossier.alumnoNombre}
         detalle={[
           [dossier.ciclo, dossier.centro].filter(Boolean).join(' · '),
-          `Tutor del centro: ${dossier.tutorNombre ?? 'sin asignar'}`,
-          `Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`,
+          t('Tutor del centro: {nombre}', { nombre: dossier.tutorNombre ?? t('sin asignar') }),
+          t('Del {inicio} al {fin}', {
+            inicio: fechaCorta(dossier.fechaInicio),
+            fin: fechaCorta(dossier.fechaFin),
+          }),
         ]}
       />
       {error && !datos ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
-      {!datos && !error ? <Cargando texto="Cargando valoraciones…" /> : null}
+      {!datos && !error ? <Cargando texto={t('Cargando valoraciones…')} /> : null}
       {datos && datos.sinValorar.length > 0 ? (
         <Chip
           texto={`Pendiente de valorar: ${datos.sinValorar.map(nombreMes).join(', ')}`}
           color="estadoPendiente"
         />
       ) : datos && meses.length > 0 && !datos.final ? (
-        <Chip texto="Todos los meses acabados están valorados" color="estadoValidado" />
+        <Chip texto={t('Todos los meses acabados están valorados')} color="estadoValidado" />
       ) : null}
       {!datos ? null : datos.final ? (
         <ThemedText type="small" themeColor="textSecondary">
-          El profe ya ha puesto la valoración final: ya no se pueden cambiar los meses.
+          {t('El profe ya ha puesto la valoración final: ya no se pueden cambiar los meses.')}
         </ThemedText>
       ) : meses.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -753,33 +774,35 @@ function ValorarDossier({
       ) : (
         <>
           <Selector
-            etiqueta="Mes"
+            etiqueta={t('Mes')}
             opciones={meses.map((m) => ({ valor: m, texto: nombreMes(m) }))}
             valor={mesElegido}
             onCambio={setMes}
           />
           <Selector
-            etiqueta="Valoración"
+            etiqueta={t('Valoración')}
             opciones={VALORACIONES_MES.map((v) => ({ valor: v, texto: TEXTO_VALORACION[v] }))}
             valor={valoracion}
             onCambio={setValoracion}
           />
           <Campo
-            etiqueta="Comentario"
+            etiqueta={t('Comentario')}
             multiline
             value={comentario}
             onChangeText={setComentario}
-            ayuda="Obligatorio si la valoración no es positiva. Al valorar, el mes se cierra para el alumno."
+            ayuda={t(
+              'Obligatorio si la valoración no es positiva. Al valorar, el mes se cierra para el alumno.',
+            )}
           />
           {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-          <Boton texto="Guardar valoración" onPress={guardar} cargando={guardando} />
+          <Boton texto={t('Guardar valoración')} onPress={guardar} cargando={guardando} />
         </>
       )}
 
       {datos ? (
         <>
           <ThemedText type="smallBold" style={estilosComunes.capital}>
-            Historial
+            {t('Historial')}
           </ThemedText>
           <ListaValoraciones mensuales={datos.mensuales} final={datos.final} />
         </>

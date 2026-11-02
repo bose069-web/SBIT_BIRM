@@ -10,6 +10,7 @@ import { diasSemana, esFinDeSemana, estadoDia, semanasDelMes } from '@/ui/utils/
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
 
 import { ESTADOS_DIA } from './calendario-mes';
+import { t } from '@/ui/utils/idioma';
 
 interface Props {
   hoy: string;
@@ -50,11 +51,11 @@ export function MiniCalendario({
           </ThemedText>
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel={`${nombreMes(mes)}. Abrir el calendario`}
+            accessibilityLabel={t('{mes}. Abrir el calendario', { mes: nombreMes(mes) })}
             onPress={() => router.navigate('/calendario')}
             style={({ pressed }) => pressed && { opacity: 0.7 }}>
             <ThemedText type="small" themeColor="textSecondary">
-              Ver calendario ›
+              {t('Ver calendario ›')}
             </ThemedText>
           </Pressable>
         </View>
@@ -87,8 +88,11 @@ export function MiniCalendario({
                   !registrable
                     ? undefined
                     : onElegir
-                      ? `${fechaCorta(fecha)}, ${estado?.texto}${registro && clave === 'trabajo' ? `, ${formatoHoras(totalHoras(registro))}` : ''}`
-                      : `${fechaCorta(fecha)}, ${estado?.texto}. Registrar el día`
+                      ? `${fechaCorta(fecha)}, ${t(estado?.texto ?? '')}${registro && clave === 'trabajo' ? `, ${formatoHoras(totalHoras(registro))}` : ''}`
+                      : t('{fecha}, {estado}. Registrar el día', {
+                          fecha: fechaCorta(fecha),
+                          estado: t(estado?.texto ?? ''),
+                        })
                 }
                 accessibilityState={{ selected: fecha === seleccionada }}
                 onPress={() =>

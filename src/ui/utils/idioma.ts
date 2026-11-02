@@ -47,3 +47,25 @@ export function idiomaDelDispositivo(): Idioma {
     return 'es';
   }
 }
+
+/**
+ * Traduce los trozos de texto fijo que llegan a un `ThemedText` (`<ThemedText>Tareas</ThemedText>`
+ * o las partes fijas de `Hasta el {fecha}`), conservando los espacios de los extremos. Así no
+ * hace falta envolver en `t()` cada texto sin variables; lo que no está en el diccionario
+ * (nombres, fechas, cifras) se queda igual.
+ */
+export function traducirHijos<T>(hijos: T): T {
+  if (actual === 'es') return hijos;
+  if (typeof hijos === 'string') return traducirTrozo(hijos) as T;
+  if (Array.isArray(hijos))
+    return hijos.map((h) => (typeof h === 'string' ? traducirTrozo(h) : h)) as T;
+  return hijos;
+}
+
+function traducirTrozo(trozo: string): string {
+  const limpio = trozo.trim();
+  if (!limpio || !(limpio in CATALAN)) return trozo;
+  const inicio = trozo.slice(0, trozo.indexOf(limpio));
+  const fin = trozo.slice(trozo.indexOf(limpio) + limpio.length);
+  return inicio + CATALAN[limpio] + fin;
+}

@@ -40,6 +40,7 @@ import { nivelSinApuntar, type NivelAviso } from '@/ui/utils/progreso';
 import { ProximasFechas } from './agenda';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio, porAlumno } from './comun';
 import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 /** Cuántos días hacia atrás se miran los registros de los alumnos. */
 const DIAS_ATRAS = 45;
@@ -155,7 +156,7 @@ export function PanelProfe() {
       titulo={`Hola, ${usuario.nombre.split(' ')[0]}`}
       subtitulo={
         datos
-          ? `${fechaCorta(hoy)} · ${alumnos} ${alumnos === 1 ? 'alumno' : 'alumnos'}`
+          ? `${fechaCorta(hoy)} · ${tPlural(alumnos, '{n} alumno', '{n} alumnos')}`
           : fechaCorta(hoy)
       }
       amplia={ancho}>
@@ -163,9 +164,11 @@ export function PanelProfe() {
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {datos && alumnos === 0 ? (
         <EstadoVacio
-          titulo="Todavía no tienes alumnos con dossier"
-          texto="Cuando el instituto te asigne alumnos y tengan su dossier, aquí verás sus mensajes, las horas por validar y quién lleva días sin apuntar."
-          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+          titulo={t('Todavía no tienes alumnos con dossier')}
+          texto={t(
+            'Cuando el instituto te asigne alumnos y tengan su dossier, aquí verás sus mensajes, las horas por validar y quién lleva días sin apuntar.',
+          )}
+          accion={{ texto: t('Volver a mirar'), onPress: recargar }}
         />
       ) : null}
       {datos && alumnos > 0 ? (
@@ -204,9 +207,12 @@ export function PanelProfe() {
                 <FaltaValorarEmpresa alumnos={datos.faltaValorar} />
               ) : null}
               <Tarjeta
-                titulo="Próximas fechas"
+                titulo={t('Próximas fechas')}
                 accion={
-                  <Enlace texto="Seguimiento ›" onPress={() => router.navigate('/calendario')} />
+                  <Enlace
+                    texto={t('Seguimiento ›')}
+                    onPress={() => router.navigate('/calendario')}
+                  />
                 }>
                 <ProximasFechas hoy={hoy} />
               </Tarjeta>
@@ -241,40 +247,40 @@ function TuClase({
   const colorSinApuntar = COLOR_AVISO[nivelSinApuntar(peor)];
   return (
     <Tarjeta
-      titulo="Tu clase"
-      accion={<Enlace texto="Seguimiento ›" onPress={() => router.navigate('/calendario')} />}>
+      titulo={t('Tu clase')}
+      accion={<Enlace texto={t('Seguimiento ›')} onPress={() => router.navigate('/calendario')} />}>
       <View style={[styles.clase, !ancho && styles.claseMovil]}>
         <View style={styles.quesito}>
-          <Quesito porcentaje={media} etiqueta="Progreso medio de horas de tu clase" />
+          <Quesito porcentaje={media} etiqueta={t('Progreso medio de horas de tu clase')} />
           <View style={ancho ? undefined : styles.flex}>
             <ThemedText type="title">{media}%</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              de las horas, de media
+              {t('de las horas, de media')}
             </ThemedText>
           </View>
         </View>
         <View style={[styles.datos, ancho && styles.flex]}>
           <View style={styles.cifras}>
+            <Cifra etiqueta={t('Por validar')} valor={tPlural(porValidar, '{n} día', '{n} días')} />
             <Cifra
-              etiqueta="Por validar"
-              valor={`${porValidar} ${porValidar === 1 ? 'día' : 'días'}`}
-            />
-            <Cifra
-              etiqueta="Alumnos sin apuntar"
+              etiqueta={t('Alumnos sin apuntar')}
               valor={String(sinApuntar.length)}
               color={colorSinApuntar ? theme[colorSinApuntar] : undefined}
             />
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel={`${mensajes} mensajes abiertos. Abrir el chat`}
+              accessibilityLabel={t('{n} mensajes abiertos. Abrir el chat', { n: mensajes })}
               onPress={() => router.navigate('/chat')}
               style={({ pressed }) => [styles.flex, pressed && { opacity: 0.6 }]}>
-              <Cifra etiqueta="Mensajes" valor={`${mensajes} ›`} />
+              <Cifra etiqueta={t('Mensajes')} valor={`${mensajes} ›`} />
             </Pressable>
           </View>
           {masAtrasado && progresos.length > 1 ? (
             <ThemedText type="small">
-              Va más atrasado {masAtrasado.nombre}, con el {masAtrasado.porcentaje}% de las horas
+              {t('Va más atrasado {nombre}, con el {porcentaje}% de las horas', {
+                nombre: masAtrasado.nombre,
+                porcentaje: masAtrasado.porcentaje,
+              })}
             </ThemedText>
           ) : null}
         </View>
@@ -291,10 +297,10 @@ function TuClase({
 function HorasPorValidar({ alumnos }: { alumnos: DiasDeAlumno[] }) {
   const ancho = useWebAncha();
   return (
-    <Tarjeta titulo="Horas por validar">
+    <Tarjeta titulo={t('Horas por validar')}>
       {alumnos.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Nadie ha apuntado días de trabajo esta semana.
+          {t('Nadie ha apuntado días de trabajo esta semana.')}
         </ThemedText>
       ) : (
         <View>
@@ -303,15 +309,19 @@ function HorasPorValidar({ alumnos }: { alumnos: DiasDeAlumno[] }) {
               key={a.dossierId}
               primera={i === 0}
               onPress={() => router.push({ pathname: '/', params: { dossier: a.dossierId } })}
-              etiqueta={`${a.nombre}: ${a.dias} días, ${formatoHoras(a.horas)}. Ver ficha`}>
+              etiqueta={t('{nombre}: {dias} días, {horas}. Ver ficha', {
+                nombre: a.nombre,
+                dias: a.dias,
+                horas: formatoHoras(a.horas),
+              })}>
               {/* En el móvil, nombre arriba y detalle debajo para que no se apriete. */}
               <View style={[styles.flex, ancho && styles.enLinea]}>
                 <ThemedText type="smallBold" style={ancho ? styles.flex : undefined}>
                   {a.nombre}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {a.dias} {a.dias === 1 ? 'día' : 'días'} · {formatoHoras(a.horas)} · último el{' '}
-                  {fechaCorta(a.ultimo)}
+                  {tPlural(a.dias, '{n} día', '{n} días')} · {formatoHoras(a.horas)} ·{' '}
+                  {t('último el {fecha}', { fecha: fechaCorta(a.ultimo) })}
                 </ThemedText>
               </View>
             </Fila>
@@ -347,15 +357,15 @@ function SinApuntar({
     setEnviando(a.dossierId);
     try {
       await darToque(container.toques, usuario, dossier, a.dias);
-      setAviso({ tipo: 'ok', texto: `${a.nombre} verá el aviso en Inicio` });
+      setAviso({ tipo: 'ok', texto: t('{nombre} verá el aviso en Inicio', { nombre: a.nombre }) });
       onCambio();
     } catch (e) {
       setAviso({
         tipo: 'error',
         texto:
           e instanceof ToqueYaExisteError
-            ? 'Ya has dado un toque a este alumno hoy.'
-            : 'No se pudo enviar el toque. Vuelve a intentarlo.',
+            ? t('Ya has dado un toque a este alumno hoy.')
+            : t('No se pudo enviar el toque. Vuelve a intentarlo.'),
       });
     } finally {
       setEnviando(null);
@@ -363,10 +373,12 @@ function SinApuntar({
   }
 
   return (
-    <Tarjeta titulo="Sin apuntar horas">
+    <Tarjeta titulo={t('Sin apuntar horas')}>
       {alumnos.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todos tus alumnos han apuntado horas en los últimos {DIAS_PARA_AVISAR} días laborables.
+          {t('Todos tus alumnos han apuntado horas en los últimos {n} días laborables.', {
+            n: DIAS_PARA_AVISAR,
+          })}
         </ThemedText>
       ) : (
         <View>
@@ -379,19 +391,22 @@ function SinApuntar({
                   <ThemedText type="smallBold">{a.nombre}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
                     {a.ultimo
-                      ? `Último día: ${fechaCorta(a.ultimo)}`
+                      ? t('Último día: {fecha}', { fecha: fechaCorta(a.ultimo) })
                       : 'Aún no ha apuntado ninguno'}
                   </ThemedText>
                 </View>
                 <ThemedText type="smallBold" style={color ? { color: theme[color] } : undefined}>
-                  {a.dias} días
+                  {tPlural(a.dias, '{n} día', '{n} días')}
                 </ThemedText>
                 {toque ? (
-                  <Chip texto={`Último toque: ${fechaCorta(toque)}`} color="estadoPendiente" />
+                  <Chip
+                    texto={t('Último toque: {fecha}', { fecha: fechaCorta(toque) })}
+                    color="estadoPendiente"
+                  />
                 ) : null}
                 {dossiers.some((d) => d.id === a.dossierId && puedeDarToques(usuario, d)) ? (
                   <Boton
-                    texto="Darle un toque"
+                    texto={t('Darle un toque')}
                     variante="secundario"
                     cargando={enviando === a.dossierId}
                     desactivado={enviando !== null}
@@ -412,11 +427,11 @@ function SinApuntar({
 function InboxRecientes({ incidencias }: { incidencias: Incidencia[] }) {
   return (
     <Tarjeta
-      titulo="Inbox recientes"
-      accion={<Enlace texto="Abrir chat ›" onPress={() => router.navigate('/chat')} />}>
+      titulo={t('Inbox recientes')}
+      accion={<Enlace texto={t('Abrir chat ›')} onPress={() => router.navigate('/chat')} />}>
       {incidencias.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          No tienes mensajes nuevos de tus alumnos.
+          {t('No tienes mensajes nuevos de tus alumnos.')}
         </ThemedText>
       ) : (
         <View>
@@ -446,14 +461,18 @@ function InboxRecientes({ incidencias }: { incidencias: Incidencia[] }) {
 /** Alumnos con meses acabados que su empresa aún no ha valorado: el profe se lo reclama. */
 function FaltaValorarEmpresa({ alumnos }: { alumnos: FaltaValorar[] }) {
   return (
-    <Tarjeta titulo="Falta la valoración de la empresa">
+    <Tarjeta titulo={t('Falta la valoración de la empresa')}>
       <View>
         {alumnos.map((a, i) => (
           <Fila
             key={a.dossierId}
             primera={i === 0}
             onPress={() => router.push({ pathname: '/', params: { dossier: a.dossierId } })}
-            etiqueta={`${a.nombre}: ${a.empresa ?? 'su empresa'} no ha valorado ${a.meses.map(nombreMes).join(', ')}. Ver ficha`}>
+            etiqueta={t('{nombre}: {empresa} no ha valorado {meses}. Ver ficha', {
+              nombre: a.nombre,
+              empresa: a.empresa ?? t('su empresa'),
+              meses: a.meses.map(nombreMes).join(', '),
+            })}>
             <View style={styles.flex}>
               <ThemedText type="smallBold">{a.nombre}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">

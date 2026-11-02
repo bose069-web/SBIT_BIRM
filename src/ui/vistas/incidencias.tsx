@@ -38,6 +38,7 @@ import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 export const TEXTO_CATEGORIA: Record<CategoriaIncidencia, string> = {
   practicas: 'Prácticas',
@@ -86,7 +87,7 @@ export function BandejaIncidencias() {
     <>
       {datos.porAtender.length ? (
         <Tarjeta
-          titulo="Por atender"
+          titulo={t('Por atender')}
           accion={
             datos.pendientes ? (
               <Chip texto={`${datos.pendientes} pendientes`} color="estadoPendiente" />
@@ -96,19 +97,21 @@ export function BandejaIncidencias() {
         </Tarjeta>
       ) : null}
       {datos.deMisAlumnos.length ? (
-        <Tarjeta titulo="De mis alumnos">
+        <Tarjeta titulo={t('De mis alumnos')}>
           <ListaIncidencias lista={datos.deMisAlumnos} />
         </Tarjeta>
       ) : null}
       {datos.mias.length ? (
-        <Tarjeta titulo="Abiertas por mí">
+        <Tarjeta titulo={t('Abiertas por mí')}>
           <ListaIncidencias lista={datos.mias} />
         </Tarjeta>
       ) : null}
       {vacia ? (
         <EstadoVacio
-          titulo="Sin incidencias"
-          texto="Si algo no va bien en las prácticas, con la empresa o con la app, cuéntalo aquí."
+          titulo={t('Sin incidencias')}
+          texto={t(
+            'Si algo no va bien en las prácticas, con la empresa o con la app, cuéntalo aquí.',
+          )}
         />
       ) : null}
       <NuevaIncidencia onCreada={recargar} />
@@ -163,7 +166,7 @@ export function NuevaIncidencia({
   const [enviando, setEnviando] = useState(false);
 
   if (!abierto) {
-    return <Boton texto="+ Nueva incidencia" onPress={() => setAbierto(true)} />;
+    return <Boton texto={t('+ Nueva incidencia')} onPress={() => setAbierto(true)} />;
   }
 
   async function enviar() {
@@ -192,28 +195,28 @@ export function NuevaIncidencia({
   }
 
   return (
-    <Tarjeta titulo="Nueva incidencia">
+    <Tarjeta titulo={t('Nueva incidencia')}>
       <Campo
-        etiqueta="Qué pasa"
-        placeholder="No me cuadran las horas de octubre"
+        etiqueta={t('Qué pasa')}
+        placeholder={t('No me cuadran las horas de octubre')}
         value={titulo}
         onChangeText={setTitulo}
       />
-      <Campo etiqueta="Cuéntalo" multiline value={descripcion} onChangeText={setDescripcion} />
+      <Campo etiqueta={t('Cuéntalo')} multiline value={descripcion} onChangeText={setDescripcion} />
       <Selector
-        etiqueta="Sobre"
+        etiqueta={t('Sobre')}
         opciones={CATEGORIAS_INCIDENCIA.map((c) => ({ valor: c, texto: TEXTO_CATEGORIA[c] }))}
         valor={categoria}
         onCambio={setCategoria}
       />
       {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
       <Boton
-        texto="Enviar"
+        texto={t('Enviar')}
         onPress={enviar}
         cargando={enviando}
         desactivado={!titulo.trim() || !descripcion.trim()}
       />
-      <Boton texto="Cancelar" variante="secundario" onPress={() => setAbierto(false)} />
+      <Boton texto={t('Cancelar')} variante="secundario" onPress={() => setAbierto(false)} />
     </Tarjeta>
   );
 }
@@ -227,16 +230,16 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
     const mensajes = await listarMensajes(container.incidencias, usuario, incidencia);
     return { incidencia, mensajes };
   }, [id]);
-  const volver = <Boton texto="‹ Volver" variante="secundario" onPress={onVolver} />;
+  const volver = <Boton texto={t('‹ Volver')} variante="secundario" onPress={onVolver} />;
 
   if (!datos) {
     return (
-      <Pantalla titulo="Incidencia">
+      <Pantalla titulo={t('Incidencia')}>
         {volver}
         {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
         {cargando ? <EsqueletoPanel tarjetas={2} /> : null}
         {!cargando && !error ? (
-          <EstadoVacio titulo="No se encuentra" texto="Puede que se haya borrado." />
+          <EstadoVacio titulo={t('No se encuentra')} texto={t('Puede que se haya borrado.')} />
         ) : null}
       </Pantalla>
     );
@@ -247,11 +250,11 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
       titulo={i.titulo}
       subtitulo={`${TEXTO_CATEGORIA[i.categoria]} · ${fechaCorta(i.creadaEn.slice(0, 10))}`}>
       {volver}
-      <Tarjeta titulo="Incidencia">
+      <Tarjeta titulo={t('Incidencia')}>
         <View style={styles.chips}>
           <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
           <Chip texto={TEXTO_PRIORIDAD[i.prioridad]} />
-          {i.escalada ? <Chip texto="Escalada a la Generalitat" /> : null}
+          {i.escalada ? <Chip texto={t('Escalada a la Generalitat')} /> : null}
         </View>
         <ThemedText type="small" themeColor="textSecondary">
           Abierta por {i.creadaPorNombre ?? 'alguien'}
@@ -259,7 +262,7 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
         <ThemedText>{i.descripcion}</ThemedText>
         {i.respuesta ? (
           <View style={styles.respuesta}>
-            <ThemedText type="smallBold">Respuesta</ThemedText>
+            <ThemedText type="smallBold">{t('Respuesta')}</ThemedText>
             <ThemedText type="small">{i.respuesta}</ThemedText>
           </View>
         ) : null}
@@ -267,7 +270,7 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
 
       {atiendeIncidencia(usuario, i) ? <Atender incidencia={i} onCambio={recargar} /> : null}
 
-      <Tarjeta titulo="Conversación">
+      <Tarjeta titulo={t('Conversación')}>
         <Conversacion incidencia={i} mensajes={mensajes} onEnviado={recargar} />
       </Tarjeta>
     </Pantalla>
@@ -304,23 +307,23 @@ export function Atender({
   const puedeEscalar =
     usuario.rol === 'instituto' && !incidencia.escalada && incidencia.estado !== 'resuelta';
   return (
-    <Tarjeta titulo="Atender">
+    <Tarjeta titulo={t('Atender')}>
       <Selector
-        etiqueta="Estado"
+        etiqueta={t('Estado')}
         opciones={ESTADOS_INCIDENCIA.map((e) => ({ valor: e, texto: TEXTO_ESTADO[e] }))}
         valor={estado}
         onCambio={setEstado}
       />
       <Campo
-        etiqueta="Respuesta"
-        ayuda="Obligatoria para marcarla como resuelta"
+        etiqueta={t('Respuesta')}
+        ayuda={t('Obligatoria para marcarla como resuelta')}
         multiline
         value={respuesta}
         onChangeText={setRespuesta}
       />
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       <Boton
-        texto="Guardar"
+        texto={t('Guardar')}
         cargando={enviando}
         onPress={() =>
           ejecutar(
@@ -332,7 +335,7 @@ export function Atender({
       />
       {puedeEscalar ? (
         <Boton
-          texto="Pasar a la Generalitat"
+          texto={t('Pasar a la Generalitat')}
           variante="secundario"
           desactivado={enviando}
           onPress={() =>
@@ -380,7 +383,7 @@ function Conversacion({
     <View style={styles.lista}>
       {mensajes.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay mensajes. Escribe para hablar con quien la sigue.
+          {t('Todavía no hay mensajes. Escribe para hablar con quien la sigue.')}
         </ThemedText>
       ) : null}
       {mensajes.map((m) => {
@@ -401,9 +404,9 @@ function Conversacion({
           </View>
         );
       })}
-      <Campo etiqueta="Mensaje" multiline value={texto} onChangeText={setTexto} />
+      <Campo etiqueta={t('Mensaje')} multiline value={texto} onChangeText={setTexto} />
       {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
-      <Boton texto="Enviar" onPress={enviar} cargando={enviando} desactivado={!texto.trim()} />
+      <Boton texto={t('Enviar')} onPress={enviar} cargando={enviando} desactivado={!texto.trim()} />
     </View>
   );
 }
