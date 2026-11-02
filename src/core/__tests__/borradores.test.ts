@@ -256,6 +256,8 @@ describe('enviarDia', () => {
         comentario: null,
         valoradaPor: 'e',
         valoradaEn: ahora,
+        confirmadaPor: null,
+        confirmadaEn: null,
       },
     ];
     await expect(enviar()).rejects.toThrow('valorado');

@@ -1,6 +1,8 @@
 import {
+  confirmarMes,
   obtenerSeguimiento,
   ponerValoracionFinal,
+  quitarConfirmacion,
   valorarEnBloque,
   valorarMes,
 } from '../application/valoracion';
@@ -296,5 +298,62 @@ describe('valorarEnBloque', () => {
       motivo: 'No se ha podido guardar. Vuelve a intentarlo.',
     });
     expect(resultados[2].ok).toBe(true);
+  });
+});
+
+describe('confirmación del mes por el profe', () => {
+  const dossier = crearDossier();
+  let valoraciones: ValoracionesFalsas;
+
+  beforeEach(async () => {
+    valoraciones = new ValoracionesFalsas();
+    await valoraciones.guardarMensual({
+      dossierId: 'd1',
+      mes: '2026-10',
+      valoracion: 'positiva',
+      comentario: null,
+    });
+  });
+
+  it('solo el profe tutor confirma el mes que valoró la empresa', async () => {
+    for (const usuario of [empresa, instituto, generalitat, alumno, otroProfe]) {
+      await expect(confirmarMes(valoraciones, usuario, dossier, '2026-10')).rejects.toThrow(
+        SinPermisoError,
+      );
+    }
+    const confirmada = await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    expect(confirmada).toMatchObject({ mes: '2026-10', confirmadaEn: expect.any(String) });
+    // La valoración de la empresa se queda como estaba: el profe solo añade su confirmación.
+    expect(confirmada).toMatchObject({ valoracion: 'positiva', valoradaPor: 'x' });
+  });
+
+  it('no confirma un mes sin valorar, ni dos veces el mismo', async () => {
+    await expect(confirmarMes(valoraciones, profe, dossier, '2026-11')).rejects.toThrow(
+      'todavía no ha valorado',
+    );
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    await expect(confirmarMes(valoraciones, profe, dossier, '2026-10')).rejects.toThrow(
+      ValoracionInvalidaError,
+    );
+  });
+
+  it('el seguimiento dice qué meses quedan por confirmar', async () => {
+    const antes = await obtenerSeguimiento(valoraciones, dossier, HOY);
+    expect(antes.sinConfirmar).toEqual(['2026-10']);
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    const despues = await obtenerSeguimiento(valoraciones, dossier, HOY);
+    expect(despues.sinConfirmar).toEqual([]);
+  });
+
+  it('quitar la confirmación deja el mes como estaba para la empresa', async () => {
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    await expect(quitarConfirmacion(valoraciones, empresa, dossier, '2026-10')).rejects.toThrow(
+      SinPermisoError,
+    );
+    const sinConfirmar = await quitarConfirmacion(valoraciones, profe, dossier, '2026-10');
+    expect(sinConfirmar).toMatchObject({ confirmadaPor: null, confirmadaEn: null });
+    await expect(quitarConfirmacion(valoraciones, profe, dossier, '2026-10')).rejects.toThrow(
+      'no está confirmado',
+    );
   });
 });

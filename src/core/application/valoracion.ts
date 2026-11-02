@@ -7,8 +7,10 @@ import {
 } from '../domain/errores';
 import { gestionaDossier, type Usuario } from '../domain/usuario';
 import {
+  comprobarConfirmacion,
   comprobarValoracionFinal,
   comprobarValoracionMensual,
+  mesesSinConfirmar,
   mesesSinValorar,
   type BorradorValoracionFinal,
   type BorradorValoracionMensual,
@@ -124,11 +126,52 @@ export function ponerValoracionFinal(
   });
 }
 
+/** Solo el profe tutor del dossier confirma el mes, como el trigger de la base de datos. */
+function puedeConfirmarMes(usuario: Usuario, dossier: Dossier): boolean {
+  return usuario.rol === 'profe' && usuario.id === dossier.tutorId;
+}
+
+/** Comprueba quién confirma y en qué estado está el mes antes de tocar la base de datos. */
+async function comprobarQuePuedeConfirmar(
+  valoraciones: ValoracionPort,
+  usuario: Usuario,
+  dossier: Dossier,
+  mes: string,
+  confirmar: boolean,
+): Promise<void> {
+  if (!puedeConfirmarMes(usuario, dossier)) throw new SinPermisoError('confirmar este mes');
+  comprobarConfirmacion(await valoraciones.listarMensuales(dossier.id), mes, confirmar);
+}
+
+/** El profe tutor confirma el mes que ya valoró la empresa: la doble validación del SBIT. */
+export async function confirmarMes(
+  valoraciones: ValoracionPort,
+  usuario: Usuario,
+  dossier: Dossier,
+  mes: string,
+): Promise<ValoracionMensual> {
+  await comprobarQuePuedeConfirmar(valoraciones, usuario, dossier, mes, true);
+  return valoraciones.confirmarMes(dossier.id, mes);
+}
+
+/** El profe tutor retira la confirmación para que la empresa corrija el mes. */
+export async function quitarConfirmacion(
+  valoraciones: ValoracionPort,
+  usuario: Usuario,
+  dossier: Dossier,
+  mes: string,
+): Promise<ValoracionMensual> {
+  await comprobarQuePuedeConfirmar(valoraciones, usuario, dossier, mes, false);
+  return valoraciones.quitarConfirmacion(dossier.id, mes);
+}
+
 export interface Seguimiento {
   mensuales: ValoracionMensual[];
   final: ValoracionFinal | null;
   /** Meses ya acabados que la empresa aún no ha valorado (`AAAA-MM`). */
   sinValorar: string[];
+  /** Meses que la empresa ya valoró y el profe todavía no ha confirmado (`AAAA-MM`). */
+  sinConfirmar: string[];
 }
 
 /** Lo que mira el profe para ver si el alumno va bien o mal. */
@@ -141,5 +184,10 @@ export async function obtenerSeguimiento(
     valoraciones.listarMensuales(dossier.id),
     valoraciones.obtenerFinal(dossier.id),
   ]);
-  return { mensuales, final, sinValorar: mesesSinValorar(dossier, mensuales, hoy) };
+  return {
+    mensuales,
+    final,
+    sinValorar: mesesSinValorar(dossier, mensuales, hoy),
+    sinConfirmar: mesesSinConfirmar(mensuales),
+  };
 }

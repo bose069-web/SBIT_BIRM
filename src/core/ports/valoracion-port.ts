@@ -12,6 +12,10 @@ export interface ValoracionPort {
   guardarMensual(borrador: BorradorValoracionMensual): Promise<ValoracionMensual>;
   /** Crea la valoración de ese mes sin pisar nunca otra: si ya existe, `ValoracionYaExisteError`. */
   crearMensual(borrador: BorradorValoracionMensual): Promise<ValoracionMensual>;
+  /** El profe tutor confirma el mes que ya valoró la empresa; desde entonces la empresa no lo cambia. */
+  confirmarMes(dossierId: string, mes: string): Promise<ValoracionMensual>;
+  /** El profe tutor retira su confirmación para que la empresa corrija el mes. */
+  quitarConfirmacion(dossierId: string, mes: string): Promise<ValoracionMensual>;
   obtenerFinal(dossierId: string): Promise<ValoracionFinal | null>;
   /** Crea o reemplaza la valoración final; quién la pone es el usuario con sesión. */
   guardarFinal(borrador: BorradorValoracionFinal): Promise<ValoracionFinal>;
