@@ -34,6 +34,11 @@ export interface Convenio {
   firmadoEn: string | null;
 }
 
+/** Profe del centro con los alumnos que tiene asignados. */
+export interface ProfeConAlumnos extends Persona {
+  alumnos: Persona[];
+}
+
 /** Cuenta recién registrada que aún no pertenece a ningún centro ni empresa. */
 export function esCuentaNueva(p: Persona): boolean {
   return p.rol === 'alumno' && p.centroId === null;

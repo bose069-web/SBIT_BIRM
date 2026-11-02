@@ -148,6 +148,10 @@ export class GestionCentroMemory implements GestionCentroPort {
     this.cambiar(alumnoId, { profeId });
   }
 
+  async asignarProfeEnBloque(alumnoIds: string[], profeId: string | null) {
+    for (const id of alumnoIds) this.cambiar(id, { profeId });
+  }
+
   async listarEmpresas() {
     return [...this.empresas];
   }
