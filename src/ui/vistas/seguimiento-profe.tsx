@@ -1,3 +1,4 @@
+import { MisClases } from './clases-centro';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -83,6 +84,7 @@ export function SeguimientoProfe() {
       accion={ancho ? acciones : undefined}
       amplia={ancho}>
       {ancho ? null : acciones}
+      {usuario.rol === 'profe' && <MisClases />}
       <ContenidoSeguimiento />
     </Pantalla>
   );
