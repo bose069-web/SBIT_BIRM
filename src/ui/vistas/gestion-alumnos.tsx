@@ -10,7 +10,6 @@ import {
   type PanelCentro,
 } from '@/core/application/centro';
 import type { Persona } from '@/core/domain/centro';
-import { AltaSinIncorporarError } from '@/core/domain/errores';
 import { container } from '@/config/container';
 import { Avatar } from '@/ui/components/avatar';
 import { Boton } from '@/ui/components/boton';
@@ -207,9 +206,8 @@ function TarjetaAltaAlumno({
     if (guardando) return;
     setGuardando(true);
     setError(null);
-    let contrasena: string | null = null;
     try {
-      contrasena = generarContrasena();
+      const contrasena = generarContrasena();
       const alumno = await darDeAltaAlumno(
         container.centros,
         usuario,
@@ -221,10 +219,6 @@ function TarjetaAltaAlumno({
       setEmail('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se ha podido dar de alta al alumno');
-      // La cuenta ya existe: sin esta contraseña el alumno no podría entrar nunca.
-      if (e instanceof AltaSinIncorporarError && contrasena) {
-        onCreada({ nombre: nombre.trim(), email: email.trim().toLowerCase(), contrasena });
-      }
     } finally {
       setGuardando(false);
     }
@@ -271,8 +265,7 @@ function TarjetaAltaAlumno({
           </ThemedText>
           <ThemedText type="small">Compártela con el alumno; no se volverá a mostrar.</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Podrá cambiarla en su perfil. Si le llega un correo de confirmación, tendrá que
-            confirmarlo antes de entrar.
+            Ya puede entrar con su correo y esta contraseña, y cambiarla en su perfil.
           </ThemedText>
           <Boton
             texto="Ocultar"

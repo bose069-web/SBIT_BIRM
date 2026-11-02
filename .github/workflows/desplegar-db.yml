@@ -1,6 +1,6 @@
 name: Desplegar base de datos
 
-# Al fusionar en main una migración nueva, se aplica sola en el proyecto Supabase.
+# Al fusionar en main una migración o función nueva, se aplica sola en el proyecto Supabase.
 # Necesita en GitHub (Settings → Secrets and variables → Actions):
 #   variable SUPABASE_PROJECT_ID   y   secreto SUPABASE_ACCESS_TOKEN.
 # No hace falta la contraseña de la base: la CLI crea un rol de acceso temporal con el token.
@@ -8,7 +8,7 @@ name: Desplegar base de datos
 on:
   push:
     branches: [main]
-    paths: ['supabase/migrations/**']
+    paths: ['supabase/migrations/**', 'supabase/functions/**']
   workflow_dispatch:
 
 concurrency: desplegar-db
@@ -27,3 +27,4 @@ jobs:
       - run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_ID }}
       - run: supabase migration list
       - run: supabase db push
+      - run: supabase functions deploy
