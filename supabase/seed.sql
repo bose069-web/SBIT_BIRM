@@ -76,3 +76,7 @@ insert into public.grupos (id, centro_id, ciclo, curso, letra) values
   ('ffffffff-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', 'ASIX', 2, 'A');
 update public.perfiles set grupo_id = 'ffffffff-0000-0000-0000-000000000001'
 where id = '11111111-1111-1111-1111-111111111111';
+-- Un toque del profe al alumno de prueba, ya resuelto porque luego apuntó el 1 de octubre.
+insert into public.toques (dossier_id, dado_por, dias_sin_apuntar, fecha, creado_en, visto_en, resuelto_en)
+values ('cccccccc-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 4,
+  '2026-09-30', '2026-09-30 09:00+02', '2026-09-30 18:00+02', '2026-10-01 17:00+02');
