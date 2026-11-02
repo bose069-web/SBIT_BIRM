@@ -9,6 +9,8 @@ export const TEXTO_TIPO_EVENTO: Record<TipoEvento, string> = {
   entrega: 'Entrega',
   reunion: 'Reunión',
   festivo: 'Festivo',
+  plazo: 'Plazo',
+  curso: 'Curso',
 };
 
 const COLOR_TIPO_EVENTO: Record<TipoEvento, ThemeColor> = {
@@ -16,6 +18,8 @@ const COLOR_TIPO_EVENTO: Record<TipoEvento, ThemeColor> = {
   entrega: 'estadoPendiente',
   reunion: 'primary',
   festivo: 'estadoFestivo',
+  plazo: 'avisoMedio',
+  curso: 'estadoValidado',
 };
 
 interface Props {

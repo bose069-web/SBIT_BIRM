@@ -2,8 +2,11 @@ import { DatosInvalidosError } from './errores';
 
 // Fechas del calendario: las generales (sin dossier) las ve todo el mundo; las de un dossier, sus participantes.
 
-export const TIPOS_EVENTO = ['evento', 'entrega', 'reunion', 'festivo'] as const;
+export const TIPOS_EVENTO = ['evento', 'entrega', 'reunion', 'festivo', 'plazo', 'curso'] as const;
 export type TipoEvento = (typeof TIPOS_EVENTO)[number];
+
+/** Tipos que pone la generalitat para toda la red (plazos administrativos y curso de prácticas). */
+export const TIPOS_EVENTO_RED: TipoEvento[] = ['festivo', 'curso', 'plazo', 'evento'];
 
 export interface Evento {
   id: string;
