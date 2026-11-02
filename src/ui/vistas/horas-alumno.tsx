@@ -13,7 +13,6 @@ import type { Dossier } from '@/core/domain/dossier';
 import { ConflictoRegistroError } from '@/core/domain/errores';
 import {
   huellaRegistro,
-  totalHoras,
   TIPOS_DIA,
   valoresDeRegistro,
   VALORES_DIA_VACIOS,
@@ -26,14 +25,15 @@ import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
-import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { Selector } from '@/ui/components/selector';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
-import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
+import { fechaCorta, formatoHoras, hoyISO } from '@/ui/utils/fechas';
+
+import { CalendarioMes } from './calendario-mes';
 
 const TEXTO_TIPO: Record<TipoDia, string> = {
   trabajo: 'Fichado',
@@ -47,7 +47,7 @@ interface Props {
   onCambio: () => void;
 }
 
-/** Minidesplegable con los días fichados del alumno. El profe tutor los corrige desde aquí. */
+/** Minidesplegable con el calendario de días fichados del alumno. El profe tutor los corrige desde aquí. */
 export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
   const [abierto, setAbierto] = useState(false);
   return (
@@ -74,22 +74,15 @@ export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
 
 function ListaDias({ dossier, seguimiento, onCambio }: Props) {
   const usuario = useUsuario();
-  const theme = useTheme();
   const hoy = hoyISO();
   const hasta = hoy < dossier.fechaFin ? hoy : dossier.fechaFin;
   const { datos, error, cargando, recargar } = useDatos(
     () => listarRegistros(container.registros, dossier.id, dossier.fechaInicio, hasta),
     [dossier.id, dossier.fechaInicio, hasta],
   );
-  // `fecha` del día abierto; 'nuevo' para añadir uno que falta.
-  const [editando, setEditando] = useState<string | null>(null);
+  const [mesElegido, setMesElegido] = useState<string | null>(null);
+  const [seleccion, setSeleccion] = useState<string | null>(null);
   const corrige = puedeCorregirHoras(usuario, dossier);
-
-  function alGuardar() {
-    setEditando(null);
-    recargar();
-    onCambio();
-  }
 
   if (error) return <Mensaje tipo="error" texto={error} />;
   if (cargando && !datos) {
@@ -99,85 +92,114 @@ function ListaDias({ dossier, seguimiento, onCambio }: Props) {
       </ThemedText>
     );
   }
-  const dias = [...(datos ?? [])].sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const meses = [...new Set(dias.map((d) => mesDe(d.fecha)))];
+  const dias = datos ?? [];
+  // Sin mes elegido se abre por el último día apuntado: es lo que el tutor viene a revisar.
+  const ultimo = dias.reduce((max, d) => (d.fecha > max ? d.fecha : max), '');
+  const mes = mesElegido ?? mesDe(ultimo || hasta);
   const bloqueado = (fecha: string) =>
     mesBloqueadoParaTutor(fecha, seguimiento.mensuales, seguimiento.final);
+  const registro = dias.find((d) => d.fecha === seleccion) ?? null;
+  const editable = seleccion !== null && corrige && !bloqueado(seleccion) && seleccion <= hoy;
 
   return (
     <View style={styles.lista}>
-      {corrige && !seguimiento.final ? (
-        editando === 'nuevo' ? (
-          <EditorDia
-            dossier={dossier}
-            seguimiento={seguimiento}
-            dias={dias}
-            onCerrar={() => setEditando(null)}
-            onGuardado={alGuardar}
-          />
-        ) : (
-          <Boton texto="Añadir día" variante="secundario" onPress={() => setEditando('nuevo')} />
-        )
-      ) : null}
-      {dias.length === 0 ? (
+      {bloqueado(`${mes}-01`) ? <Chip texto="Bloqueado" color="estadoValidado" /> : null}
+      <CalendarioMes
+        mes={mes}
+        onCambiarMes={(m) => {
+          setMesElegido(m);
+          setSeleccion(null);
+        }}
+        dias={dias.filter((d) => mesDe(d.fecha) === mes)}
+        periodo={dossier}
+        hoy={hoy}
+        cerrado={seguimiento.mensuales.some((v) => v.mes === mes)}
+        seleccionada={seleccion ?? undefined}
+        onElegir={(fecha) => {
+          // Fija el mes: si se borra su último día, la vista no salta a otro.
+          setMesElegido(mes);
+          setSeleccion(fecha);
+        }}
+      />
+      {seleccion === null ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay días apuntados.
+          {corrige
+            ? 'Toca un día para ver sus horas o corregirlas.'
+            : 'Toca un día para ver sus horas.'}
+        </ThemedText>
+      ) : editable ? (
+        <EditorDia
+          key={seleccion}
+          dossier={dossier}
+          seguimiento={seguimiento}
+          fecha={seleccion}
+          registro={registro}
+          onCerrar={() => setSeleccion(null)}
+          onGuardado={() => {
+            setSeleccion(null);
+            recargar();
+            onCambio();
+          }}
+        />
+      ) : (
+        <DetalleDia
+          dossier={dossier}
+          fecha={seleccion}
+          registro={registro}
+          nota={
+            corrige && bloqueado(seleccion)
+              ? seguimiento.final
+                ? 'El alumno ya tiene valoración final.'
+                : 'Mes confirmado: quita antes la confirmación para corregirlo.'
+              : corrige && seleccion > hoy
+                ? 'Este día todavía no ha llegado.'
+                : null
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+function DetalleDia({
+  dossier,
+  fecha,
+  registro,
+  nota,
+}: {
+  dossier: Dossier;
+  fecha: string;
+  registro: RegistroDiario | null;
+  nota: string | null;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.editor, { borderColor: theme.border }]}>
+      <ThemedText type="smallBold">
+        {fechaCorta(fecha)}
+        {registro ? ` · ${TEXTO_TIPO[registro.tipo]}` : ''}
+      </ThemedText>
+      {registro ? null : (
+        <ThemedText type="small" themeColor="textSecondary">
+          Sin apuntar.
+        </ThemedText>
+      )}
+      {registro?.horas.map((h) => (
+        <ThemedText key={h.actividadId} type="small">
+          {dossier.actividades.find((a) => a.id === h.actividadId)?.descripcion ?? 'Actividad'}:{' '}
+          {formatoHoras(h.horas)}
+        </ThemedText>
+      ))}
+      {registro?.observaciones ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {registro.observaciones}
         </ThemedText>
       ) : null}
-      {meses.map((mes) => (
-        <View key={mes} style={styles.lista}>
-          <View style={styles.cabeceraMes}>
-            <ThemedText type="smallBold" style={styles.flex}>
-              {nombreMes(mes)}
-            </ThemedText>
-            {bloqueado(`${mes}-01`) ? <Chip texto="Bloqueado" color="estadoValidado" /> : null}
-          </View>
-          {dias
-            .filter((d) => mesDe(d.fecha) === mes)
-            .map((dia) =>
-              editando === dia.fecha ? (
-                <EditorDia
-                  key={dia.id}
-                  dossier={dossier}
-                  seguimiento={seguimiento}
-                  dias={dias}
-                  registro={dia}
-                  onCerrar={() => setEditando(null)}
-                  onGuardado={alGuardar}
-                />
-              ) : (
-                <Pressable
-                  key={dia.id}
-                  disabled={!corrige || bloqueado(dia.fecha)}
-                  accessibilityRole={corrige && !bloqueado(dia.fecha) ? 'button' : undefined}
-                  accessibilityLabel={`${fechaCorta(dia.fecha)}, ${TEXTO_TIPO[dia.tipo]}, ${formatoHoras(totalHoras(dia))}${corrige && !bloqueado(dia.fecha) ? '. Corregir' : ''}`}
-                  onPress={() => setEditando(dia.fecha)}
-                  style={({ pressed }) => [
-                    styles.dia,
-                    { borderColor: theme.border },
-                    pressed && { opacity: 0.6 },
-                  ]}>
-                  <View style={styles.flex}>
-                    <ThemedText type="small">{fechaCorta(dia.fecha)}</ThemedText>
-                    {dia.observaciones ? (
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {dia.observaciones}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {dia.tipo === 'trabajo' ? formatoHoras(totalHoras(dia)) : TEXTO_TIPO[dia.tipo]}
-                  </ThemedText>
-                  {corrige && !bloqueado(dia.fecha) ? (
-                    <ThemedText type="small" themeColor="textSecondary">
-                      Corregir ›
-                    </ThemedText>
-                  ) : null}
-                </Pressable>
-              ),
-            )}
-        </View>
-      ))}
+      {nota ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {nota}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -185,22 +207,21 @@ function ListaDias({ dossier, seguimiento, onCambio }: Props) {
 function EditorDia({
   dossier,
   seguimiento,
-  dias,
-  registro = null,
+  fecha,
+  registro,
   onCerrar,
   onGuardado,
 }: {
   dossier: Dossier;
   seguimiento: Seguimiento;
-  dias: RegistroDiario[];
-  registro?: RegistroDiario | null;
+  fecha: string;
+  registro: RegistroDiario | null;
   onCerrar: () => void;
   onGuardado: () => void;
 }) {
   const usuario = useUsuario();
   const theme = useTheme();
   const inicial = registro ? valoresDeRegistro(registro) : VALORES_DIA_VACIOS;
-  const [fecha, setFecha] = useState(registro?.fecha ?? '');
   const [tipo, setTipo] = useState<TipoDia>(inicial.tipo);
   const [observaciones, setObservaciones] = useState(inicial.observaciones);
   const [horas, setHoras] = useState<Record<string, string>>(
@@ -211,9 +232,7 @@ function EditorDia({
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const puertos = { registros: container.registros, valoraciones: container.valoraciones };
 
-  // Elegir un día que ya existe corrige ese día: su versión es la base, para no pisarlo a ciegas.
-  const existente = registro ?? dias.find((d) => d.fecha === fecha) ?? null;
-  const valorado = fecha !== '' && seguimiento.mensuales.some((v) => v.mes === mesDe(fecha));
+  const valorado = seguimiento.mensuales.some((v) => v.mes === mesDe(fecha));
 
   async function ejecutar(accion: () => Promise<unknown>) {
     setError(null);
@@ -235,10 +254,6 @@ function EditorDia({
   }
 
   function guardar() {
-    if (!fecha) {
-      setError('Elige el día');
-      return;
-    }
     const lineas = dossier.actividades.flatMap((a) => {
       const texto = horas[a.id]?.trim().replace(',', '.');
       return texto ? [{ actividadId: a.id, horas: Number(texto) }] : [];
@@ -250,18 +265,16 @@ function EditorDia({
         dossier,
         fecha,
         { tipo, horas: tipo === 'trabajo' ? lineas : [], observaciones },
-        huellaRegistro(existente),
+        huellaRegistro(registro),
       ),
     );
   }
 
   return (
     <View style={[styles.editor, { borderColor: theme.borderStrong }]}>
-      {registro ? (
-        <ThemedText type="smallBold">Corregir {fechaCorta(registro.fecha)}</ThemedText>
-      ) : (
-        <SelectorFecha etiqueta="Día" valor={fecha} onCambio={setFecha} />
-      )}
+      <ThemedText type="smallBold">
+        {registro ? 'Corregir' : 'Añadir'} {fechaCorta(fecha)}
+      </ThemedText>
       <Selector
         etiqueta="Tipo de día"
         opciones={TIPOS_DIA.map((t) => ({ valor: t, texto: TEXTO_TIPO[t] }))}
@@ -316,18 +329,8 @@ function EditorDia({
 const styles = StyleSheet.create({
   bloque: { gap: Spacing.two },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, minHeight: 44 },
-  cabeceraMes: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   flex: { flex: 1, gap: Spacing.half },
   lista: { gap: Spacing.two },
-  dia: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: Spacing.two,
-    minHeight: 44,
-    borderTopWidth: 1,
-    paddingTop: Spacing.two,
-  },
   editor: {
     gap: Spacing.three,
     borderWidth: 1,
