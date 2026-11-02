@@ -42,6 +42,7 @@ import {
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { MisClases } from './clases-centro';
 import { HorasAlumno } from './horas-alumno';
+import { SolicitudesContrasena } from './solicitudes-contrasena';
 import { TareasDossier } from './tareas';
 import {
   ErrorCarga,
@@ -87,6 +88,7 @@ export function SeguimientoProfe() {
       accion={ancho ? acciones : undefined}
       amplia={ancho}>
       {ancho ? null : acciones}
+      {usuario.rol === 'profe' && <SolicitudesContrasena />}
       {usuario.rol === 'profe' && <MisClases />}
       <ContenidoSeguimiento />
     </Pantalla>

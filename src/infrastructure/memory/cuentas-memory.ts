@@ -16,6 +16,11 @@ export class CuentasMemory {
     this.#cuentas.set(usuario.email, { usuario: { ...usuario }, contrasena });
   }
 
+  buscar(email: string): Usuario | null {
+    const cuenta = this.#cuentas.get(email);
+    return cuenta ? { ...cuenta.usuario } : null;
+  }
+
   entrar(email: string, contrasena: string): Usuario {
     const cuenta = this.#cuentas.get(email);
     if (!cuenta || cuenta.contrasena !== contrasena) throw new CredencialesInvalidasError();

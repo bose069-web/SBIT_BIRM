@@ -418,3 +418,9 @@ enabled = true
 # La propia función comprueba la sesión y el rol de quien llama.
 [functions.alta-alumno]
 verify_jwt = false
+
+[functions.pedir-recuperacion]
+verify_jwt = false
+
+[functions.enlace-recuperacion]
+verify_jwt = false

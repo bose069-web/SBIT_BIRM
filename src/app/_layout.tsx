@@ -4,8 +4,17 @@ import {
   Inter_600SemiBold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+  useGlobalSearchParams,
+  usePathname,
+  type Theme,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useState } from 'react';
 import { useColorScheme } from '@/ui/hooks/use-color-scheme';
 
 import { AnimatedSplashOverlay } from '@/ui/components/animated-icon';
@@ -14,6 +23,7 @@ import { Colors } from '@/ui/theme/theme';
 import { Pantalla } from '@/ui/components/pantalla';
 import { ErrorCarga } from '@/ui/vistas/comun';
 import { VistaLogin } from '@/ui/vistas/login';
+import { VistaRestablecer } from '@/ui/vistas/restablecer';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,7 +68,21 @@ export default function TabLayout() {
 function Contenido() {
   const { usuario, cargando, error, reintentar } = useSesion();
   const colores = Colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
+  // El enlace de recuperación se atiende con sesión o sin ella, antes de cualquier otra pantalla.
+  const ruta = usePathname();
+  const { t } = useGlobalSearchParams<{ t?: string }>();
+  const [restableciendo, setRestableciendo] = useState(ruta === '/restablecer');
   if (cargando) return null;
+  if (restableciendo)
+    return (
+      <VistaRestablecer
+        token={t ?? null}
+        onTerminar={() => {
+          setRestableciendo(false);
+          reintentar();
+        }}
+      />
+    );
   if (error)
     return (
       <Pantalla titulo="Sesión">

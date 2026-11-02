@@ -11,6 +11,7 @@ import type { IncidenciaPort } from '@/core/ports/incidencia-port';
 import type { InformePort } from '@/core/ports/informe-port';
 import type { PerfilPort } from '@/core/ports/perfil-port';
 import type { PreferenciasPort } from '@/core/ports/preferencias-port';
+import type { RecuperacionPort } from '@/core/ports/recuperacion-port';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 import type { TareaPort } from '@/core/ports/tarea-port';
 import type { ToquePort } from '@/core/ports/toque-port';
@@ -29,6 +30,7 @@ import { IncidenciaMemory } from '@/infrastructure/memory/incidencia-memory';
 import { InformesMemory } from '@/infrastructure/memory/informes-memory';
 import { PerfilMemory } from '@/infrastructure/memory/perfil-memory';
 import { PreferenciasMemory } from '@/infrastructure/memory/preferencias-memory';
+import { RecuperacionMemory } from '@/infrastructure/memory/recuperacion-memory';
 import { RegistroDiarioMemory } from '@/infrastructure/memory/registro-diario-memory';
 import { TareaMemory } from '@/infrastructure/memory/tarea-memory';
 import { ToqueMemory } from '@/infrastructure/memory/toque-memory';
@@ -44,6 +46,7 @@ import { HistorialSupabase } from '@/infrastructure/supabase/historial-supabase'
 import { IncidenciaSupabase } from '@/infrastructure/supabase/incidencia-supabase';
 import { InformesSupabase } from '@/infrastructure/supabase/informes-supabase';
 import { PerfilSupabase } from '@/infrastructure/supabase/perfil-supabase';
+import { RecuperacionSupabase } from '@/infrastructure/supabase/recuperacion-supabase';
 import { RegistroDiarioSupabase } from '@/infrastructure/supabase/registro-diario-supabase';
 import { TareaSupabase } from '@/infrastructure/supabase/tarea-supabase';
 import { ToqueSupabase } from '@/infrastructure/supabase/toque-supabase';
@@ -66,6 +69,7 @@ interface Container {
   preferencias: PreferenciasPort;
   grupos: GrupoPort;
   toques: ToquePort;
+  recuperacion: RecuperacionPort;
 }
 
 /**
@@ -99,6 +103,7 @@ function crearContainer(): Container {
         centros: new GestionCentroSupabase(cliente),
         grupos: new GrupoSupabase(cliente),
         toques: new ToqueSupabase(cliente),
+        recuperacion: new RecuperacionSupabase(cliente),
         tareas: new TareaSupabase(cliente),
         eventos: new EventoSupabase(cliente),
         incidencias: new IncidenciaSupabase(cliente),
@@ -128,6 +133,7 @@ function crearContainer(): Container {
     centros: new GestionCentroMemory(cuentas),
     grupos: new GrupoMemory(),
     toques: new ToqueMemory(auth, registros),
+    recuperacion: new RecuperacionMemory(cuentas),
     tareas: new TareaMemory(auth),
     eventos: new EventoMemory(),
     incidencias: new IncidenciaMemory(),
