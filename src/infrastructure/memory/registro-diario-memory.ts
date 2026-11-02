@@ -1,13 +1,23 @@
+import { ConflictoRegistroError } from '@/core/domain/errores';
+import {
+  huellaRegistro,
+  valoresDeRegistro,
+  valoresDiaIguales,
+} from '@/core/domain/registro-diario';
 import type { BorradorRegistro, RegistroDiario } from '@/core/domain/registro-diario';
 import type { RegistroDiarioPort } from '@/core/ports/registro-diario-port';
 
 import { REGISTROS_DEMO } from './datos-demo';
+import type { HistorialMemory } from './historial-memory';
 
 export class RegistroDiarioMemory implements RegistroDiarioPort {
   private registros: Map<string, RegistroDiario>;
   private siguienteId = 1;
 
-  constructor(registros: RegistroDiario[] = REGISTROS_DEMO) {
+  constructor(
+    registros: RegistroDiario[] = REGISTROS_DEMO,
+    private readonly historial?: HistorialMemory,
+  ) {
     this.registros = new Map(registros.map((registro) => [registro.id, registro]));
   }
 
@@ -24,17 +34,37 @@ export class RegistroDiarioMemory implements RegistroDiarioPort {
     );
   }
 
-  async guardar(b: BorradorRegistro) {
-    const existente = await this.obtenerPorFecha(b.dossierId, b.fecha);
+  async guardar(b: BorradorRegistro, huellaEsperada?: string | null) {
+    const actual =
+      [...this.registros.values()].find(
+        (r) => r.dossierId === b.dossierId && r.fecha === b.fecha,
+      ) ?? null;
+    if (
+      actual &&
+      valoresDiaIguales(valoresDeRegistro(actual), { ...b, observaciones: b.observaciones ?? '' })
+    )
+      return actual;
+    if (huellaEsperada !== undefined && huellaRegistro(actual) !== huellaEsperada)
+      throw new ConflictoRegistroError(actual);
+    const existente = actual;
     const registro: RegistroDiario = {
       ...b,
       id: existente?.id ?? `registro-${this.siguienteId++}`,
     };
     this.registros.set(registro.id, registro);
+    await this.historial?.anotar(b.dossierId, 'registro', existente ? 'editar' : 'crear', {
+      fecha: b.fecha,
+    });
     return registro;
   }
 
   async eliminar(id: string) {
+    const registro = this.registros.get(id);
     this.registros.delete(id);
+    if (registro) {
+      await this.historial?.anotar(registro.dossierId, 'registro', 'borrar', {
+        fecha: registro.fecha,
+      });
+    }
   }
 }

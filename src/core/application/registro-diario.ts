@@ -1,14 +1,28 @@
+import type { DossierPort } from '../ports/dossier-port';
 import type { Dossier } from '../domain/dossier';
-import { RegistroInvalidoError, SinPermisoError } from '../domain/errores';
+import type { ClaveBorrador } from '../domain/borrador';
+import {
+  ConflictoRegistroError,
+  esFalloDeRed,
+  RegistroInvalidoError,
+  SinPermisoError,
+} from '../domain/errores';
 import {
   comprobarBorrador,
+  huellaRegistro,
+  ultimaJornadaAntesDe,
+  valoresDeRegistro,
+  valoresDiaIguales,
   type BorradorRegistro,
   type RegistroDiario,
+  type ValoresDia,
 } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
 import { mesCerrado } from '../domain/valoracion';
+import type { BorradorPort } from '../ports/borrador-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
+import { descartarBorrador, guardarBorrador } from './borradores';
 
 // La base de datos (RLS) también impide todo esto; aquí se comprueba antes para dar errores claros.
 
@@ -19,6 +33,16 @@ export function listarRegistros(
   hasta: string,
 ): Promise<RegistroDiario[]> {
   return registros.listar(dossierId, desde, hasta);
+}
+
+/** Última jornada de trabajo anterior a `fecha` en todo el periodo, aunque sea de otro mes. */
+export async function buscarUltimaJornada(
+  registros: RegistroDiarioPort,
+  dossier: Pick<Dossier, 'id' | 'fechaInicio'>,
+  fecha: string,
+): Promise<RegistroDiario | null> {
+  const dias = await registros.listar(dossier.id, dossier.fechaInicio, fecha);
+  return ultimaJornadaAntesDe(dias, fecha);
 }
 
 async function comprobarMesAbierto(
@@ -46,6 +70,86 @@ export async function guardarRegistro(
   comprobarBorrador(borrador, dossier);
   await comprobarMesAbierto(valoraciones, dossier, borrador.fecha);
   return registros.guardar({ ...borrador, observaciones: borrador.observaciones?.trim() || null });
+}
+
+export type ResultadoEnvio =
+  | { resultado: 'guardado'; registro: RegistroDiario }
+  /** El servidor cambió desde que se empezó el borrador: no se ha tocado nada. */
+  | { resultado: 'conflicto'; servidor: RegistroDiario | null }
+  /** No se llegó al servidor: el borrador queda marcado como pendiente en el dispositivo. */
+  | { resultado: 'sin-conexion'; guardadoEn: string }
+  | { resultado: 'sin-guardar-local' };
+
+/**
+ * Envío explícito de un día. El borrador solo se borra si el servidor lo acepta; si se rechaza por
+ * una regla (el mes se ha cerrado, por ejemplo) el error sube y el borrador se conserva.
+ */
+export async function enviarDia(
+  puertos: {
+    dossiers: DossierPort;
+    registros: RegistroDiarioPort;
+    valoraciones: ValoracionPort;
+    borradores: BorradorPort;
+  },
+  usuario: Usuario,
+  dossier: Dossier,
+  clave: ClaveBorrador,
+  envio: {
+    fecha: string;
+    valores: ValoresDia;
+    /** Versión del servidor en la que se basó el formulario. */
+    huellaBase: string | null;
+    /** Fecha y hora ISO, para el borrador pendiente. */
+    ahora: string;
+  },
+): Promise<ResultadoEnvio> {
+  const { fecha, valores, huellaBase, ahora } = envio;
+  const borrador: BorradorRegistro = {
+    ...valores,
+    dossierId: dossier.id,
+    fecha,
+  };
+  if (usuario.id !== dossier.alumnoId) throw new SinPermisoError('registrar días en este dossier');
+  comprobarBorrador(borrador, dossier);
+
+  try {
+    const vigente = await puertos.dossiers.obtener(dossier.id);
+    if (!vigente || vigente.alumnoId !== usuario.id)
+      throw new SinPermisoError('registrar días en este dossier');
+    comprobarBorrador(borrador, vigente);
+    await comprobarMesAbierto(puertos.valoraciones, vigente, borrador.fecha);
+    const servidor = await puertos.registros.obtenerPorFecha(dossier.id, borrador.fecha);
+    const huellaServidor = huellaRegistro(servidor);
+    // Si el servidor ya tiene justo esto (un reintento cuya respuesta se perdió), no hay conflicto.
+    const yaIgual = servidor !== null && valoresDiaIguales(valoresDeRegistro(servidor), valores);
+    if (!yaIgual && huellaServidor !== huellaBase) {
+      return { resultado: 'conflicto', servidor };
+    }
+    const registro = await puertos.registros.guardar(
+      {
+        ...borrador,
+        observaciones: borrador.observaciones?.trim() || null,
+      },
+      huellaBase,
+    );
+    await descartarBorrador(puertos.borradores, clave).catch(() => undefined);
+    return { resultado: 'guardado', registro };
+  } catch (e) {
+    if (e instanceof ConflictoRegistroError)
+      return { resultado: 'conflicto', servidor: e.servidor };
+    if (!esFalloDeRed(e)) throw e;
+    const conservado = await guardarBorrador(puertos.borradores, clave, {
+      valores,
+      guardadoEn: ahora,
+      huellaBase,
+      pendienteEnvio: true,
+    }).then(
+      () => true,
+      () => false,
+    );
+    if (!conservado) return { resultado: 'sin-guardar-local' };
+    return { resultado: 'sin-conexion', guardadoEn: ahora };
+  }
 }
 
 export async function eliminarRegistro(

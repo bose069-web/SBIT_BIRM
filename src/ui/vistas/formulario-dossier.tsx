@@ -8,16 +8,24 @@ import {
   listarTutoresEmpresa,
   obtenerOpcionesDossier,
 } from '@/core/application/dossier';
-import type { Dossier } from '@/core/domain/dossier';
+import {
+  validarValoresDossier,
+  type Dossier,
+  type ValoresFormularioDossier,
+} from '@/core/domain/dossier';
 import { container } from '@/config/container';
+import { AvisoBorrador } from '@/ui/components/aviso-borrador';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
+import { Buscador } from '@/ui/components/buscador';
+import { fechaCorta } from '@/ui/utils/fechas';
 import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { Selector } from '@/ui/components/selector';
 import { Tarjeta } from '@/ui/components/tarjeta';
 import { ThemedText } from '@/ui/components/themed-text';
+import { useBorrador } from '@/ui/hooks/use-borrador';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
@@ -112,6 +120,53 @@ function Formulario({
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
+  // Sin datos personales del alumno: solo su id, el ciclo, las fechas y las actividades.
+  const [base] = useState<ValoresFormularioDossier>(() => ({
+    alumnoId: actual?.alumnoId ?? '',
+    empresaId: actual?.empresaId ?? '',
+    tutorEmpresaId: actual?.tutorEmpresaId ?? null,
+    ciclo: actual?.ciclo ?? '',
+    fechaInicio: actual?.fechaInicio ?? '',
+    fechaFin: actual?.fechaFin ?? '',
+    horas: actual ? String(actual.horasTotales) : '',
+    actividades: actual
+      ? actual.actividades.map(({ id, descripcion }) => ({ id, descripcion }))
+      : [{ id: null, descripcion: '' }],
+  }));
+
+  function aplicar(v: ValoresFormularioDossier) {
+    setAlumnoId(v.alumnoId);
+    setEmpresaId(v.empresaId);
+    setTutorEmpresaId(v.tutorEmpresaId);
+    setCiclo(v.ciclo);
+    setFechaInicio(v.fechaInicio);
+    setFechaFin(v.fechaFin);
+    setHoras(v.horas);
+    setActividades(v.actividades.map((a) => ({ ...a, clave: a.id ?? nuevaActividad().clave })));
+  }
+
+  const borrador = useBorrador<ValoresFormularioDossier>({
+    clave: {
+      ambito: 'dossier',
+      usuarioId: usuario.id,
+      contexto: [actual?.id ?? `nuevo-${centroId}`],
+    },
+    valores: {
+      alumnoId,
+      empresaId,
+      tutorEmpresaId,
+      ciclo,
+      fechaInicio,
+      fechaFin,
+      horas,
+      actividades: actividades.map(({ id, descripcion }) => ({ id, descripcion })),
+    },
+    base,
+    iguales: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    validar: validarValoresDossier,
+    onRecuperar: aplicar,
+  });
+
   const tutores = useDatos(
     async () => (empresaId ? listarTutoresEmpresa(container.centros, empresaId) : []),
     [empresaId],
@@ -120,7 +175,7 @@ function Formulario({
   // Al editar, el alumno no se puede cambiar: solo se muestra el suyo.
   const alumnos = actual
     ? [{ valor: actual.alumnoId, texto: actual.alumnoNombre }]
-    : opciones.alumnos.map((a) => ({ valor: a.id, texto: a.nombre }));
+    : opciones.alumnos.map((a) => ({ valor: a.id, texto: a.nombre, detalle: a.email }));
 
   function cambiarActividad(clave: string, descripcion: string) {
     setActividades((lista) => lista.map((a) => (a.clave === clave ? { ...a, descripcion } : a)));
@@ -148,6 +203,7 @@ function Formulario({
         },
         actual,
       );
+      await borrador.descartar();
       onTerminar(guardado.id);
     } catch (e) {
       setAviso(e instanceof Error ? e.message : String(e));
@@ -162,6 +218,7 @@ function Formulario({
     setGuardando(true);
     try {
       await borrarDossier(container.dossiers, container.registros, usuario, actual);
+      await borrador.descartar();
       onTerminar(null);
     } catch (e) {
       setAviso(e instanceof Error ? e.message : String(e));
@@ -179,7 +236,14 @@ function Formulario({
 
       <Tarjeta titulo="Alumno y empresa">
         {alumnos.length ? (
-          <Selector etiqueta="Alumno" opciones={alumnos} valor={alumnoId} onCambio={setAlumnoId} />
+          <Buscador
+            etiqueta="Alumno"
+            placeholder="Escribe el nombre o el correo"
+            opciones={alumnos}
+            valor={alumnoId}
+            onCambio={setAlumnoId}
+            fijo={!!actual}
+          />
         ) : (
           <Mensaje tipo="error" texto="No hay alumnos con profe asignado en tu centro." />
         )}
@@ -190,11 +254,13 @@ function Formulario({
           </ThemedText>
         ) : null}
         {opciones.convenios.length ? (
-          <Selector
+          <Buscador
             etiqueta="Empresa (con convenio)"
+            placeholder="Escribe el nombre de la empresa"
             opciones={opciones.convenios.map((c) => ({
               valor: c.empresaId,
               texto: c.empresaNombre,
+              detalle: c.firmadoEn ? `Convenio desde ${fechaCorta(c.firmadoEn)}` : undefined,
             }))}
             valor={empresaId}
             onCambio={(id) => {
@@ -274,6 +340,14 @@ function Formulario({
         />
       </Tarjeta>
 
+      <AvisoBorrador
+        guardadoEn={borrador.guardadoEn}
+        fallo={borrador.fallo}
+        onDescartar={() => {
+          void borrador.descartar();
+          aplicar(base);
+        }}
+      />
       {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
       <Boton
         texto={actual ? 'Guardar cambios' : 'Crear dossier'}

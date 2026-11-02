@@ -1,4 +1,11 @@
-import { obtenerSeguimiento, ponerValoracionFinal, valorarMes } from '../application/valoracion';
+import {
+  confirmarMes,
+  obtenerSeguimiento,
+  ponerValoracionFinal,
+  quitarConfirmacion,
+  valorarEnBloque,
+  valorarMes,
+} from '../application/valoracion';
 import { SinPermisoError, ValoracionInvalidaError } from '../domain/errores';
 import { mesCerrado, mesDe, mesesDelDossier, mesesSinValorar } from '../domain/valoracion';
 import {
@@ -148,5 +155,205 @@ describe('valoración final y seguimiento', () => {
     expect(s.mensuales).toHaveLength(1);
     expect(s.final).toBeNull();
     expect(s.sinValorar).toEqual(['2026-10', '2026-11']);
+  });
+});
+
+describe('valorarEnBloque', () => {
+  const d1 = crearDossier({ id: 'd1' });
+  const d2 = crearDossier({ id: 'd2' });
+  const positiva = { valoracion: 'positiva' as const, comentario: null };
+  let valoraciones: ValoracionesFalsas;
+
+  beforeEach(() => {
+    valoraciones = new ValoracionesFalsas();
+  });
+
+  it('aplica la misma valoración a todos y devuelve un resultado por informe', async () => {
+    const resultados = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [
+        { dossier: d1, mes: '2026-10' },
+        { dossier: d2, mes: '2026-11' },
+      ],
+      { valoracion: 'mejorable', comentario: '  Puntualidad  ' },
+      HOY,
+    );
+    expect(resultados.map((r) => [r.dossierId, r.mes, r.ok])).toEqual([
+      ['d1', '2026-10', true],
+      ['d2', '2026-11', true],
+    ]);
+    expect(valoraciones.mensuales.map((v) => [v.valoracion, v.comentario])).toEqual([
+      ['mejorable', 'Puntualidad'],
+      ['mejorable', 'Puntualidad'],
+    ]);
+  });
+
+  it('no pisa un mes ya valorado y sigue con los demás', async () => {
+    await valoraciones.guardarMensual({
+      dossierId: 'd1',
+      mes: '2026-10',
+      valoracion: 'negativa',
+      comentario: 'Original',
+    });
+    const resultados = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [
+        { dossier: d1, mes: '2026-10' },
+        { dossier: d1, mes: '2026-11' },
+      ],
+      positiva,
+      HOY,
+    );
+    expect(resultados[0]).toMatchObject({ ok: false, motivo: 'Este mes ya está valorado' });
+    expect(resultados[1].ok).toBe(true);
+    expect(valoraciones.mensuales.find((v) => v.mes === '2026-10')?.comentario).toBe('Original');
+  });
+
+  it('respeta los permisos de valorar uno a uno, sin guardar lo ajeno', async () => {
+    const ajeno = crearDossier({ id: 'ajeno', tutorEmpresaId: otraEmpresa.id });
+    const resultados = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [
+        { dossier: ajeno, mes: '2026-10' },
+        { dossier: d1, mes: '2026-10' },
+      ],
+      positiva,
+      HOY,
+    );
+    expect(resultados[0]).toMatchObject({ ok: false, motivo: expect.stringContaining('permiso') });
+    expect(resultados[1].ok).toBe(true);
+    expect(valoraciones.mensuales.map((v) => v.dossierId)).toEqual(['d1']);
+  });
+
+  it('un alumno no puede valorar nada', async () => {
+    const [resultado] = await valorarEnBloque(
+      valoraciones,
+      alumno,
+      [{ dossier: d1, mes: '2026-10' }],
+      positiva,
+      HOY,
+    );
+    expect(resultado.ok).toBe(false);
+    expect(valoraciones.mensuales).toEqual([]);
+  });
+
+  it('aplica las reglas de la valoración individual: comentario y mes futuro', async () => {
+    const sinComentario = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [{ dossier: d1, mes: '2026-10' }],
+      { valoracion: 'negativa', comentario: '  ' },
+      HOY,
+    );
+    expect(sinComentario[0].ok).toBe(false);
+    const futuro = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [{ dossier: d1, mes: '2027-01' }],
+      positiva,
+      HOY,
+    );
+    expect(futuro[0].ok).toBe(false);
+    expect(valoraciones.mensuales).toEqual([]);
+  });
+
+  it('con valoración final la empresa ya no valora ese dossier', async () => {
+    await valoraciones.guardarFinal({ dossierId: 'd1', resultado: 'apto', comentario: null });
+    const [resultado] = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [{ dossier: d1, mes: '2026-10' }],
+      positiva,
+      HOY,
+    );
+    expect(resultado).toMatchObject({ ok: false, motivo: expect.stringContaining('final') });
+  });
+
+  it('un fallo de red se cuenta sin detalles técnicos y no para el resto', async () => {
+    const original = valoraciones.crearMensual.bind(valoraciones);
+    let llamadas = 0;
+    valoraciones.crearMensual = async (b) => {
+      llamadas += 1;
+      if (llamadas === 1) throw new Error('Failed to fetch');
+      if (llamadas === 2) throw new Error('relation "x" internal detail');
+      return original(b);
+    };
+    const resultados = await valorarEnBloque(
+      valoraciones,
+      empresa,
+      [
+        { dossier: d1, mes: '2026-09' },
+        { dossier: d1, mes: '2026-10' },
+        { dossier: d1, mes: '2026-11' },
+      ],
+      positiva,
+      HOY,
+    );
+    expect(resultados[0]).toMatchObject({ ok: false, motivo: expect.stringContaining('conexión') });
+    expect(resultados[1]).toMatchObject({
+      ok: false,
+      motivo: 'No se ha podido guardar. Vuelve a intentarlo.',
+    });
+    expect(resultados[2].ok).toBe(true);
+  });
+});
+
+describe('confirmación del mes por el profe', () => {
+  const dossier = crearDossier();
+  let valoraciones: ValoracionesFalsas;
+
+  beforeEach(async () => {
+    valoraciones = new ValoracionesFalsas();
+    await valoraciones.guardarMensual({
+      dossierId: 'd1',
+      mes: '2026-10',
+      valoracion: 'positiva',
+      comentario: null,
+    });
+  });
+
+  it('solo el profe tutor confirma el mes que valoró la empresa', async () => {
+    for (const usuario of [empresa, instituto, generalitat, alumno, otroProfe]) {
+      await expect(confirmarMes(valoraciones, usuario, dossier, '2026-10')).rejects.toThrow(
+        SinPermisoError,
+      );
+    }
+    const confirmada = await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    expect(confirmada).toMatchObject({ mes: '2026-10', confirmadaEn: expect.any(String) });
+    // La valoración de la empresa se queda como estaba: el profe solo añade su confirmación.
+    expect(confirmada).toMatchObject({ valoracion: 'positiva', valoradaPor: 'x' });
+  });
+
+  it('no confirma un mes sin valorar, ni dos veces el mismo', async () => {
+    await expect(confirmarMes(valoraciones, profe, dossier, '2026-11')).rejects.toThrow(
+      'todavía no ha valorado',
+    );
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    await expect(confirmarMes(valoraciones, profe, dossier, '2026-10')).rejects.toThrow(
+      ValoracionInvalidaError,
+    );
+  });
+
+  it('el seguimiento dice qué meses quedan por confirmar', async () => {
+    const antes = await obtenerSeguimiento(valoraciones, dossier, HOY);
+    expect(antes.sinConfirmar).toEqual(['2026-10']);
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    const despues = await obtenerSeguimiento(valoraciones, dossier, HOY);
+    expect(despues.sinConfirmar).toEqual([]);
+  });
+
+  it('quitar la confirmación deja el mes como estaba para la empresa', async () => {
+    await confirmarMes(valoraciones, profe, dossier, '2026-10');
+    await expect(quitarConfirmacion(valoraciones, empresa, dossier, '2026-10')).rejects.toThrow(
+      SinPermisoError,
+    );
+    const sinConfirmar = await quitarConfirmacion(valoraciones, profe, dossier, '2026-10');
+    expect(sinConfirmar).toMatchObject({ confirmadaPor: null, confirmadaEn: null });
+    await expect(quitarConfirmacion(valoraciones, profe, dossier, '2026-10')).rejects.toThrow(
+      'no está confirmado',
+    );
   });
 });

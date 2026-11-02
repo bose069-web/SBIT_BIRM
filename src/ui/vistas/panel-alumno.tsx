@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { obtenerDossierActual } from '@/core/application/dossier';
+import { obtenerBandeja } from '@/core/application/incidencias';
 import { listarRegistros } from '@/core/application/registro-diario';
 import { resumirHoras, totalHoras, type RegistroDiario } from '@/core/domain/registro-diario';
 import type { Dossier } from '@/core/domain/dossier';
@@ -13,6 +14,7 @@ import { Leyenda } from '@/ui/components/leyenda';
 import { Pantalla } from '@/ui/components/pantalla';
 import { Quesito } from '@/ui/components/quesito';
 import { Tarjeta } from '@/ui/components/tarjeta';
+import { TarjetaPendientes } from '@/ui/components/tarjeta-pendientes';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
@@ -21,6 +23,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
+import { pendientesAlumno } from '@/ui/utils/pendientes';
 import {
   calcularProgreso,
   horasPorActividad,
@@ -43,9 +46,11 @@ export function PanelAlumno() {
   const { datos, error, cargando, recargar } = useDatos(async () => {
     const dossier = await obtenerDossierActual(container.dossiers, hoy);
     if (!dossier) return null;
-    const [registros, seguimiento] = await Promise.all([
+    // Si fallan las incidencias, el resto del Inicio se sigue viendo.
+    const [registros, seguimiento, bandeja] = await Promise.all([
       listarRegistros(container.registros, dossier.id, dossier.fechaInicio, dossier.fechaFin),
       obtenerSeguimiento(container.valoraciones, dossier, hoy),
+      obtenerBandeja(container.incidencias, usuario).catch(() => null),
     ]);
     return {
       dossier,
@@ -53,8 +58,9 @@ export function PanelAlumno() {
       resumen: resumirHoras(dossier, registros),
       progreso: calcularProgreso(dossier, registros, hoy),
       seguimiento,
+      incidencias: bandeja?.mias ?? null,
     };
-  }, [hoy]);
+  }, [hoy, usuario.id]);
   useRecargarAlVolver(recargar);
   // En la web horizontal el panel se reparte en dos columnas; en el móvil, una debajo de otra.
   const ancho = useWebAncha();
@@ -92,6 +98,18 @@ export function PanelAlumno() {
           ancho={ancho}
           izquierda={
             <>
+              <TarjetaPendientes
+                pendientes={pendientesAlumno({
+                  hoy,
+                  sinApuntar: datos.progreso.sinApuntar,
+                  seguimiento: datos.seguimiento,
+                  incidencias: datos.incidencias,
+                })}
+                textoAlDia="Tienes los días apuntados y ninguna incidencia abierta."
+                sinConfirmar={
+                  datos.incidencias ? null : 'No se han podido comprobar tus incidencias.'
+                }
+              />
               {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
                   sola con el calendario arriba. */}
               <Tarjeta titulo="Horas de prácticas">
@@ -160,7 +178,7 @@ export function PanelAlumno() {
           derecha={
             <>
               <Tarjeta titulo="Tareas">
-                <TareasDossier dossier={datos.dossier} />
+                <TareasDossier dossier={datos.dossier} onCambio={recargar} />
               </Tarjeta>
               <Tarjeta
                 titulo="Últimos registros"

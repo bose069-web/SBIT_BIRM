@@ -1,6 +1,6 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
-import { CredencialesInvalidasError } from '@/core/domain/errores';
+import { CredencialesInvalidasError, CuentaSinConfirmarError } from '@/core/domain/errores';
 import { esRol, type Usuario } from '@/core/domain/usuario';
 import type { AuthPort } from '@/core/ports/auth-port';
 
@@ -37,6 +37,7 @@ export class AuthSupabase implements AuthPort {
       email,
       password: contrasena,
     });
+    if (error?.code === 'email_not_confirmed') throw new CuentaSinConfirmarError();
     if (error || !data.user) throw new CredencialesInvalidasError();
     return this.aUsuario(data.user);
   }
@@ -44,6 +45,21 @@ export class AuthSupabase implements AuthPort {
   async cerrarSesion() {
     const { error } = await this.cliente.auth.signOut();
     if (error) throw error;
+  }
+
+  async cambiarContrasena(contrasena: string) {
+    const { error } = await this.cliente.auth.updateUser({ password: contrasena });
+    if (!error) return;
+    if (error.code === 'same_password') {
+      throw new Error('La contraseña nueva debe ser distinta de la actual');
+    }
+    if (error.code === 'weak_password') {
+      throw new Error('Esa contraseña es demasiado débil: prueba con una más larga');
+    }
+    if (error.code === 'reauthentication_needed') {
+      throw new Error('Por seguridad, cierra sesión, vuelve a entrar e inténtalo de nuevo');
+    }
+    throw new Error(error.message);
   }
 
   async usuarioActual() {

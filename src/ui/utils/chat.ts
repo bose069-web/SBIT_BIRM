@@ -154,6 +154,23 @@ export function noLeidos(
   ).length;
 }
 
+/** Todo lo que falta por leer, sumando los hilos del usuario. */
+export function totalNoLeidos(
+  mensajes: MensajeChat[],
+  leidoHasta: Record<string, string>,
+  usuarioId: string,
+): number {
+  return mensajes.filter(
+    (m) => m.autorId !== usuarioId && m.enviadoEn > (leidoHasta[m.conversacionId] ?? ''),
+  ).length;
+}
+
+/** Lo que enseña la pestaña Chat: nada si no hay pendientes y, a partir de 10, `+9`. */
+export function textoContador(total: number): string | null {
+  if (total <= 0) return null;
+  return total > 9 ? '+9' : `${total}`;
+}
+
 /** Hora del mensaje en la burbuja: `14:05`. */
 export function horaDe(iso: string): string {
   const fecha = new Date(iso);

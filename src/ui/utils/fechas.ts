@@ -37,6 +37,12 @@ export function fechaCorta(fecha: string): string {
   return `${d} ${MESES[m - 1].slice(0, 3)} ${a}`;
 }
 
+/** Fecha y hora ISO → `14:05`, en la hora local. */
+export function horaCorta(instante: string): string {
+  const d = new Date(instante);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 /** `2026-10-27` → `martes 27 de octubre` */

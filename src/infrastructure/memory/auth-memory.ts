@@ -1,8 +1,8 @@
-import { CredencialesInvalidasError } from '@/core/domain/errores';
+import { CuentasMemory } from './cuentas-memory';
 import type { Usuario } from '@/core/domain/usuario';
 import type { AuthPort } from '@/core/ports/auth-port';
 
-import { CONTRASENA_DEMO, USUARIOS_DEMO } from './datos-demo';
+import { USUARIOS_DEMO } from './datos-demo';
 
 let sesionActual: Usuario | null = null;
 
@@ -14,7 +14,10 @@ export function sesionMemory(): Usuario | null {
 export class AuthMemory implements AuthPort {
   readonly nombre = 'Memoria (datos de prueba)';
 
-  constructor(usuarioInicial: Usuario | null = USUARIOS_DEMO[0]) {
+  constructor(
+    usuarioInicial: Usuario | null = USUARIOS_DEMO[0],
+    private readonly cuentas = new CuentasMemory(),
+  ) {
     sesionActual = usuarioInicial;
   }
 
@@ -23,8 +26,7 @@ export class AuthMemory implements AuthPort {
   }
 
   async iniciarSesion(email: string, contrasena: string) {
-    const usuario = USUARIOS_DEMO.find((u) => u.email === email);
-    if (!usuario || contrasena !== CONTRASENA_DEMO) throw new CredencialesInvalidasError();
+    const usuario = this.cuentas.entrar(email, contrasena);
     sesionActual = usuario;
     return usuario;
   }
@@ -35,5 +37,11 @@ export class AuthMemory implements AuthPort {
 
   async usuarioActual() {
     return sesionActual;
+  }
+
+  // Solo afecta a la cuenta autenticada y dura lo que dure esta demo.
+  async cambiarContrasena(contrasena: string) {
+    if (!sesionActual) throw new Error('No hay sesión');
+    this.cuentas.cambiarContrasena(sesionActual.id, contrasena);
   }
 }

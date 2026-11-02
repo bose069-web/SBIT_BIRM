@@ -12,6 +12,8 @@ interface Props {
   hecha: boolean;
   onPress: () => void;
   desactivada?: boolean;
+  /** Para usarla fuera de las tareas: cómo se anuncia cada estado. */
+  textos?: { marcada: string; sinMarcar: string; pista: string };
   style?: StyleProp<ViewStyle>;
 }
 
@@ -19,14 +21,14 @@ interface Props {
  * Casilla para marcar una tarea como hecha. El cuadrado se ve de 24, pero el área táctil es de
  * 44 × 44 como pide el mínimo de accesibilidad.
  */
-export function CasillaTarea({ titulo, hecha, onPress, desactivada, style }: Props) {
+export function CasillaTarea({ titulo, hecha, onPress, desactivada, textos, style }: Props) {
   const theme = useTheme();
   const reducido = useMovimientoReducido();
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityLabel={`${titulo}: ${hecha ? 'hecha' : 'pendiente'}`}
-      accessibilityHint="Marca o desmarca la tarea"
+      accessibilityLabel={`${titulo}: ${hecha ? (textos?.marcada ?? 'hecha') : (textos?.sinMarcar ?? 'pendiente')}`}
+      accessibilityHint={textos?.pista ?? 'Marca o desmarca la tarea'}
       accessibilityState={{ checked: hecha, disabled: !!desactivada }}
       disabled={desactivada}
       onPress={onPress}

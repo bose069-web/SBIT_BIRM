@@ -1,11 +1,12 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { useUsuario } from '@/ui/hooks/use-sesion';
-import { PanelInstituto } from '@/ui/vistas/panel-instituto';
+import { ConveniosCentro } from '@/ui/vistas/convenios-centro';
 
 export default function CentroScreen() {
   const { rol } = useUsuario();
-  // El instituto gestiona el suyo; la generalitat, el que elija.
+  const { centro } = useLocalSearchParams<{ centro?: string }>();
+  // El instituto gestiona el suyo; la generalitat, el que eligió en Inicio.
   if (rol !== 'instituto' && rol !== 'generalitat') return <Redirect href="/" />;
-  return <PanelInstituto />;
+  return <ConveniosCentro centroPedido={centro ?? null} />;
 }

@@ -5,6 +5,6 @@ export interface RegistroDiarioPort {
   listar(dossierId: string, desde: string, hasta: string): Promise<RegistroDiario[]>;
   obtenerPorFecha(dossierId: string, fecha: string): Promise<RegistroDiario | null>;
   /** Crea o reemplaza el día (con sus horas). */
-  guardar(borrador: BorradorRegistro): Promise<RegistroDiario>;
+  guardar(borrador: BorradorRegistro, huellaEsperada?: string | null): Promise<RegistroDiario>;
   eliminar(id: string): Promise<void>;
 }

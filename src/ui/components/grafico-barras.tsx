@@ -34,7 +34,8 @@ export function GraficoBarras({
   return (
     <View accessible accessibilityLabel={`${titulo}. ${resumen}`} style={styles.grafico}>
       {barras.map((b, i) => (
-        <View key={b.etiqueta} style={styles.columna}>
+        // Dos barras pueden llamarse igual (un alumno con dos dossiers): la posición las distingue.
+        <View key={`${i}-${b.etiqueta}`} style={styles.columna}>
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {b.texto ?? b.valor}
           </ThemedText>

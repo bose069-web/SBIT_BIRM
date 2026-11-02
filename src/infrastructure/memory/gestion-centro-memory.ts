@@ -1,7 +1,9 @@
+import { CuentasMemory } from './cuentas-memory';
 import type { Centro, Convenio, Empresa, Persona } from '@/core/domain/centro';
+import { CorreoYaRegistradoError } from '@/core/domain/errores';
 import type { GestionCentroPort } from '@/core/ports/gestion-centro-port';
 
-import { IDS_DEMO } from './datos-demo';
+import { IDS_DEMO, USUARIOS_DEMO } from './datos-demo';
 
 // Mismos IDs que datos-demo: el instituto demo administra IDS_DEMO.centro.
 const CENTROS: Centro[] = [
@@ -81,6 +83,7 @@ const TUTORES_DEMO: (Persona & { empresaId: string })[] = [
 ];
 
 export class GestionCentroMemory implements GestionCentroPort {
+  constructor(private readonly cuentas = new CuentasMemory()) {}
   private centros = CENTROS.map((c) => ({ ...c }));
   private personas = PERSONAS_DEMO.map((p) => ({ ...p }));
   private empresas = [...EMPRESAS_DEMO];
@@ -119,6 +122,26 @@ export class GestionCentroMemory implements GestionCentroPort {
 
   async incorporarAlumno(personaId: string, centroId: string) {
     this.cambiar(personaId, { centroId });
+  }
+
+  // La cuenta queda disponible para el autenticador de esta demo.
+  async crearAlumno(
+    datos: { nombre: string; email: string; contrasena: string },
+    centroId: string,
+  ) {
+    const correos = [...this.personas, ...TUTORES_DEMO, ...USUARIOS_DEMO].map((p) => p.email);
+    if (correos.includes(datos.email)) throw new CorreoYaRegistradoError();
+    const alumno: Persona = {
+      id: `alumno-nuevo-${this.siguienteId++}`,
+      nombre: datos.nombre,
+      email: datos.email,
+      rol: 'alumno',
+      centroId,
+      profeId: null,
+    };
+    this.cuentas.crear(alumno, datos.contrasena);
+    this.personas.push(alumno);
+    return { ...alumno };
   }
 
   async asignarProfe(alumnoId: string, profeId: string | null) {

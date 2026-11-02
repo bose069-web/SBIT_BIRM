@@ -118,6 +118,14 @@ export function comprobarEmail(email: string): string {
   return limpio;
 }
 
+/** Mínimo común a la contraseña inicial y a la que elige el usuario. */
+export function comprobarContrasena(contrasena: string): string {
+  if (contrasena.length < 8) {
+    throw new DatosInvalidosError('La contraseña debe tener al menos 8 caracteres');
+  }
+  return contrasena;
+}
+
 export function comprobarNombre(nombre: string): string {
   const limpio = nombre.trim().replace(/\s+/g, ' ');
   if (limpio.length < 2) throw new DatosInvalidosError('Escribe tu nombre y apellidos');

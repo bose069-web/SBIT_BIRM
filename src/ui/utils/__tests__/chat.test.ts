@@ -8,6 +8,8 @@ import {
   horaDe,
   mensajesDe,
   noLeidos,
+  textoContador,
+  totalNoLeidos,
   porRecientes,
   type MensajeChat,
 } from '../chat';
@@ -265,5 +267,33 @@ describe('contactos del profesor', () => {
       'empresa-1',
       'alumno-2',
     ]);
+  });
+});
+
+describe('contador de la pestaña Chat', () => {
+  const mensaje = (id: string, conversacionId: string, autorId: string, enviadoEn: string) => ({
+    id,
+    conversacionId,
+    autorId,
+    autorNombre: 'Alguien',
+    texto: 'hola',
+    enviadoEn,
+  });
+
+  it('suma los hilos, sin contar lo propio ni lo ya leído', () => {
+    const mensajes = [
+      mensaje('1', 'a', 'a', '2026-10-27T09:00:00.000Z'),
+      mensaje('2', 'a', 'a', '2026-10-27T11:00:00.000Z'),
+      mensaje('3', 'b', 'b', '2026-10-27T10:00:00.000Z'),
+      mensaje('4', 'b', 'yo', '2026-10-27T12:00:00.000Z'),
+    ];
+    expect(totalNoLeidos(mensajes, { a: '2026-10-27T10:00:00.000Z' }, 'yo')).toBe(2);
+  });
+
+  it('enseña hasta 9 y a partir de ahí +9', () => {
+    expect(textoContador(0)).toBeNull();
+    expect(textoContador(1)).toBe('1');
+    expect(textoContador(9)).toBe('9');
+    expect(textoContador(10)).toBe('+9');
   });
 });
