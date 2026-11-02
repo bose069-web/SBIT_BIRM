@@ -2,6 +2,7 @@ import type { TipoEvento } from '@/core/domain/evento';
 
 import { Chip } from '@/ui/components/chip';
 import type { ThemeColor } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 
 /** Texto de cada tipo de fecha; el color solo acompaña, nunca sustituye al texto. */
 export const TEXTO_TIPO_EVENTO: Record<TipoEvento, string> = {
@@ -32,7 +33,7 @@ interface Props {
 export function ChipTipoEvento({ tipo, general }: Props) {
   return (
     <Chip
-      texto={`${TEXTO_TIPO_EVENTO[tipo]}${general ? ' · general' : ''}`}
+      texto={`${t(TEXTO_TIPO_EVENTO[tipo])}${general ? ` · ${t('general')}` : ''}`}
       color={COLOR_TIPO_EVENTO[tipo]}
     />
   );

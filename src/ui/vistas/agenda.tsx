@@ -20,6 +20,7 @@ import { leerFecha } from '@/ui/utils/fecha-escrita';
 import { fechaCorta } from '@/ui/utils/fechas';
 
 import { Cargando, ErrorCarga } from './comun';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 export const TEXTO_TIPO_EVENTO: Record<TipoEvento, string> = {
   evento: 'Evento',
@@ -58,7 +59,7 @@ export function ProximasFechas({
     return error ? (
       <ErrorCarga texto={error} onReintentar={recargar} />
     ) : (
-      <Cargando texto="Cargando fechas…" />
+      <Cargando texto={t('Cargando fechas…')} />
     );
   }
   const lista = datos.filter((e) =>
@@ -77,7 +78,7 @@ export function ProximasFechas({
   if (lista.length === 0) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
-        No hay fechas en las próximas semanas.
+        {t('No hay fechas en las próximas semanas.')}
       </ThemedText>
     );
   }
@@ -91,8 +92,12 @@ export function ProximasFechas({
           <View style={styles.texto}>
             <ThemedText type="small">{e.titulo}</ThemedText>
             <Chip
-              texto={`${TEXTO_TIPO_EVENTO[e.tipo]}${
-                e.dossierId ? (alumnos > 1 ? ` · ${alumnos} alumnos` : '') : ' · general'
+              texto={`${t(TEXTO_TIPO_EVENTO[e.tipo])}${
+                e.dossierId
+                  ? alumnos > 1
+                    ? ` · ${tPlural(alumnos, '{n} alumno', '{n} alumnos')}`
+                    : ''
+                  : ` · ${t('general')}`
               }`}
               color={e.tipo === 'festivo' ? 'estadoFestivo' : 'textSecondary'}
             />
@@ -157,7 +162,7 @@ export function NuevoEvento({
       <View style={styles.lista}>
         {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
         <Boton
-          texto={dossier ? '+ Añadir una fecha' : '+ Fecha para todos'}
+          texto={dossier ? t('+ Añadir una fecha') : t('+ Fecha para todos')}
           variante="secundario"
           onPress={() => {
             setAviso(null);
@@ -172,30 +177,30 @@ export function NuevoEvento({
     <View style={styles.lista}>
       <Campo
         etiqueta={dossier ? 'Nueva fecha para este alumno' : 'Nueva fecha para todos'}
-        placeholder="Entrega de la memoria"
+        placeholder={t('Entrega de la memoria')}
         value={titulo}
         onChangeText={setTitulo}
       />
-      <SelectorFecha etiqueta="Día" valor={fecha} onCambio={setFecha} />
+      <SelectorFecha etiqueta={t('Día')} valor={fecha} onCambio={setFecha} />
       {leida.tipo === 'error' ? (
         <ThemedText type="small" themeColor="danger">
           {leida.motivo}
         </ThemedText>
       ) : null}
       <Selector
-        etiqueta="Tipo"
+        etiqueta={t('Tipo')}
         opciones={tipos.map((t) => ({ valor: t, texto: TEXTO_TIPO_EVENTO[t] }))}
         valor={tipo}
         onCambio={setTipo}
       />
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       <Boton
-        texto="Añadir al calendario"
+        texto={t('Añadir al calendario')}
         onPress={enviar}
         cargando={enviando}
         desactivado={!titulo.trim() || leida.tipo !== 'ok'}
       />
-      <Boton texto="Cancelar" variante="secundario" onPress={() => setAbierto(false)} />
+      <Boton texto={t('Cancelar')} variante="secundario" onPress={() => setAbierto(false)} />
     </View>
   );
 }
