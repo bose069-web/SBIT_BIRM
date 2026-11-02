@@ -97,19 +97,29 @@ export class GrupoSupabase implements GrupoPort {
 
   async asignarEnBloque(grupoId: string, alumnoIds: string[]) {
     if (alumnoIds.length === 0) return;
-    const { error } = await this.cliente
+    const { data, error } = await this.cliente
       .from('perfiles')
       .update({ grupo_id: grupoId })
-      .in('id', alumnoIds);
+      .in('id', alumnoIds)
+      .select('id');
     if (error) lanzar(error);
+    // RLS omite sin error las filas ajenas: no se puede dar por hecho lo que no se ha cambiado.
+    if (data.length !== new Set(alumnoIds).size) {
+      throw new SinPermisoError('cambiar la clase de estos alumnos');
+    }
   }
 
   async quitarDeClase(alumnoIds: string[]) {
     if (alumnoIds.length === 0) return;
-    const { error } = await this.cliente
+    const { data, error } = await this.cliente
       .from('perfiles')
       .update({ grupo_id: null })
-      .in('id', alumnoIds);
+      .in('id', alumnoIds)
+      .select('id');
     if (error) lanzar(error);
+    // RLS omite sin error las filas ajenas: no se puede dar por hecho lo que no se ha cambiado.
+    if (data.length !== new Set(alumnoIds).size) {
+      throw new SinPermisoError('cambiar la clase de estos alumnos');
+    }
   }
 }
