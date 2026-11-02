@@ -71,6 +71,16 @@ describe('panel de la generalitat', () => {
     expect(panel.resumen.institutos).toBe(1);
     await expect(obtenerPanelGeneralitat(port, instituto)).rejects.toBeInstanceOf(SinPermisoError);
   });
+
+  it('si fallan las cifras, la lista sigue saliendo con un aviso', async () => {
+    const port = new CentrosFalsos();
+    port.cifrasCentros = async () => {
+      throw new Error('Could not find the function public.cifras_centros');
+    };
+    const panel = await obtenerPanelGeneralitat(port, generalitat);
+    expect(panel.sinCifras).toBe(true);
+    expect(panel.institutos).toHaveLength(1);
+  });
 });
 
 describe('editar, dar de baja y reactivar institutos', () => {

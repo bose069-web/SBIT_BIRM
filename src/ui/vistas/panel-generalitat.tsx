@@ -90,6 +90,12 @@ export function PanelGeneralitat() {
           />
         </View>
       ) : null}
+      {datos?.sinCifras ? (
+        <Mensaje
+          tipo="error"
+          texto="No se han podido cargar las cifras de los institutos. La lista y la gestión funcionan; las cifras saldrán cuando la base de datos esté actualizada."
+        />
+      ) : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
       {datos ? (
         <View style={ancho ? styles.columnas : styles.columna}>

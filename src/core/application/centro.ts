@@ -77,6 +77,8 @@ function comprobarDatosCentro(datos: { nombre: string; codigo: string }) {
 export interface PanelGeneralitat {
   institutos: CentroConCifras[];
   resumen: ResumenRed;
+  /** Las cifras no se han podido cargar: se muestran a cero con un aviso. */
+  sinCifras: boolean;
 }
 
 /** Todos los institutos de la red con sus cifras y los totales. Solo para la generalitat. */
@@ -85,9 +87,16 @@ export async function obtenerPanelGeneralitat(
   usuario: Usuario,
 ): Promise<PanelGeneralitat> {
   if (usuario.rol !== 'generalitat') throw new SinPermisoError('ver todos los institutos');
-  const [centros, cifras] = await Promise.all([port.listarCentros(), port.cifrasCentros()]);
-  const institutos = juntarCifras(centros, cifras);
-  return { institutos, resumen: resumirRed(institutos) };
+  // Si las cifras fallan (p. ej. la base aún no tiene cifras_centros), la lista sigue saliendo.
+  const [centros, cifras] = await Promise.all([
+    port.listarCentros(),
+    port.cifrasCentros().then(
+      (c) => ({ ok: true as const, c }),
+      () => ({ ok: false as const, c: [] }),
+    ),
+  ]);
+  const institutos = juntarCifras(centros, cifras.c);
+  return { institutos, resumen: resumirRed(institutos), sinCifras: !cifras.ok };
 }
 
 /** La generalitat cambia el nombre y el código de cualquier instituto; el instituto, el suyo. */
