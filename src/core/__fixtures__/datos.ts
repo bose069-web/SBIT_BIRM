@@ -8,6 +8,7 @@ import {
 import type { Centro, Convenio, Empresa, Persona } from '../domain/centro';
 import type { BorradorDossier, Dossier } from '../domain/dossier';
 import type { BorradorEvento, Evento } from '../domain/evento';
+import type { AlumnoEnClase, BorradorGrupo, Grupo } from '../domain/grupo';
 import type { BorradorRegistro, RegistroDiario } from '../domain/registro-diario';
 import type { Usuario } from '../domain/usuario';
 import type {
@@ -17,11 +18,14 @@ import type {
   ValoracionMensual,
 } from '../domain/valoracion';
 import type { BorradorTarea, Tarea } from '../domain/tarea';
+import type { Toque } from '../domain/toque';
 import type { DossierPort } from '../ports/dossier-port';
 import type { EventoPort } from '../ports/evento-port';
+import type { GrupoPort } from '../ports/grupo-port';
 import type { GestionCentroPort } from '../ports/gestion-centro-port';
 import type { RegistroDiarioPort } from '../ports/registro-diario-port';
 import type { TareaPort } from '../ports/tarea-port';
+import type { ToquePort } from '../ports/toque-port';
 import type { ValoracionPort } from '../ports/valoracion-port';
 
 // Datos y dobles de prueba en TypeScript puro: los tests del núcleo no dependen de ningún adaptador.
@@ -240,6 +244,42 @@ export class TareasFalsas implements TareaPort {
   }
 }
 
+export class ToquesFalsos implements ToquePort {
+  toques: Toque[] = [];
+  async dar(dossierId: string, diasSinApuntar: number) {
+    const toque: Toque = {
+      id: `to${this.toques.length + 1}`,
+      dossierId,
+      dadoPor: profe.id,
+      diasSinApuntar,
+      fecha: '2026-10-27',
+      creadoEn: `2026-10-27T09:00:0${this.toques.length}.000Z`,
+      vistoEn: null,
+      resueltoEn: null,
+    };
+    this.toques = [toque, ...this.toques];
+    return toque;
+  }
+  async pendientesDelAlumno() {
+    return this.toques.filter((t) => t.resueltoEn === null);
+  }
+  async ultimosPorDossier(dossierIds: string[]) {
+    const ultimos = new Map<string, Toque>();
+    for (const toque of this.toques) {
+      if (dossierIds.includes(toque.dossierId) && !ultimos.has(toque.dossierId)) {
+        ultimos.set(toque.dossierId, toque);
+      }
+    }
+    return [...ultimos.values()];
+  }
+  async marcarVisto(id: string) {
+    const toque = this.toques.find((t) => t.id === id);
+    if (!toque) throw new Error('No existe');
+    toque.vistoEn = toque.vistoEn ?? '2026-10-28T08:00:00.000Z';
+    return toque;
+  }
+}
+
 export class EventosFalsos implements EventoPort {
   eventos: Evento[] = [];
   async listar(desde: string, hasta: string) {
@@ -369,6 +409,49 @@ export class CentrosFalsos implements GestionCentroPort {
     this.convenios = this.convenios.filter(
       (c) => !(c.centroId === centroId && c.empresaId === empresaId),
     );
+  }
+}
+
+export class GruposFalsos implements GrupoPort {
+  grupos: Grupo[] = [{ id: 'g1', centroId: 'c1', ciclo: 'DAM', curso: 2, letra: 'A' }];
+  alumnos: AlumnoEnClase[] = [
+    { id: alumno.id, nombre: alumno.nombre, grupoId: 'g1' },
+    { id: otroAlumno.id, nombre: otroAlumno.nombre, grupoId: null },
+  ];
+  asignados: { grupoId: string; alumnoIds: string[] } | null = null;
+  async listarPorCentro(centroId: string) {
+    return this.grupos.filter((g) => g.centroId === centroId);
+  }
+  async crear(b: BorradorGrupo) {
+    const grupo: Grupo = {
+      id: `g${this.grupos.length + 1}`,
+      centroId: b.centroId,
+      ciclo: b.ciclo,
+      curso: b.curso,
+      letra: b.letra,
+    };
+    this.grupos.push(grupo);
+    return grupo;
+  }
+  async actualizar(b: BorradorGrupo) {
+    const grupo = this.grupos.find((g) => g.id === b.id);
+    if (!grupo) throw new Error('No existe');
+    Object.assign(grupo, { ciclo: b.ciclo, curso: b.curso, letra: b.letra });
+    return grupo;
+  }
+  async borrar(id: string) {
+    this.grupos = this.grupos.filter((g) => g.id !== id);
+    for (const a of this.alumnos) if (a.grupoId === id) a.grupoId = null;
+  }
+  async listarAlumnos(_centroId: string) {
+    return this.alumnos;
+  }
+  async asignarEnBloque(grupoId: string, alumnoIds: string[]) {
+    this.asignados = { grupoId, alumnoIds };
+    for (const a of this.alumnos) if (alumnoIds.includes(a.id)) a.grupoId = grupoId;
+  }
+  async quitarDeClase(alumnoIds: string[]) {
+    for (const a of this.alumnos) if (alumnoIds.includes(a.id)) a.grupoId = null;
   }
 }
 

@@ -27,6 +27,13 @@ export class ValoracionYaExisteError extends Error {
   }
 }
 
+export class ToqueYaExisteError extends Error {
+  constructor() {
+    super('Ya has dado un toque a este alumno hoy');
+    this.name = 'ToqueYaExisteError';
+  }
+}
+
 export class HistorialNoDisponibleError extends Error {
   constructor() {
     super('El historial todavía no está disponible');
