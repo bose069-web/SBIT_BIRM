@@ -23,3 +23,9 @@ export function filtrarHoras(texto: string): string {
   const [entero, ...resto] = solo.split(',');
   return resto.length ? `${entero},${resto.join('').slice(0, 2)}` : entero;
 }
+
+/** Suma (o resta) `delta` horas sin bajar de 0 ni pasar de `maximo`, en tramos de 15 min. */
+export function pasoHoras(actual: number, delta: number, maximo: number): number {
+  const siguiente = Math.round((actual + delta) * 4) / 4;
+  return Math.max(0, Math.min(maximo, siguiente));
+}

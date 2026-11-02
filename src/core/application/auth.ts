@@ -1,3 +1,4 @@
+import { comprobarContrasena } from '@/core/domain/perfil';
 import type { Usuario } from '@/core/domain/usuario';
 import type { AuthPort } from '@/core/ports/auth-port';
 
@@ -13,6 +14,10 @@ export function cerrarSesion(auth: AuthPort): Promise<void> {
 
 export function obtenerUsuarioActual(auth: AuthPort): Promise<Usuario | null> {
   return auth.usuarioActual();
+}
+
+export async function cambiarContrasena(auth: AuthPort, contrasena: string): Promise<void> {
+  await auth.cambiarContrasena(comprobarContrasena(contrasena));
 }
 
 export function comprobarConexion(auth: AuthPort): Promise<boolean> {

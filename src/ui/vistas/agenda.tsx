@@ -9,6 +9,7 @@ import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Chip } from '@/ui/components/chip';
 import { Mensaje } from '@/ui/components/mensaje';
+import { SelectorFecha } from '@/ui/components/selector-fecha';
 import { Selector } from '@/ui/components/selector';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
@@ -40,7 +41,16 @@ export async function eventosProximos(hoy: string): Promise<Evento[]> {
 }
 
 /** Próximas fechas: eventos generales y, si se pasa, solo los del dossier. */
-export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: string }) {
+export function ProximasFechas({
+  hoy,
+  dossierId,
+  soloGenerales = false,
+}: {
+  hoy: string;
+  dossierId?: string;
+  /** Sin las fechas de cada dossier: las que ven todos los alumnos. */
+  soloGenerales?: boolean;
+}) {
   const { datos, error, recargar } = useDatos(() => eventosProximos(hoy), [hoy]);
   if (!datos) {
     return error ? (
@@ -49,9 +59,19 @@ export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: st
       <Cargando texto="Cargando fechas…" />
     );
   }
-  const lista = datos.filter(
-    (e) => !dossierId || e.dossierId === null || e.dossierId === dossierId,
+  const lista = datos.filter((e) =>
+    soloGenerales
+      ? e.dossierId === null
+      : !dossierId || e.dossierId === null || e.dossierId === dossierId,
   );
+  // La misma fecha puesta en varios dossiers se ve una sola vez, con cuántos alumnos la tienen.
+  const grupos = new Map<string, { evento: Evento; alumnos: number }>();
+  for (const e of lista) {
+    const clave = JSON.stringify([e.fecha, e.titulo, e.tipo, e.dossierId === null]);
+    const grupo = grupos.get(clave);
+    if (grupo) grupo.alumnos += 1;
+    else grupos.set(clave, { evento: e, alumnos: 1 });
+  }
   if (lista.length === 0) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
@@ -61,7 +81,7 @@ export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: st
   }
   return (
     <View style={styles.lista}>
-      {lista.map((e) => (
+      {[...grupos.values()].map(({ evento: e, alumnos }) => (
         <View key={e.id} style={styles.fila}>
           <ThemedText type="smallBold" style={styles.fecha}>
             {fechaCorta(e.fecha)}
@@ -69,7 +89,9 @@ export function ProximasFechas({ hoy, dossierId }: { hoy: string; dossierId?: st
           <View style={styles.texto}>
             <ThemedText type="small">{e.titulo}</ThemedText>
             <Chip
-              texto={`${TEXTO_TIPO_EVENTO[e.tipo]}${e.dossierId ? '' : ' · general'}`}
+              texto={`${TEXTO_TIPO_EVENTO[e.tipo]}${
+                e.dossierId ? (alumnos > 1 ? ` · ${alumnos} alumnos` : '') : ' · general'
+              }`}
               color={e.tipo === 'festivo' ? 'estadoFestivo' : 'textSecondary'}
             />
           </View>
@@ -141,13 +163,7 @@ export function NuevoEvento({ dossier, onCreado }: { dossier?: Dossier; onCreado
         value={titulo}
         onChangeText={setTitulo}
       />
-      <Campo
-        etiqueta="Día"
-        placeholder="31/10/2026"
-        value={fecha}
-        onChangeText={setFecha}
-        autoCapitalize="none"
-      />
+      <SelectorFecha etiqueta="Día" valor={fecha} onCambio={setFecha} />
       {leida.tipo === 'error' ? (
         <ThemedText type="small" themeColor="danger">
           {leida.motivo}

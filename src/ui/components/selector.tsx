@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
 interface Opcion<T extends string> {
@@ -19,6 +21,7 @@ interface Props<T extends string> {
 /** Grupo de opciones excluyentes (como un control segmentado). */
 export function Selector<T extends string>({ etiqueta, opciones, valor, onCambio }: Props<T>) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   return (
     <View style={styles.contenedor}>
       {etiqueta ? <ThemedText type="smallBold">{etiqueta}</ThemedText> : null}
@@ -32,10 +35,12 @@ export function Selector<T extends string>({ etiqueta, opciones, valor, onCambio
               accessibilityLabel={o.texto}
               accessibilityState={{ checked: activa }}
               onPress={() => onCambio(o.valor)}
-              style={[
+              style={({ hovered }: EstadoPressable) => [
                 styles.opcion,
                 { borderColor: activa ? theme.primary : theme.border },
                 { backgroundColor: activa ? theme.primary : theme.surface },
+                transicionWeb(reducido),
+                fondoHoverWeb(hovered, activa ? theme.primaryHover : theme.subtle),
               ]}>
               <ThemedText type="small" style={{ color: activa ? theme.onPrimary : theme.text }}>
                 {o.texto}

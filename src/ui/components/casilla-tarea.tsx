@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
+import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius } from '@/ui/theme/theme';
 
 interface Props {
@@ -10,6 +12,8 @@ interface Props {
   hecha: boolean;
   onPress: () => void;
   desactivada?: boolean;
+  /** Para usarla fuera de las tareas: cómo se anuncia cada estado. */
+  textos?: { marcada: string; sinMarcar: string; pista: string };
   style?: StyleProp<ViewStyle>;
 }
 
@@ -17,17 +21,24 @@ interface Props {
  * Casilla para marcar una tarea como hecha. El cuadrado se ve de 24, pero el área táctil es de
  * 44 × 44 como pide el mínimo de accesibilidad.
  */
-export function CasillaTarea({ titulo, hecha, onPress, desactivada, style }: Props) {
+export function CasillaTarea({ titulo, hecha, onPress, desactivada, textos, style }: Props) {
   const theme = useTheme();
+  const reducido = useMovimientoReducido();
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityLabel={`${titulo}: ${hecha ? 'hecha' : 'pendiente'}`}
-      accessibilityHint="Marca o desmarca la tarea"
+      accessibilityLabel={`${titulo}: ${hecha ? (textos?.marcada ?? 'hecha') : (textos?.sinMarcar ?? 'pendiente')}`}
+      accessibilityHint={textos?.pista ?? 'Marca o desmarca la tarea'}
       accessibilityState={{ checked: hecha, disabled: !!desactivada }}
       disabled={desactivada}
       onPress={onPress}
-      style={({ pressed }) => [styles.area, style, (pressed || desactivada) && styles.atenuada]}>
+      style={({ hovered, pressed }: EstadoPressable) => [
+        styles.area,
+        style,
+        transicionWeb(reducido),
+        !desactivada && fondoHoverWeb(hovered, theme.subtle),
+        (pressed || desactivada) && styles.atenuada,
+      ]}>
       <View
         style={[
           styles.cuadrado,

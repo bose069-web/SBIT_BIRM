@@ -7,7 +7,7 @@ module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
-    ignores: ['dist/*'],
+    ignores: ['dist/*', 'supabase/functions/*'],
   },
   {
     // Arquitectura hexagonal: el núcleo no depende de frameworks, adaptadores ni UI.

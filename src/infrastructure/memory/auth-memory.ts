@@ -36,4 +36,9 @@ export class AuthMemory implements AuthPort {
   async usuarioActual() {
     return sesionActual;
   }
+
+  // La contraseña demo es fija: solo se comprueba que haya sesión.
+  async cambiarContrasena() {
+    if (!sesionActual) throw new Error('No hay sesión');
+  }
 }

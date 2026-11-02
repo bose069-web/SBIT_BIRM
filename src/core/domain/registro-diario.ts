@@ -1,4 +1,4 @@
-import type { Dossier } from './dossier';
+import type { ActividadFormativa, Dossier } from './dossier';
 import { estaEnPeriodo } from './dossier';
 import { RegistroInvalidoError } from './errores';
 
@@ -84,4 +84,91 @@ export function resumirHoras(dossier: Dossier, registros: RegistroDiario[]): Res
     totales: dossier.horasTotales,
     porcentaje: Math.min(100, Math.round((realizadas / dossier.horasTotales) * 100)),
   };
+}
+
+/** Lo que el alumno está escribiendo en el formulario de un día. */
+export interface ValoresDia {
+  tipo: TipoDia;
+  horas: HorasActividad[];
+  observaciones: string;
+}
+
+export const VALORES_DIA_VACIOS: ValoresDia = { tipo: 'trabajo', horas: [], observaciones: '' };
+
+export function valoresDeRegistro(registro: RegistroDiario | null): ValoresDia {
+  if (!registro) return VALORES_DIA_VACIOS;
+  return {
+    tipo: registro.tipo,
+    horas: registro.horas,
+    observaciones: registro.observaciones ?? '',
+  };
+}
+
+function formaComparable({ tipo, horas, observaciones }: ValoresDia) {
+  return {
+    tipo,
+    observaciones: observaciones.trim(),
+    horas: horas
+      .filter((h) => h.horas > 0)
+      .map((h) => [h.actividadId, h.horas] as const)
+      .sort(([a], [b]) => a.localeCompare(b)),
+  };
+}
+
+export function valoresDiaIguales(a: ValoresDia, b: ValoresDia): boolean {
+  return JSON.stringify(formaComparable(a)) === JSON.stringify(formaComparable(b));
+}
+
+/** Identifica el contenido de una versión del servidor; `null` si no hay registro. */
+export function huellaRegistro(registro: RegistroDiario | null): string | null {
+  return registro && JSON.stringify(formaComparable(valoresDeRegistro(registro)));
+}
+
+/** Comprueba lo leído del dispositivo: puede estar corrupto o venir de otra versión. */
+export function validarValoresDia(datos: unknown): ValoresDia | null {
+  if (typeof datos !== 'object' || datos === null) return null;
+  const { tipo, horas, observaciones } = datos as Record<string, unknown>;
+  if (!TIPOS_DIA.includes(tipo as TipoDia)) return null;
+  if (typeof observaciones !== 'string' || !Array.isArray(horas)) return null;
+  const limpias: HorasActividad[] = [];
+  for (const h of horas as unknown[]) {
+    if (typeof h !== 'object' || h === null) return null;
+    const { actividadId, horas: cantidad } = h as Record<string, unknown>;
+    if (typeof actividadId !== 'string' || typeof cantidad !== 'number') return null;
+    if (!Number.isFinite(cantidad) || cantidad < 0) return null;
+    limpias.push({ actividadId, horas: cantidad });
+  }
+  return { tipo: tipo as TipoDia, horas: limpias, observaciones };
+}
+
+/** La jornada de trabajo más reciente antes de `fecha`, o `null` si no hay ninguna. */
+export function ultimaJornadaAntesDe(
+  registros: RegistroDiario[],
+  fecha: string,
+): RegistroDiario | null {
+  return registros.reduce<RegistroDiario | null>(
+    (ultima, r) =>
+      r.tipo === 'trabajo' && r.fecha < fecha && (!ultima || r.fecha > ultima.fecha) ? r : ultima,
+    null,
+  );
+}
+
+/**
+ * Horas que se pueden copiar de una jornada: solo las de actividades que siguen en el dossier y
+ * sin pasar de MAX_HORAS_DIA. Ni id, ni fecha, ni observaciones: lo escrito describe aquel día.
+ */
+export function horasParaCopiar(
+  jornada: Pick<RegistroDiario, 'horas'>,
+  actividades: Pick<ActividadFormativa, 'id'>[],
+): HorasActividad[] {
+  const vigentes = new Set(actividades.map((a) => a.id));
+  let disponibles = MAX_HORAS_DIA;
+  const copiadas: HorasActividad[] = [];
+  for (const { actividadId, horas } of jornada.horas) {
+    if (!vigentes.has(actividadId)) continue;
+    const cabe = Math.min(horas, disponibles);
+    if (cabe > 0) copiadas.push({ actividadId, horas: cabe });
+    disponibles -= cabe;
+  }
+  return copiadas;
 }

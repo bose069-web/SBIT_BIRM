@@ -65,6 +65,10 @@ insert into public.valoraciones_mensuales (dossier_id, mes, valoracion, comentar
   ('cccccccc-0000-0000-0000-000000000001', '2026-09-01', 'positiva', 'Buen inicio, se adapta rápido al equipo.',
    '33333333-3333-3333-3333-333333333333');
 
+-- El profe ya ha confirmado septiembre (paso 3 de la validación mensual).
+update public.valoraciones_mensuales
+set confirmada_por = '22222222-2222-2222-2222-222222222222', confirmada_en = '2026-10-02 09:00+02'
+where dossier_id = 'cccccccc-0000-0000-0000-000000000001' and mes = '2026-09-01';
 -- Un toque del profe al alumno de prueba, ya resuelto porque luego apuntó el 1 de octubre.
 insert into public.toques (dossier_id, dado_por, dias_sin_apuntar, fecha, creado_en, visto_en, resuelto_en)
 values ('cccccccc-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 4,

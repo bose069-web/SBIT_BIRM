@@ -28,6 +28,12 @@ export function Campo({ etiqueta, ayuda, style, multiline, ...props }: Props) {
           styles.input,
           { color: theme.text, borderColor: theme.borderStrong, backgroundColor: theme.surface },
           multiline && styles.multilinea,
+          // Solo lectura: se distingue de un campo que se puede escribir.
+          props.editable === false && {
+            color: theme.textSecondary,
+            backgroundColor: theme.subtle,
+            borderColor: theme.border,
+          },
           style,
         ]}
         {...props}
