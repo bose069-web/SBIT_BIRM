@@ -7,6 +7,7 @@ import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { Radius, Spacing } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 
 export interface OpcionBuscador {
   valor: string;
@@ -90,7 +91,7 @@ export function Buscador({ etiqueta, opciones, valor, onCambio, placeholder, fij
         etiqueta={etiqueta}
         value={texto}
         onChangeText={setTexto}
-        placeholder={placeholder ?? 'Escribe para buscar'}
+        placeholder={placeholder ?? t('Escribe para buscar')}
         autoCorrect={false}
         autoCapitalize="none"
       />

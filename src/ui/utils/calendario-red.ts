@@ -1,6 +1,7 @@
 import type { Evento, TipoEvento } from '@/core/domain/evento';
 
 import { sumarMeses } from './calendario';
+import { nombreDelMes } from './fechas';
 
 /** Una fecha del calendario de la red: las que pone la generalitat y los avisos automáticos. */
 export interface FechaRed {
@@ -20,8 +21,7 @@ export const DIAS_RECORDATORIO = [1, 5] as const;
 
 /** `2026-11` → `octubre` (el mes que se valida en ese recordatorio). */
 function mesAnterior(mes: string): string {
-  const [a, m] = sumarMeses(mes, -1).split('-').map(Number);
-  return new Date(a, m - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
+  return nombreDelMes(Number(sumarMeses(mes, -1).slice(5, 7)));
 }
 
 /** Recordatorios automáticos de validación de un mes `AAAA-MM`. */

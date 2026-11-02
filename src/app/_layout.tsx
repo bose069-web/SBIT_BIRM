@@ -24,6 +24,8 @@ import { Pantalla } from '@/ui/components/pantalla';
 import { ErrorCarga } from '@/ui/vistas/comun';
 import { VistaLogin } from '@/ui/vistas/login';
 import { VistaRestablecer } from '@/ui/vistas/restablecer';
+import { IdiomaProvider } from '@/ui/hooks/use-idioma';
+import { t as traducir } from '@/ui/utils/idioma';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,8 +59,10 @@ export default function TabLayout() {
   return (
     <ThemeProvider value={temaNavegacion(colorScheme === 'dark' ? 'dark' : 'light')}>
       <SesionProvider>
-        <AnimatedSplashOverlay />
-        <Contenido />
+        <IdiomaProvider>
+          <AnimatedSplashOverlay />
+          <Contenido />
+        </IdiomaProvider>
       </SesionProvider>
     </ThemeProvider>
   );
@@ -85,8 +89,8 @@ function Contenido() {
     );
   if (error)
     return (
-      <Pantalla titulo="Sesión">
-        <ErrorCarga texto={error} onReintentar={reintentar} />
+      <Pantalla titulo={traducir('Sesión')}>
+        <ErrorCarga texto={traducir(error)} onReintentar={reintentar} />
       </Pantalla>
     );
   if (!usuario) return <VistaLogin />;
@@ -97,7 +101,7 @@ function Contenido() {
   const encima = {
     headerShown: true,
     title: '',
-    headerBackTitle: 'Volver',
+    headerBackTitle: traducir('Volver'),
     headerShadowVisible: false,
     headerTransparent: false,
     headerStyle: { backgroundColor: colores.background },

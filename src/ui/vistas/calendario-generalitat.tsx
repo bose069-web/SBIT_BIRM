@@ -13,7 +13,7 @@ import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
-import { DIAS_SEMANA, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
+import { diasSemana, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
 import { fechasDeLaRed, type FechaRed } from '@/ui/utils/calendario-red';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
@@ -155,7 +155,7 @@ function Mes({ mes, hoy, fechas }: { mes: string; hoy: string; fechas: FechaRed[
   return (
     <View style={styles.mes}>
       <View style={styles.semana}>
-        {DIAS_SEMANA.map((d) => (
+        {diasSemana().map((d) => (
           <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.cabecera}>
             {d}
           </ThemedText>

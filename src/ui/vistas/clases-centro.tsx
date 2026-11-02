@@ -24,6 +24,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { Spacing } from '@/ui/theme/theme';
 import { ErrorCarga, EsqueletoPanel } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 export function MisClases() {
   const usuario = useUsuario();
@@ -32,13 +33,13 @@ export function MisClases() {
     [usuario.id],
   );
   return (
-    <Tarjeta titulo="Mis clases">
+    <Tarjeta titulo={t('Mis clases')}>
       {error ? (
-        <ErrorCarga texto="No se pudieron consultar tus clases." onReintentar={recargar} />
+        <ErrorCarga texto={t('No se pudieron consultar tus clases.')} onReintentar={recargar} />
       ) : !datos ? (
         <EsqueletoPanel tarjetas={1} />
       ) : datos.length === 0 ? (
-        <ThemedText>Aún no tienes alumnos tutorizados en una clase.</ThemedText>
+        <ThemedText>{t('Aún no tienes alumnos tutorizados en una clase.')}</ThemedText>
       ) : (
         datos.map(({ grupo, alumnos }) => (
           <View key={grupo.id}>
@@ -54,9 +55,9 @@ export function MisClases() {
 export function ClasesCentro({ centroId, alumnos }: { centroId: string; alumnos: Persona[] }) {
   const [abierto, abrir] = useState(false);
   return (
-    <Tarjeta titulo="Clases del centro">
+    <Tarjeta titulo={t('Clases del centro')}>
       <Boton
-        texto={abierto ? 'Cerrar gestión de clases' : 'Gestionar clases'}
+        texto={abierto ? t('Cerrar gestión de clases') : t('Gestionar clases')}
         variante="secundario"
         onPress={() => abrir(!abierto)}
       />
@@ -122,7 +123,7 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
     }
   }
   if (error)
-    return <ErrorCarga texto="No se pudieron cargar las clases." onReintentar={recargar} />;
+    return <ErrorCarga texto={t('No se pudieron cargar las clases.')} onReintentar={recargar} />;
   if (!datos) return <EsqueletoPanel tarjetas={1} />;
   const bloqueado = ocupado || cargando;
   const campos = { ciclo, curso: Number(curso), letra };
@@ -131,16 +132,16 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
       {aviso && <Mensaje {...aviso} />}
       {modo === 'crear' || modo === 'editar' ? (
         <>
-          <Campo etiqueta="Ciclo" value={ciclo} onChangeText={ponerCiclo} />
+          <Campo etiqueta={t('Ciclo')} value={ciclo} onChangeText={ponerCiclo} />
           <Campo
-            etiqueta="Curso (1–4)"
+            etiqueta={t('Curso (1–4)')}
             keyboardType="number-pad"
             value={curso}
             onChangeText={ponerCurso}
           />
-          <Campo etiqueta="Letra" value={letra} onChangeText={ponerLetra} />
+          <Campo etiqueta={t('Letra')} value={letra} onChangeText={ponerLetra} />
           <Boton
-            texto="Guardar clase"
+            texto={t('Guardar clase')}
             cargando={ocupado}
             onPress={() =>
               hacer(async () => {
@@ -157,7 +158,7 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
             }
           />
           <Boton
-            texto="Cancelar"
+            texto={t('Cancelar')}
             variante="secundario"
             desactivado={ocupado}
             onPress={() => cambiarModo('lista')}
@@ -167,7 +168,7 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
         <>
           <ThemedText>¿Borrar {nombreGrupo(grupo)}? Sus alumnos quedarán sin clase.</ThemedText>
           <Boton
-            texto="Confirmar borrado"
+            texto={t('Confirmar borrado')}
             variante="peligro"
             cargando={ocupado}
             onPress={() =>
@@ -178,7 +179,7 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
             }
           />
           <Boton
-            texto="Cancelar"
+            texto={t('Cancelar')}
             variante="secundario"
             desactivado={ocupado}
             onPress={() => cambiarModo('lista')}
@@ -186,10 +187,10 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
         </>
       ) : (
         <>
-          <Boton texto="Crear clase" onPress={() => formulario()} desactivado={bloqueado} />
+          <Boton texto={t('Crear clase')} onPress={() => formulario()} desactivado={bloqueado} />
           {datos.clases.length ? (
             <Selector
-              etiqueta="Elige una clase"
+              etiqueta={t('Elige una clase')}
               opciones={datos.clases.map((g) => ({ valor: g.id, texto: nombreGrupo(g) }))}
               valor={id}
               onCambio={(valor) => {
@@ -201,19 +202,19 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
               }}
             />
           ) : (
-            <ThemedText>Este centro aún no tiene clases.</ThemedText>
+            <ThemedText>{t('Este centro aún no tiene clases.')}</ThemedText>
           )}
           {grupo && (
             <>
               <Boton
-                texto="Editar clase"
+                texto={t('Editar clase')}
                 variante="secundario"
                 desactivado={bloqueado}
                 onPress={() => formulario(grupo)}
               />
               <ThemedText type="smallBold">Repartir alumnos · {nombreGrupo(grupo)}</ThemedText>
               {visibles.length === 0 && (
-                <ThemedText>No hay alumnos para repartir en este centro.</ThemedText>
+                <ThemedText>{t('No hay alumnos para repartir en este centro.')}</ThemedText>
               )}
               {visibles.map((a) => (
                 <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -259,7 +260,7 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
                 }
               />
               <Boton
-                texto="Borrar clase"
+                texto={t('Borrar clase')}
                 variante="peligro"
                 desactivado={bloqueado}
                 onPress={() => cambiarModo('borrar')}

@@ -10,6 +10,7 @@ import { usePreferenciasAvisos } from '@/ui/hooks/use-preferencias-avisos';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import { organizarPendientes, type Pendiente } from '@/ui/utils/pendientes';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 /** A partir de aquí la lista se pliega: el Inicio no debe convertirse en un listado sin fin. */
 const MAXIMO_VISIBLES = 5;
@@ -57,7 +58,7 @@ export function TarjetaPendientes({
 
   return (
     <Tarjeta
-      titulo="Qué tienes pendiente"
+      titulo={t('Qué tienes pendiente')}
       style={{ ...style, ...(hayAlgo ? { borderColor: theme.primary } : null) }}>
       {hayAlgo && descripcion ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -101,19 +102,19 @@ export function TarjetaPendientes({
           onPress={() => setVerTodos((v) => !v)}
           style={({ pressed }) => [styles.mas, pressed && styles.pulsada]}>
           <ThemedText type="small" themeColor="textSecondary">
-            {verTodos ? 'Ver menos' : `Ver los ${total}`}
+            {verTodos ? t('Ver menos') : t('Ver los {n}', { n: total })}
           </ThemedText>
         </Pressable>
       ) : null}
       {haySecundarios ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityHint="Se guarda en este dispositivo. Las obligaciones se ven siempre."
+          accessibilityHint={t('Se guarda en este dispositivo. Las obligaciones se ven siempre.')}
           onPress={() => cambiar({ ocultarSecundarios: !preferencias.ocultarSecundarios })}
           style={({ pressed }) => [styles.mas, pressed && styles.pulsada]}>
           <ThemedText type="small" themeColor="textSecondary">
             {preferencias.ocultarSecundarios
-              ? `Mostrar ${ocultos === 1 ? '1 aviso secundario' : `${ocultos} avisos secundarios`}`
+              ? tPlural(ocultos, 'Mostrar {n} aviso secundario', 'Mostrar {n} avisos secundarios')
               : 'Ocultar avisos secundarios'}
           </ThemedText>
         </Pressable>
