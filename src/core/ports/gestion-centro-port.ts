@@ -10,8 +10,8 @@ export interface GestionCentroPort {
   incorporarAlumno(personaId: string, centroId: string): Promise<void>;
   /**
    * Crea la cuenta de un alumno y lo mete en el centro, sin tocar la sesión de quien lo hace.
-   * Lanza `CorreoYaRegistradoError` si el correo ya tiene cuenta y `AltaSinIncorporarError` si la
-   * cuenta se crea pero no entra en el centro.
+   * La cuenta queda lista para entrar, sin confirmar correo, o no se crea. Lanza
+   * `CorreoYaRegistradoError` si el correo ya tiene cuenta.
    */
   crearAlumno(
     datos: { nombre: string; email: string; contrasena: string },

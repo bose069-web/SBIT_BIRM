@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { CredencialesInvalidasError, CuentaSinConfirmarError } from '@/core/domain/errores';
+
 import { AuthSupabase } from '../auth-supabase';
 
 function preparar() {
@@ -43,4 +45,19 @@ it('propaga un fallo de restauración y de cierre en lugar de simular éxito', a
   await expect(auth.usuarioActual()).rejects.toThrow('Sesión no disponible');
   cliente.auth.signOut.mockResolvedValueOnce({ error: new Error('Sin conexión') });
   await expect(auth.cerrarSesion()).rejects.toThrow('Sin conexión');
+});
+
+it('distingue la cuenta sin confirmar de la contraseña incorrecta', async () => {
+  const entrar = (code: string) => {
+    const signInWithPassword = jest
+      .fn()
+      .mockResolvedValue({ data: { user: null }, error: { code } });
+    const cliente = { auth: { signInWithPassword } };
+    return new AuthSupabase(cliente as unknown as SupabaseClient).iniciarSesion(
+      'alumno@ejemplo.test',
+      'una-contrasena',
+    );
+  };
+  await expect(entrar('email_not_confirmed')).rejects.toThrow(CuentaSinConfirmarError);
+  await expect(entrar('invalid_credentials')).rejects.toThrow(CredencialesInvalidasError);
 });
