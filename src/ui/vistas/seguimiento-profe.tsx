@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { listarDossiers, obtenerResumenHoras, puedeCrearDossier } from '@/core/application/dossier';
 import {
+  confirmarMes,
+  quitarConfirmacion,
   obtenerSeguimiento,
   ponerValoracionFinal,
   type Seguimiento,
@@ -296,6 +298,32 @@ function FilaAlumno({
   const gestiona = gestionaDossier(usuario, dossier);
   const { resumen, seguimiento } = datos;
 
+  const tutor = usuario.rol === 'profe' && usuario.id === dossier.tutorId;
+  async function cambiarConfirmacion(mes: string, retirar: boolean) {
+    if (!tutor || guardando) return;
+    setGuardando(true);
+    setAviso(null);
+    try {
+      await (retirar ? quitarConfirmacion : confirmarMes)(
+        container.valoraciones,
+        usuario,
+        dossier,
+        mes,
+      );
+      setAviso({ tipo: 'ok', texto: retirar ? 'Confirmación retirada' : 'Mes confirmado' });
+      onCambio();
+    } catch {
+      setAviso({
+        tipo: 'error',
+        texto:
+          'No se pudo actualizar la confirmación. Comprueba la conexión y si el mes ha cambiado.',
+      });
+      onCambio();
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   async function guardar() {
     if (!resultado) {
       setAviso({ tipo: 'error', texto: 'Elige apto o no apto' });
@@ -359,6 +387,12 @@ function FilaAlumno({
         />
       ) : null}
 
+      {tutor && seguimiento.sinConfirmar.length > 0 ? (
+        <Chip
+          texto={`Por confirmar: ${seguimiento.sinConfirmar.map(nombreMes).join(', ')}`}
+          color="estadoPendiente"
+        />
+      ) : null}
       {abierto ? (
         <View style={styles.detalle}>
           <View style={styles.cabeceraDetalle}>
@@ -369,6 +403,23 @@ function FilaAlumno({
             <Enlace texto="Ficha ›" onPress={onFicha} />
           </View>
           <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
+          {seguimiento.mensuales.map((v) => (
+            <View key={v.mes} style={styles.detalle}>
+              <ThemedText type="smallBold">
+                {nombreMes(v.mes)} ·{' '}
+                {v.confirmadaEn ? 'Confirmado por el tutor' : 'Pendiente de confirmación del tutor'}
+              </ThemedText>
+              {tutor ? (
+                <Boton
+                  texto={v.confirmadaEn ? 'Quitar confirmación' : 'Confirmar mes'}
+                  accessibilityLabel={`${v.confirmadaEn ? 'Quitar confirmación de' : 'Confirmar'} ${nombreMes(v.mes)}`}
+                  variante="secundario"
+                  desactivado={guardando}
+                  onPress={() => cambiarConfirmacion(v.mes, Boolean(v.confirmadaEn))}
+                />
+              ) : null}
+            </View>
+          ))}
           <View style={styles.botones}>
             {gestiona ? (
               <Boton
