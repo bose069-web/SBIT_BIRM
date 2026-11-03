@@ -550,4 +550,206 @@ export const CATALAN: Record<string, string> = {
   'Todavía no hay mensajes. Escribe para hablar con quien la sigue.':
     'Encara no hi ha missatges. Escriu per parlar amb qui la segueix.',
   Mensaje: 'Missatge',
+
+  // Calendario y registro de horas
+  'sin elegir': 'sense triar',
+  'Mes anterior': 'Mes anterior',
+  'Mes siguiente': 'Mes següent',
+  'Ir al mes de hoy': "Anar al mes d'avui",
+  'Sin fecha': 'Sense data',
+  'Las empresas validan {mes}': 'Les empreses validen {mes}',
+  'Segundo aviso a las empresas que no han validado {mes}':
+    'Segon avís a les empreses que no han validat {mes}',
+  'Otra persona': 'Una altra persona',
+  Sistema: 'Sistema',
+  Tú: 'Tu',
+  'no apto': 'no apte',
+  positiva: 'positiva',
+  mejorable: 'millorable',
+  negativa: 'negativa',
+  apto: 'apte',
+  'Dossier creado': 'Dossier creat',
+  'Dossier editado': 'Dossier editat',
+  'Dossier borrado': 'Dossier esborrat',
+  'Día {fecha} creado': 'Dia {fecha} creat',
+  'Día {fecha} editado': 'Dia {fecha} editat',
+  'Día {fecha} borrado': 'Dia {fecha} esborrat',
+  'Día creado': 'Dia creat',
+  'Día editado': 'Dia editat',
+  'Día borrado': 'Dia esborrat',
+  'Valoración de {mes} puesta': 'Valoració de {mes} posada',
+  'Valoración de {mes} cambiada': 'Valoració de {mes} canviada',
+  'Valoración de {mes} quitada': 'Valoració de {mes} treta',
+  'Valoración puesta': 'Valoració posada',
+  'Valoración cambiada': 'Valoració canviada',
+  'Valoración quitada': 'Valoració treta',
+  'Valoración final puesta': 'Valoració final posada',
+  'Valoración final cambiada': 'Valoració final canviada',
+  'Valoración final quitada': 'Valoració final treta',
+  'No hay fechas de este tipo este mes.': "No hi ha dates d'aquest tipus aquest mes.",
+  'Nueva fecha para toda la red': 'Data nova per a tota la xarxa',
+  'La ven todos los institutos, profes, empresas y alumnos en su calendario.':
+    'La veuen tots els instituts, profes, empreses i alumnes al seu calendari.',
+  'Festivos, curso de prácticas y plazos de toda la red':
+    'Festius, curs de pràctiques i terminis de tota la xarxa',
+  Ver: 'Veure',
+  Todas: 'Totes',
+  Automático: 'Automàtic',
+  'Entregas, reuniones y festivos': 'Lliuraments, reunions i festius',
+  'Toca un día para ver qué hay y registrarlo': 'Toca un dia per veure què hi ha i registrar-lo',
+  'Cuando tu tutor cree tu dossier, aquí verás tu calendario de prácticas.':
+    'Quan el teu tutor creï el teu dossier, aquí veuràs el teu calendari de pràctiques.',
+  'Mis días': 'Els meus dies',
+  'Entrega: {titulo}': 'Lliurament: {titulo}',
+  'Cargando horas…': 'Carregant hores…',
+  Bloqueado: 'Bloquejat',
+  'Sin apuntar.': 'Sense apuntar.',
+  'Tipo de día': 'Tipus de dia',
+  'Horas, en cuartos: 1,25': 'Hores, en quarts: 1,25',
+  Observaciones: 'Observacions',
+  'La empresa ya valoró este mes con las horas anteriores. Avísala si cambias algo.':
+    "L'empresa ja va valorar aquest mes amb les hores anteriors. Avisa-la si canvies alguna cosa.",
+  'Registrar día': 'Registrar el dia',
+  'Si tenías un borrador en este dispositivo, no se ha borrado.':
+    "Si tenies un esborrany en aquest dispositiu, no s'ha esborrat.",
+  'No tienes un dossier de prácticas asignado.': 'No tens cap dossier de pràctiques assignat.',
+  'Guardado en el servidor el {fecha}': 'Desat al servidor el {fecha}',
+  'No se ha podido enviar ni guardar en este dispositivo. Mantén esta pantalla abierta y reintenta para no perder los cambios.':
+    "No s'ha pogut enviar ni desar en aquest dispositiu. Mantén aquesta pantalla oberta i torna-ho a provar per no perdre els canvis.",
+  'No se ha podido conectar con el servidor. Tus datos siguen en este dispositivo: reintenta cuando tengas conexión.':
+    "No s'ha pogut connectar amb el servidor. Les teves dades continuen en aquest dispositiu: torna-ho a provar quan tinguis connexió.",
+  'No se ha podido conectar con el servidor: el día no se ha borrado.':
+    "No s'ha pogut connectar amb el servidor: el dia no s'ha esborrat.",
+  'Solo lectura': 'Només lectura',
+  'Día anterior': 'Dia anterior',
+  'Día siguiente': 'Dia següent',
+  'Ocultar calendario': 'Amagar el calendari',
+  'Ver calendario': 'Veure el calendari',
+  'Este día está fuera de tu periodo de prácticas.':
+    'Aquest dia és fora del teu període de pràctiques.',
+  'La empresa ya ha valorado este mes: no se puede cambiar.':
+    "L'empresa ja ha valorat aquest mes: no es pot canviar.",
+  'No se pudo conservar el contexto del formulario. No podrás recuperarlo al reabrir sin conexión.':
+    "No s'ha pogut conservar el context del formulari. No el podràs recuperar en tornar a obrir sense connexió.",
+  'Ir a hoy': 'Anar a avui',
+  'Estado: {estado}': 'Estat: {estado}',
+  'Este día se ha borrado en el servidor desde que empezaste este borrador.':
+    "Aquest dia s'ha esborrat al servidor des que vas començar aquest esborrany.",
+  'Este día ha cambiado en el servidor desde que empezaste este borrador. Ahora pone: {detalle}. Elige cuál se queda.':
+    'Aquest dia ha canviat al servidor des que vas començar aquest esborrany. Ara diu: {detalle}. Tria quin es queda.',
+  'Apunta las horas de al menos una actividad para guardar.':
+    "Apunta les hores d'almenys una activitat per desar.",
+  'Un día no puede pasar de {maximo} h: quita {horas}.':
+    'Un dia no pot passar de {maximo} h: treu-ne {horas}.',
+  'Qué has hecho': 'Què has fet',
+  'Sin conexión: puedes editar el borrador con el contexto guardado en este dispositivo. Al enviar se comprobarán los permisos y el estado actual del mes.':
+    "Sense connexió: pots editar l'esborrany amb el context desat en aquest dispositiu. En enviar es comprovaran els permisos i l'estat actual del mes.",
+  'Total del día': 'Total del dia',
+  'Total del día, {total} de una jornada de {jornada} h':
+    "Total del dia, {total} d'una jornada de {jornada} h",
+  'Máximo {maximo} h al día': 'Màxim {maximo} h al dia',
+  'Jornada de referencia: {jornada} h · máximo {maximo} h':
+    'Jornada de referència: {jornada} h · màxim {maximo} h',
+  'Copiar horas del {fecha}': 'Copiar les hores del {fecha}',
+  'Quitar media hora a {actividad}': 'Treure mitja hora a {actividad}',
+  'Añadir media hora a {actividad}': 'Afegir mitja hora a {actividad}',
+  Nota: 'Nota',
+  'Opcional: motivo (médico, examen…)': 'Opcional: motiu (metge, examen…)',
+  'Opcional: qué festivo es': 'Opcional: quin festiu és',
+  Opcional: 'Opcional',
+  'Quedarme con el del servidor': 'Quedar-me amb el del servidor',
+  'Enviar el mío y reemplazar': 'Enviar el meu i substituir',
+  'Reintentar envío': "Tornar a provar l'enviament",
+  'Guardar día': 'Desar el dia',
+  'Borrar día': 'Esborrar el dia',
+  'Toca un día para ver sus horas o corregirlas.':
+    'Toca un dia per veure les hores o corregir-les.',
+  'Toca un día para ver sus horas.': 'Toca un dia per veure les hores.',
+  'El alumno ya tiene valoración final.': "L'alumne ja té valoració final.",
+  'Mes confirmado: quita antes la confirmación para corregirlo.':
+    'Mes confirmat: treu abans la confirmació per corregir-lo.',
+  'Este día todavía no ha llegado.': 'Aquest dia encara no ha arribat.',
+  Actividad: 'Activitat',
+  'Este día ha cambiado mientras lo corregías. Ciérralo y vuelve a abrirlo.':
+    "Aquest dia ha canviat mentre el corregies. Tanca'l i torna'l a obrir.",
+  'No se pudo guardar. Vuelve a intentarlo.': "No s'ha pogut desar. Torna-ho a provar.",
+  Corregir: 'Corregir',
+  Añadir: 'Afegir',
+  'No se ha podido cargar el historial.': "No s'ha pogut carregar l'historial.",
+  'Cargando el historial…': "Carregant l'historial…",
+  'Historial no disponible todavía': 'Historial encara no disponible',
+  'Todavía no hay cambios anotados. Se anotan a partir de ahora, no los anteriores.':
+    "Encara no hi ha canvis anotats. S'anoten a partir d'ara, no els anteriors.",
+  'Tus alumnos: horas, valoraciones de la empresa y valoración final':
+    "Els teus alumnes: hores, valoracions de l'empresa i valoració final",
+  'Todos los alumnos de tu centro': 'Tots els alumnes del teu centre',
+  'Todos los institutos': 'Tots els instituts',
+  '+ Nuevo dossier': '+ Dossier nou',
+  'Todavía no hay alumnos con dossier': 'Encara no hi ha alumnes amb dossier',
+  'Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final.':
+    "Quan els teus alumnes tinguin el seu dossier de pràctiques, aquí veuràs les seves hores, les valoracions de l'empresa i podràs posar la valoració final.",
+  Resumen: 'Resum',
+  'Progreso medio de horas': "Progrés mitjà d'hores",
+  'de las horas hechas, de media entre {n} alumno':
+    'de les hores fetes, de mitjana entre {n} alumne',
+  'de las horas hechas, de media entre {n} alumnos':
+    'de les hores fetes, de mitjana entre {n} alumnes',
+  'Falta valorar la empresa': "Falta que valori l'empresa",
+  'Con valoración final': 'Amb valoració final',
+  'Progreso por alumno': 'Progrés per alumne',
+  'Porcentaje de horas hechas por alumno, del más atrasado al más avanzado':
+    "Percentatge d'hores fetes per alumne, del més endarrerit al més avançat",
+  'Falta valoración de empresa': "Falta valoració d'empresa",
+  'Confirmación retirada': 'Confirmació retirada',
+  'Mes confirmado': 'Mes confirmat',
+  'No se pudo actualizar la confirmación. Comprueba la conexión y si el mes ha cambiado.':
+    "No s'ha pogut actualitzar la confirmació. Comprova la connexió i si el mes ha canviat.",
+  'Elige apto o no apto': 'Tria apte o no apte',
+  'Valoración final guardada': 'Valoració final desada',
+  '{nombre}, {porcentaje}% de las horas.': '{nombre}, {porcentaje}% de les hores.',
+  Plegar: 'Plegar',
+  'Ver detalle': 'Veure el detall',
+  'Final: {resultado}': 'Final: {resultado}',
+  'La empresa no ha valorado: {meses}': "L'empresa no ha valorat: {meses}",
+  'Por confirmar: {meses}': 'Per confirmar: {meses}',
+  'Tutor de empresa: {nombre} · del {inicio} al {fin}':
+    "Tutor d'empresa: {nombre} · del {inicio} al {fin}",
+  'Confirmado por el tutor': 'Confirmat pel tutor',
+  'Pendiente de confirmación del tutor': 'Pendent de confirmació del tutor',
+  'Quitar confirmación': 'Treure la confirmació',
+  'Confirmar mes': 'Confirmar el mes',
+  'Quitar confirmación de {mes}': 'Treure la confirmació de {mes}',
+  'Confirmar {mes}': 'Confirmar {mes}',
+  'Cerrar valoración final': 'Tancar la valoració final',
+  'Cambiar valoración final': 'Canviar la valoració final',
+  'Ocultar tareas y fechas': 'Amagar tasques i dates',
+  'Tareas y fechas': 'Tasques i dates',
+  'Obligatorio si no es apto. Cierra todos los meses del alumno.':
+    "Obligatori si no és apte. Tanca tots els mesos de l'alumne.",
+  'Guardar valoración final': 'Desar la valoració final',
+  'Cierra el calendario': 'Tanca el calendari',
+  'Abre un calendario para elegir el día': 'Obre un calendari per triar el dia',
+  'Elegir día': 'Triar el dia',
+  'Escribe la fecha como 31/10/2026': 'Escriu la data com 31/10/2026',
+  'Ese día no existe': 'Aquest dia no existeix',
+  'Escribe un número, p. ej. 1,5': 'Escriu un número, p. ex. 1,5',
+  'Tiene que ser más de 0': 'Ha de ser més de 0',
+  'Usa tramos de 15 min: ,25 · ,5 · ,75': 'Fes servir trams de 15 min: ,25 · ,5 · ,75',
+
+  'Cada toque suma o resta media hora; mantén pulsado para ajustar 15 min.':
+    'Cada toc suma o resta mitja hora; mantén premut per ajustar 15 min.',
+  'No se ha podido generar el enlace': "No s'ha pogut generar l'enllaç",
+  'No se ha podido generar el enlace. Inténtalo de nuevo.':
+    "No s'ha pogut generar l'enllaç. Torna-ho a provar.",
+  'Restablecer contraseña': 'Restablir la contrasenya',
+  'No se pudieron consultar las solicitudes.': "No s'han pogut consultar les sol·licituds.",
+  'Ningún alumno ha pedido restablecer su contraseña.':
+    'Cap alumne no ha demanat restablir la contrasenya.',
+  'Generar enlace': "Generar l'enllaç",
+  'Generar enlace para {nombre}': "Generar l'enllaç per a {nombre}",
+  'Pásaselo solo a tu alumno, en privado. Sirve una vez y caduca en una hora.':
+    "Passa'l només al teu alumne, en privat. Serveix una vegada i caduca en una hora.",
+  Copiado: 'Copiat',
+  'Copiar enlace': "Copiar l'enllaç",
+  'Compartir enlace': "Compartir l'enllaç",
 };
