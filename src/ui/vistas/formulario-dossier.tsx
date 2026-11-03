@@ -32,6 +32,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 
 import { ErrorCarga, EsqueletoPanel } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 interface Actividad {
   /** Clave local para la lista; `id` es el de la base (null si es nueva). */
@@ -71,7 +72,7 @@ export function FormularioDossier({
   if (!datos) {
     return (
       <Pantalla titulo={titulo}>
-        <Boton texto="‹ Volver" variante="secundario" onPress={() => onTerminar(null)} />
+        <Boton texto={t('‹ Volver')} variante="secundario" onPress={() => onTerminar(null)} />
         {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
         {cargando ? <EsqueletoPanel tarjetas={2} /> : null}
       </Pantalla>
@@ -229,23 +230,23 @@ function Formulario({
   return (
     <Pantalla titulo={titulo} subtitulo={actual?.alumnoNombre}>
       <Boton
-        texto="‹ Volver sin guardar"
+        texto={t('‹ Volver sin guardar')}
         variante="secundario"
         onPress={() => onTerminar(actual?.id ?? null)}
       />
 
-      <Tarjeta titulo="Alumno y empresa">
+      <Tarjeta titulo={t('Alumno y empresa')}>
         {alumnos.length ? (
           <Buscador
-            etiqueta="Alumno"
-            placeholder="Escribe el nombre o el correo"
+            etiqueta={t('Alumno')}
+            placeholder={t('Escribe el nombre o el correo')}
             opciones={alumnos}
             valor={alumnoId}
             onCambio={setAlumnoId}
             fijo={!!actual}
           />
         ) : (
-          <Mensaje tipo="error" texto="No hay alumnos con profe asignado en tu centro." />
+          <Mensaje tipo="error" texto={t('No hay alumnos con profe asignado en tu centro.')} />
         )}
         {!actual && opciones.alumnosSinProfe.length ? (
           <ThemedText type="small" themeColor="textSecondary">
@@ -255,12 +256,14 @@ function Formulario({
         ) : null}
         {opciones.convenios.length ? (
           <Buscador
-            etiqueta="Empresa (con convenio)"
-            placeholder="Escribe el nombre de la empresa"
+            etiqueta={t('Empresa (con convenio)')}
+            placeholder={t('Escribe el nombre de la empresa')}
             opciones={opciones.convenios.map((c) => ({
               valor: c.empresaId,
               texto: c.empresaNombre,
-              detalle: c.firmadoEn ? `Convenio desde ${fechaCorta(c.firmadoEn)}` : undefined,
+              detalle: c.firmadoEn
+                ? t('Convenio desde {fecha}', { fecha: fechaCorta(c.firmadoEn) })
+                : undefined,
             }))}
             valor={empresaId}
             onCambio={(id) => {
@@ -269,12 +272,12 @@ function Formulario({
             }}
           />
         ) : (
-          <Mensaje tipo="error" texto="Tu centro todavía no tiene convenios con empresas." />
+          <Mensaje tipo="error" texto={t('Tu centro todavía no tiene convenios con empresas.')} />
         )}
         {empresaId ? (
           tutores.datos?.length ? (
             <Selector
-              etiqueta="Tutor de empresa"
+              etiqueta={t('Tutor de empresa')}
               opciones={tutores.datos.map((t) => ({ valor: t.id, texto: t.nombre }))}
               valor={tutorEmpresaId}
               onCambio={setTutorEmpresaId}
@@ -289,12 +292,12 @@ function Formulario({
         ) : null}
       </Tarjeta>
 
-      <Tarjeta titulo="Prácticas">
-        <Campo etiqueta="Ciclo" placeholder="DAM" value={ciclo} onChangeText={setCiclo} />
-        <SelectorFecha etiqueta="Inicio" valor={fechaInicio} onCambio={setFechaInicio} />
-        <SelectorFecha etiqueta="Fin" valor={fechaFin} onCambio={setFechaFin} />
+      <Tarjeta titulo={t('Prácticas')}>
+        <Campo etiqueta={t('Ciclo')} placeholder={t('DAM')} value={ciclo} onChangeText={setCiclo} />
+        <SelectorFecha etiqueta={t('Inicio')} valor={fechaInicio} onCambio={setFechaInicio} />
+        <SelectorFecha etiqueta={t('Fin')} valor={fechaFin} onCambio={setFechaFin} />
         <Campo
-          etiqueta="Horas totales"
+          etiqueta={t('Horas totales')}
           placeholder="400"
           keyboardType="number-pad"
           value={horas}
@@ -302,7 +305,7 @@ function Formulario({
         />
       </Tarjeta>
 
-      <Tarjeta titulo="Actividades formativas">
+      <Tarjeta titulo={t('Actividades formativas')}>
         <ThemedText type="small" themeColor="textSecondary">
           El alumno reparte sus horas entre estas actividades. Las que ya tienen horas no se pueden
           quitar.
@@ -311,8 +314,8 @@ function Formulario({
           <View key={a.clave} style={styles.actividad}>
             <View style={styles.campoActividad}>
               <Campo
-                etiqueta={`Actividad ${i + 1}`}
-                placeholder="Desarrollo de la app interna"
+                etiqueta={t('Actividad {n}', { n: i + 1 })}
+                placeholder={t('Desarrollo de la app interna')}
                 value={a.descripcion}
                 onChangeText={(t) => cambiarActividad(a.clave, t)}
               />
@@ -320,7 +323,7 @@ function Formulario({
             {actividades.length > 1 ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Quitar la actividad ${i + 1}`}
+                accessibilityLabel={t('Quitar la actividad {n}', { n: i + 1 })}
                 onPress={() => setActividades((l) => l.filter((x) => x.clave !== a.clave))}
                 style={({ pressed }) => [
                   styles.quitar,
@@ -334,7 +337,7 @@ function Formulario({
           </View>
         ))}
         <Boton
-          texto="+ Añadir actividad"
+          texto={t('+ Añadir actividad')}
           variante="secundario"
           onPress={() => setActividades((l) => [...l, nuevaActividad()])}
         />
@@ -358,7 +361,12 @@ function Formulario({
         }
       />
       {actual && administraCentro(usuario, actual.centroId) ? (
-        <Boton texto="Borrar dossier" variante="peligro" onPress={borrar} desactivado={guardando} />
+        <Boton
+          texto={t('Borrar dossier')}
+          variante="peligro"
+          onPress={borrar}
+          desactivado={guardando}
+        />
       ) : null}
     </Pantalla>
   );

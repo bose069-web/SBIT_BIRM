@@ -47,6 +47,7 @@ import {
   TEXTO_ESTADO,
   TEXTO_PRIORIDAD,
 } from './incidencias';
+import { t } from '@/ui/utils/idioma';
 
 /** La empresa y el alumno tienen chat directo; el alumno conserva también sus incidencias. */
 export function VistaChat() {
@@ -64,7 +65,7 @@ function ChatConIncidencias() {
       <ChatIncidencias
         accion={
           <Boton
-            texto="Mensajes directos"
+            texto={t('Mensajes directos')}
             variante="secundario"
             onPress={() => {
               setVerIncidencias(false);
@@ -78,7 +79,11 @@ function ChatConIncidencias() {
   return (
     <ChatDirecto
       accion={
-        <Boton texto="Incidencias" variante="secundario" onPress={() => setVerIncidencias(true)} />
+        <Boton
+          texto={t('Incidencias')}
+          variante="secundario"
+          onPress={() => setVerIncidencias(true)}
+        />
       }
     />
   );
@@ -91,7 +96,7 @@ function ChatIncidencias({ accion }: { accion?: ReactNode }) {
 
   if (ancha) {
     return (
-      <Pantalla titulo="Chat" accion={accion} amplia compacta>
+      <Pantalla titulo={t('Chat')} accion={accion} amplia compacta>
         <DosPaneles lista={lista} abierta={incidencia ?? null} />
       </Pantalla>
     );
@@ -107,7 +112,7 @@ function ChatIncidencias({ accion }: { accion?: ReactNode }) {
     );
   }
   return (
-    <Pantalla titulo="Chat" accion={accion} compacta>
+    <Pantalla titulo={t('Chat')} accion={accion} compacta>
       <ListaConversaciones lista={lista} abierta={null} onAbrir={abrirEnPantalla} />
     </Pantalla>
   );
@@ -180,13 +185,15 @@ function ListaConversaciones({
     <View style={styles.columnaLista}>
       {datos.pendientes ? (
         <View style={styles.resumen}>
-          <Chip texto={`${datos.pendientes} por atender`} color="estadoPendiente" />
+          <Chip texto={t('{n} por atender', { n: datos.pendientes })} color="estadoPendiente" />
         </View>
       ) : null}
       {datos.conversaciones.length === 0 ? (
         <EstadoVacio
-          titulo="Sin conversaciones"
-          texto="Si algo no va bien en las prácticas, con la empresa o con la app, abre una incidencia y hablad aquí."
+          titulo={t('Sin conversaciones')}
+          texto={t(
+            'Si algo no va bien en las prácticas, con la empresa o con la app, abre una incidencia y hablad aquí.',
+          )}
         />
       ) : (
         <View accessibilityRole="list" style={styles.filas}>
@@ -227,7 +234,7 @@ function FilaConversacion({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: seleccionada }}
-      accessibilityLabel={`${i.titulo}. ${TEXTO_ESTADO[i.estado]}. ${grupo}. Último: ${vistaPrevia}. ${cuando}`}
+      accessibilityLabel={`${i.titulo}. ${t(TEXTO_ESTADO[i.estado])}. ${t(grupo)}. ${t('Último: {texto}', { texto: vistaPrevia })}. ${cuando}`}
       onPress={onPress}
       style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.fila,
@@ -285,7 +292,7 @@ function EsqueletoLista() {
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel="Cargando conversaciones"
+      accessibilityLabel={t('Cargando conversaciones')}
       style={styles.filas}>
       {[0, 1, 2, 3].map((n) => (
         <View key={n} style={styles.fila}>
@@ -322,8 +329,8 @@ function DosPaneles({ lista, abierta }: { lista: Lista; abierta: string | null }
         ) : (
           <View style={styles.centrado}>
             <EstadoVacio
-              titulo="Elige una conversación"
-              texto="Selecciona una incidencia de la lista para leerla y responder."
+              titulo={t('Elige una conversación')}
+              texto={t('Selecciona una incidencia de la lista para leerla y responder.')}
             />
           </View>
         )}
@@ -415,20 +422,20 @@ function CabeceraConversacion({
       <View style={styles.chips}>
         <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
         <Chip texto={TEXTO_PRIORIDAD[i.prioridad]} />
-        {i.escalada ? <Chip texto="Escalada a la Generalitat" /> : null}
+        {i.escalada ? <Chip texto={t('Escalada a la Generalitat')} /> : null}
       </View>
       {detalles ? (
         <View style={styles.detalles}>
           {i.respuesta ? (
             <View style={[styles.respuesta, { backgroundColor: theme.subtle }]}>
-              <ThemedText type="smallBold">Respuesta</ThemedText>
+              <ThemedText type="smallBold">{t('Respuesta')}</ThemedText>
               <ThemedText type="small">{i.respuesta}</ThemedText>
             </View>
           ) : null}
           {atiende ? <Atender incidencia={i} onCambio={onCambio} /> : null}
           {!i.respuesta && !atiende ? (
             <ThemedText type="small" themeColor="textSecondary">
-              Todavía no hay respuesta de quien la atiende.
+              {t('Todavía no hay respuesta de quien la atiende.')}
             </ThemedText>
           ) : null}
         </View>
@@ -448,7 +455,7 @@ function SinConversacion({
 }) {
   if (error) return <ErrorCarga texto={error} onReintentar={onReintentar} />;
   if (cargando) return <EsqueletoPanel tarjetas={2} />;
-  return <EstadoVacio titulo="No se encuentra" texto="Puede que se haya borrado." />;
+  return <EstadoVacio titulo={t('No se encuentra')} texto={t('Puede que se haya borrado.')} />;
 }
 
 /** Conversación abierta en el panel derecho de la web ancha. */
@@ -501,7 +508,7 @@ function ConversacionMovil({
   const volver = (
     <View style={styles.acciones}>
       <Boton
-        texto="‹ Conversaciones"
+        texto={t('‹ Conversaciones')}
         variante="secundario"
         onPress={() => router.replace('/chat')}
       />
@@ -510,13 +517,13 @@ function ConversacionMovil({
   );
   if (!c.datos) {
     return (
-      <Pantalla titulo="Conversación" accion={volver} compacta>
+      <Pantalla titulo={t('Conversación')} accion={volver} compacta>
         <SinConversacion error={c.error} cargando={c.cargando} onReintentar={c.recargar} />
       </Pantalla>
     );
   }
   return (
-    <Pantalla titulo="Conversación" accion={volver} compacta>
+    <Pantalla titulo={t('Conversación')} accion={volver} compacta>
       <View
         style={[
           styles.tarjetaMovil,

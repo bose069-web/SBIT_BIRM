@@ -10,8 +10,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { estadoDia, semanasDelMes, sumarMeses, type EstadoDia } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
-import { idiomaActual } from '@/ui/utils/idioma';
-import { t } from '@/ui/utils/idioma';
+import { idiomaActual, t } from '@/ui/utils/idioma';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 

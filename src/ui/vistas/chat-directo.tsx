@@ -46,6 +46,7 @@ import {
 } from '@/ui/utils/chat';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 type Enviar = (otroId: string, texto: string) => Promise<string | null>;
 
@@ -86,7 +87,7 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
 
   if (!datos || conversaciones.length === 0) {
     return (
-      <Pantalla titulo="Chat" accion={accion} compacta>
+      <Pantalla titulo={t('Chat')} accion={accion} compacta>
         {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
         {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
         {datos && !cargando ? (
@@ -123,7 +124,7 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
 
   if (ancha) {
     return (
-      <Pantalla titulo="Chat" accion={accion} amplia compacta>
+      <Pantalla titulo={t('Chat')} accion={accion} amplia compacta>
         {aviso}
         <DosPaneles lista={lista}>
           {seleccionada ? (
@@ -137,7 +138,7 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
           ) : (
             <View style={styles.centrado}>
               <EstadoVacio
-                titulo="Elige una conversación"
+                titulo={t('Elige una conversación')}
                 texto={
                   esAlumno
                     ? 'Selecciona tu tutor de empresa o tu profe para leer los mensajes.'
@@ -154,11 +155,15 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
   if (seleccionada) {
     return (
       <Pantalla
-        titulo="Conversación"
+        titulo={t('Conversación')}
         compacta
         accion={
           <View style={styles.acciones}>
-            <Boton texto="‹ Conversaciones" variante="secundario" onPress={() => elegir(null)} />
+            <Boton
+              texto={t('‹ Conversaciones')}
+              variante="secundario"
+              onPress={() => elegir(null)}
+            />
             {accion}
           </View>
         }>
@@ -177,7 +182,7 @@ export function ChatDirecto({ accion }: { accion?: ReactNode }) {
   }
 
   return (
-    <Pantalla titulo="Chat" accion={accion} compacta>
+    <Pantalla titulo={t('Chat')} accion={accion} compacta>
       {aviso}
       {lista}
     </Pantalla>
@@ -240,16 +245,18 @@ function FilaConversacion({
   const ultimo = delHilo[delHilo.length - 1] ?? null;
   const nuevos = noLeidos(mensajes, conversacion.id, leidoHasta, usuario.id);
   const propio = ultimo?.autorId === usuario.id;
-  const vistaPrevia = ultimo ? `${propio ? 'Tú: ' : ''}${ultimo.texto}` : 'Sin mensajes todavía';
+  const vistaPrevia = ultimo
+    ? `${propio ? `${t('Tú:')} ` : ''}${ultimo.texto}`
+    : t('Sin mensajes todavía');
   const cuando = ultimo ? hace(ultimo.enviadoEn) : null;
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: seleccionada }}
-      accessibilityLabel={`${conversacion.titulo}, ${TEXTO_ROL_CHAT[conversacion.rol]}. ${vistaPrevia}${
+      accessibilityLabel={`${conversacion.titulo}, ${t(TEXTO_ROL_CHAT[conversacion.rol])}. ${vistaPrevia}${
         cuando ? `. ${cuando}` : ''
-      }${nuevos ? `. ${nuevos} sin leer` : ''}`}
+      }${nuevos ? `. ${t('{n} sin leer', { n: nuevos })}` : ''}`}
       onPress={onPress}
       style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
         styles.fila,
@@ -360,7 +367,7 @@ function Hilo({
     delHilo.length === 0 ? (
       <View style={styles.centrado}>
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay mensajes. Escribe el primero.
+          {t('Todavía no hay mensajes. Escribe el primero.')}
         </ThemedText>
       </View>
     ) : (
@@ -383,7 +390,7 @@ function Hilo({
         </View>
         {ultimo ? (
           <ThemedText type="small" themeColor="textSecondary" style={styles.meta}>
-            Último {horaDe(ultimo.creadoEn)}
+            {t('Último {hora}', { hora: horaDe(ultimo.creadoEn) })}
           </ThemedText>
         ) : null}
       </View>
