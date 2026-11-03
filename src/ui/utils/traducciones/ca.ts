@@ -534,7 +534,6 @@ export const CATALAN: Record<string, string> = {
   'Gestionar alumnos': 'Gestionar alumnes',
   'Todavía no hay convenios. Los alumnos solo pueden hacer prácticas en empresas con convenio.':
     'Encara no hi ha convenis. Els alumnes només poden fer pràctiques en empreses amb conveni.',
-  'Código de centro': 'Codi de centre',
 
   // Inicio del profe
   'Todavía no tienes alumnos con dossier': 'Encara no tens alumnes amb dossier',
@@ -1037,4 +1036,19 @@ export const CATALAN: Record<string, string> = {
   'Validado el': 'Validat el',
   'No te queda ningún informe pendiente. En cuanto tus alumnos empiecen un mes nuevo, aparecerá aquí para que lo valores.':
     'No et queda cap informe pendent. Quan els teus alumnes comencin un mes nou, apareixerà aquí perquè el valoris.',
+
+  // Alta de institutos (generalitat)
+  '+ Dar de alta un instituto': "+ Donar d'alta un institut",
+  'Dar de alta un instituto': "Donar d'alta un institut",
+  'Nombre del instituto': "Nom de l'institut",
+  'Institut Joan Miró': 'Institut Joan Miró',
+  'Código de centro': 'Codi de centre',
+  'Los 8 dígitos del código del Departament.': 'Els 8 dígits del codi del Departament.',
+  'No se ha podido dar de alta el instituto': "No s'ha pogut donar d'alta l'institut",
+  'Da de alta el primero para empezar a gestionarlo.':
+    "Dona d'alta el primer per començar a gestionar-lo.",
+  'Escribe el nombre del centro': 'Escriu el nom del centre',
+  'El código del centro debe tener 8 dígitos': 'El codi del centre ha de tenir 8 dígits',
+  'No se ha podido crear el centro': "No s'ha pogut crear el centre",
+  'Ya existe un centro con ese código': 'Ja existeix un centre amb aquest codi',
 };

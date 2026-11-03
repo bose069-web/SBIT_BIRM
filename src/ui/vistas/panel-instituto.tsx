@@ -31,6 +31,7 @@ import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 import { pendientesCentro } from '@/ui/utils/pendientes';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
+import { AltaInstituto } from './alta-instituto';
 import { ClasesCentro } from './clases-centro';
 import { ContenidoSeguimiento } from './seguimiento-profe';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
@@ -101,6 +102,11 @@ export function PanelInstituto() {
   const subtitulo = esGeneralitat ? t('Gestión de los institutos') : t('Gestión de tu centro');
   const estiloTarjeta = ancho ? styles.tarjetaAncha : undefined;
   const hoy = hoyISO();
+  // Tras dar de alta un instituto se recarga la lista y se pasa a gestionarlo.
+  const alCrearInstituto = (centro: Centro) => {
+    centros.recargar();
+    elegirCentro(centro.id);
+  };
 
   const fechasGenerales = (
     <Tarjeta titulo={t('Fechas para todos')} style={estiloTarjeta}>
@@ -119,11 +125,15 @@ export function PanelInstituto() {
           centros.error ? (
             <ErrorCarga texto={centros.error} onReintentar={centros.recargar} />
           ) : centros.datos ? (
-            <EstadoVacio
-              titulo={t('Todavía no hay institutos')}
-              texto={t('Cuando se dé de alta un centro, aparecerá aquí para poder gestionarlo.')}
-              accion={{ texto: t('Volver a mirar'), onPress: centros.recargar }}
-            />
+            <>
+              <EstadoVacio
+                titulo={t('Todavía no hay institutos')}
+                texto={t('Da de alta el primero para empezar a gestionarlo.')}
+              />
+              <Tarjeta titulo={t('Dar de alta un instituto')} style={estiloTarjeta}>
+                <AltaInstituto abierto onCreado={alCrearInstituto} />
+              </Tarjeta>
+            </>
           ) : (
             <EsqueletoPanel tarjetas={2} />
           )
@@ -146,10 +156,13 @@ export function PanelInstituto() {
 
   const bloqueCentro = (
     <Tarjeta
-      titulo={esGeneralitat ? 'Institutos que gestionas' : 'Tu centro'}
+      titulo={esGeneralitat ? t('Institutos que gestionas') : t('Tu centro')}
       style={estiloTarjeta}>
       {esGeneralitat ? (
-        <SelectorCentros centros={centros.datos ?? []} valor={centroId} onCambio={elegirCentro} />
+        <>
+          <SelectorCentros centros={centros.datos ?? []} valor={centroId} onCambio={elegirCentro} />
+          <AltaInstituto onCreado={alCrearInstituto} />
+        </>
       ) : datos ? (
         <CabeceraCentro centro={datos.centro} />
       ) : null}
