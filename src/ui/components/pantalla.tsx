@@ -62,8 +62,9 @@ export function Pantalla({
         ]}
         // Los campos de los formularios se pueden tocar con el teclado abierto y, al arrastrar,
         // el teclado se cierra en vez de quedarse tapando el contenido.
+        // En web cualquier scroll (aunque lo provoque escribir) quitaría el foco del campo.
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag">
+        keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}>
         <View style={[styles.contenido, amplia && styles.amplia]}>
           <View
             style={[
