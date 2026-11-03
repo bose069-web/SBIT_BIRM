@@ -207,9 +207,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // En pantallas muy estrechas los controles bajan a la línea siguiente.
+    flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  logo: { width: 170, height: 48 },
+  // El logo cede ancho antes de que los controles se salgan de la tarjeta.
+  logo: { width: 150, minWidth: 120, flexShrink: 1, height: 44 },
   demo: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
   filaDemo: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
 });
