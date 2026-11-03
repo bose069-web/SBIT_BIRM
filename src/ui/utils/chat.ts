@@ -69,7 +69,9 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
     conversaciones.push({
       id,
       titulo: d.tutorNombre,
-      etiqueta: `Profe de ${(alumnosPorProfe.get(d.tutorId) ?? []).join(', ')}`,
+      etiqueta: t('Profe de {alumnos}', {
+        alumnos: (alumnosPorProfe.get(d.tutorId) ?? []).join(', '),
+      }),
       rol: 'profe',
     });
   }

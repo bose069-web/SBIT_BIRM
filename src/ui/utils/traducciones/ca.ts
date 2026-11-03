@@ -752,4 +752,227 @@ export const CATALAN: Record<string, string> = {
   Copiado: 'Copiat',
   'Copiar enlace': "Copiar l'enllaç",
   'Compartir enlace': "Compartir l'enllaç",
+
+  // Chat, validaciones, dossier, alumnos, convenios y portada
+  'Borrador guardado en este dispositivo a las {hora}':
+    'Esborrany desat en aquest dispositiu a les {hora}',
+  'Escribe un mensaje…': 'Escriu un missatge…',
+  'Escribe un mensaje antes de enviar.': "Escriu un missatge abans d'enviar.",
+  'Intro para enviar, Mayúsculas más Intro para otra línea':
+    'Retorn per enviar, Majúscules més Retorn per a una altra línia',
+  'Enviar mensaje': 'Enviar el missatge',
+  Ayer: 'Ahir',
+  'Alumno en prácticas': 'Alumne en pràctiques',
+  'Profe del centro': 'Profe del centre',
+  'Profe de {alumnos}': 'Profe de {alumnos}',
+  'No se pudo cargar el chat': "No s'ha pogut carregar el xat",
+  'No se pudo enviar': "No s'ha pogut enviar",
+  'No se pudo guardar la lectura del hilo.': "No s'ha pogut desar la lectura del fil.",
+  'Elige una conversación': 'Tria una conversa',
+  '‹ Conversaciones': '‹ Converses',
+  'Sin mensajes todavía': 'Encara sense missatges',
+  '{n} sin leer': '{n} sense llegir',
+  'Todavía no hay mensajes. Escribe el primero.': 'Encara no hi ha missatges. Escriu el primer.',
+  'Último {hora}': 'Últim {hora}',
+  'Mensajes directos': 'Missatges directes',
+  'Abierta por mí': 'Oberta per mi',
+  '{n} por atender': '{n} per atendre',
+  'Sin conversaciones': 'Sense converses',
+  'Si algo no va bien en las prácticas, con la empresa o con la app, abre una incidencia y hablad aquí.':
+    "Si alguna cosa no va bé a les pràctiques, amb l'empresa o amb l'app, obre una incidència i parleu aquí.",
+  'Último: {texto}': 'Últim: {texto}',
+  'Cargando conversaciones': 'Carregant converses',
+  'Selecciona una incidencia de la lista para leerla y responder.':
+    'Selecciona una incidència de la llista per llegir-la i respondre.',
+  'Ocultar detalles': 'Amagar els detalls',
+  'Ver detalles': 'Veure els detalls',
+  Detalles: 'Detalls',
+  'Todavía no hay respuesta de quien la atiende.': "Encara no hi ha resposta de qui l'atén.",
+  'No tienes tutores asignados': 'No tens tutors assignats',
+  'Cuando tu dossier tenga un tutor de empresa o un profe, podrás hablar aquí con ellos.':
+    "Quan el teu dossier tingui un tutor d'empresa o un profe, hi podràs parlar aquí.",
+  'Cuando el centro te ponga como tutor de empresa de un alumno, podrás hablar aquí con él y con su profe.':
+    "Quan el centre et posi com a tutor d'empresa d'un alumne, podràs parlar aquí amb ell i amb el seu profe.",
+  'Selecciona tu tutor de empresa o tu profe para leer los mensajes.':
+    "Selecciona el teu tutor d'empresa o el teu profe per llegir els missatges.",
+  'Selecciona un alumno o un profe de la lista para leer los mensajes.':
+    'Selecciona un alumne o un profe de la llista per llegir els missatges.',
+  'Sin centro': 'Sense centre',
+  'Elige un centro desde Inicio para gestionar sus convenios.':
+    "Tria un centre des de l'Inici per gestionar-ne els convenis.",
+  'Empresas con las que el centro tiene convenio': 'Empreses amb què el centre té conveni',
+  'Con convenio': 'Amb conveni',
+  'Empresas sin convenio': 'Empreses sense conveni',
+  'Convenios con empresas ({n})': 'Convenis amb empreses ({n})',
+  'Los alumnos solo pueden hacer prácticas en empresas con convenio.':
+    'Els alumnes només poden fer pràctiques en empreses amb conveni.',
+  'Quitar convenio': 'Treure el conveni',
+  'Convenio con {empresa} quitado': 'Conveni amb {empresa} tret',
+  'Empresa dada de alta y convenio firmado': "Empresa donada d'alta i conveni signat",
+  'Firmar convenio': 'Signar el conveni',
+  'Empresa existente': 'Empresa existent',
+  'Convenio firmado con {empresa}': 'Conveni signat amb {empresa}',
+  'Empresa nueva': 'Empresa nova',
+  Nombre: 'Nom',
+  'Empresa SL': 'Empresa SL',
+  CIF: 'CIF',
+  'Dar de alta y firmar convenio': "Donar d'alta i signar el conveni",
+  'Ficha del dossier': 'Fitxa del dossier',
+  'No se encuentra el dossier': 'No es troba el dossier',
+  'Puede que se haya borrado o que no tengas permiso para verlo.':
+    "Potser s'ha esborrat o no tens permís per veure'l.",
+  'Ficha del dossier · {ciclo}': 'Fitxa del dossier · {ciclo}',
+  'Editar dossier': 'Editar el dossier',
+  Horas: 'Hores',
+  '{n} día de trabajo': '{n} dia de feina',
+  '{n} días de trabajo': '{n} dies de feina',
+  '{n} ausencia': '{n} absència',
+  '{n} ausencias': '{n} absències',
+  '{n} festivo': '{n} festiu',
+  '{n} festivos': '{n} festius',
+  '% completado ·': '% completat ·',
+  'Actividades ({n})': 'Activitats ({n})',
+  'Este dossier todavía no tiene actividades formativas.':
+    'Aquest dossier encara no té activitats formatives.',
+  '{actividad}: {horas}, {porcentaje}% de las horas':
+    '{actividad}: {horas}, {porcentaje}% de les hores',
+  'Tu cuenta no tiene centro: no puedes crear dossiers.':
+    'El teu compte no té centre: no pots crear dossiers.',
+  'Nuevo dossier': 'Dossier nou',
+  '‹ Volver sin guardar': '‹ Tornar sense desar',
+  'Alumno y empresa': 'Alumne i empresa',
+  'Escribe el nombre o el correo': 'Escriu el nom o el correu',
+  'No hay alumnos con profe asignado en tu centro.':
+    'No hi ha alumnes amb profe assignat al teu centre.',
+  'Sin profe asignado (asígnalo antes en Centro):':
+    "Sense profe assignat (assigna'l abans a Centre):",
+  'Empresa (con convenio)': 'Empresa (amb conveni)',
+  'Escribe el nombre de la empresa': "Escriu el nom de l'empresa",
+  'Convenio desde {fecha}': 'Conveni des del {fecha}',
+  'Tu centro todavía no tiene convenios con empresas.':
+    'El teu centre encara no té convenis amb empreses.',
+  'Buscando tutores…': 'Cercant tutors…',
+  'Esta empresa aún no tiene tutor en Kampus: se puede asignar más tarde.':
+    'Aquesta empresa encara no té tutor a Kampus: es pot assignar més tard.',
+  DAM: 'DAM',
+  'Horas totales': 'Hores totals',
+  'Actividades formativas': 'Activitats formatives',
+  'Actividad {n}': 'Activitat {n}',
+  'Desarrollo de la app interna': "Desenvolupament de l'app interna",
+  'Quitar la actividad {n}': "Treure l'activitat {n}",
+  '+ Añadir actividad': '+ Afegir una activitat',
+  'Crear dossier': 'Crear el dossier',
+  'Borrar dossier': 'Esborrar el dossier',
+  'El alumno reparte sus horas entre estas actividades. Las que ya tienen horas no se pueden quitar.':
+    "L'alumne reparteix les hores entre aquestes activitats. Les que ja tenen hores no es poden treure.",
+  'Alumnos del centro': 'Alumnes del centre',
+  'Tutores y altas': 'Tutors i altes',
+  'Reparto por profesor': 'Repartiment per professor',
+  'Seguimiento de prácticas': 'Seguiment de pràctiques',
+  'Elige un centro desde Inicio para gestionar sus alumnos.':
+    "Tria un centre des de l'Inici per gestionar-ne els alumnes.",
+  'Sin profe': 'Sense profe',
+  'Cuentas nuevas': 'Comptes nous',
+  '{alumno} asignado a {profe}': '{alumno} assignat a {profe}',
+  '{alumno} queda sin profe': '{alumno} es queda sense profe',
+  'Profe tutor de cada alumno ({n})': 'Profe tutor de cada alumne ({n})',
+  'Todavía no hay profes en el centro.': 'Encara no hi ha profes al centre.',
+  'Todavía no hay alumnos en el centro.': 'Encara no hi ha alumnes al centre.',
+  'Profe tutor': 'Profe tutor',
+  'No se ha podido dar de alta al alumno': "No s'ha pogut donar d'alta l'alumne",
+  'Dar de alta un alumno': "Donar d'alta un alumne",
+  'Crea su cuenta en {centro} con una contraseña inicial que verás una sola vez.':
+    'Crea el seu compte a {centro} amb una contrasenya inicial que veuràs una sola vegada.',
+  'Dar de alta': "Donar d'alta",
+  'Compártela con el alumno; no se volverá a mostrar.':
+    "Comparteix-la amb l'alumne; no es tornarà a mostrar.",
+  'Ya puede entrar con su correo y esta contraseña, y cambiarla en su perfil.':
+    'Ja pot entrar amb el seu correu i aquesta contrasenya, i canviar-la al seu perfil.',
+  'Ocultar la contraseña': 'Amagar la contrasenya',
+  'Cuentas nuevas ({n})': 'Comptes nous ({n})',
+  'No hay cuentas por añadir. Aquí aparecerían las que existan sin centro.':
+    'No hi ha comptes per afegir. Aquí apareixerien els que existeixin sense centre.',
+  'Estas cuentas aún no son de ningún centro. Añádelas como alumnos del tuyo.':
+    'Aquests comptes encara no són de cap centre. Afegeix-los com a alumnes del teu.',
+  'Sin tutor': 'Sense tutor',
+  'Reasignación completada. Alumnos actualizados: {n}.':
+    'Reassignació completada. Alumnes actualitzats: {n}.',
+  'No se pudo completar la reasignación. Comprueba el reparto actualizado antes de reintentarlo.':
+    "No s'ha pogut completar la reassignació. Comprova el repartiment actualitzat abans de tornar-ho a provar.",
+  'Asignar a {nombre}': 'Assignar a {nombre}',
+  'Dejar sin tutor': 'Deixar sense tutor',
+  'Confirmar reasignación': 'Confirmar la reassignació',
+  'Volver a la selección': 'Tornar a la selecció',
+  'Selecciona al alumno para reasignarlo': "Selecciona l'alumne per reassignar-lo",
+  'Tutor de destino': 'Tutor de destinació',
+  'Revisar reasignación ({n})': 'Revisar la reassignació ({n})',
+  'No se ha podido cambiar la contraseña': "No s'ha pogut canviar la contrasenya",
+  'No se ha podido cambiar la contraseña. Inténtalo de nuevo.':
+    "No s'ha pogut canviar la contrasenya. Torna-ho a provar.",
+  'Nueva contraseña': 'Contrasenya nova',
+  'Contraseña cambiada. Ya puedes iniciar sesión con ella.':
+    'Contrasenya canviada. Ja pots iniciar sessió amb ella.',
+  'Este enlace no es válido. Pide uno nuevo a tu profe.':
+    'Aquest enllaç no és vàlid. Demana-ne un de nou al teu profe.',
+  'Al menos 8 caracteres': 'Com a mínim 8 caràcters',
+  'Guardar contraseña': 'Desar la contrasenya',
+  'Ir al inicio de sesión': "Anar a l'inici de sessió",
+  Kampus: 'Kampus',
+  'Modo claro': 'Mode clar',
+  'Modo oscuro': 'Mode fosc',
+  'PRÁCTICAS DE FP · FCT Y DUAL': 'PRÀCTIQUES DE FP · FCT I DUAL',
+  'Alumno, empresa, profe e instituto en el mismo sitio. Las horas se apuntan en un toque y se validan en dos.':
+    "Alumne, empresa, profe i institut al mateix lloc. Les hores s'apunten amb un toc i es validen amb dos.",
+  'Octubre 2026': 'Octubre 2026',
+  'Ejemplo de progreso': 'Exemple de progrés',
+  '152 h': '152 h',
+  'de 400 h': 'de 400 h',
+  '{n} mes validado': '{n} mes validat',
+  '{n} meses validados': '{n} mesos validats',
+  '{n} mes valorado': '{n} mes valorat',
+  '{n} meses valorados': '{n} mesos valorats',
+  'Los informes mensuales de tus alumnos': 'Els informes mensuals dels teus alumnes',
+  'Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus meses para validar.':
+    "Quan el centre et posi com a tutor d'empresa d'un alumne, aquí arribaran els seus mesos per validar.",
+  Nada: 'Res',
+  'Quitar la selección': 'Treure la selecció',
+  'Seleccionar todos': 'Seleccionar-los tots',
+  'Ya validadas': 'Ja validades',
+  Ninguna: 'Cap',
+  'Todavía no has validado ningún mes. Los que vayas cerrando aparecerán aquí.':
+    'Encara no has validat cap mes. Els que vagis tancant apareixeran aquí.',
+  'Añade o quita este informe de la valoración en bloque':
+    'Afegeix o treu aquest informe de la valoració en bloc',
+  'Elige la valoración': 'Tria la valoració',
+  'Explica qué tiene que mejorar el alumno': "Explica què ha de millorar l'alumne",
+  'Valorar la selección': 'Valorar la selecció',
+  'Revisa antes de confirmar': 'Revisa abans de confirmar',
+  'Comentario: {texto}': 'Comentari: {texto}',
+  'Sin comentario': 'Sense comentari',
+  '{n} informe no tiene ningún día de trabajo apuntado.':
+    '{n} informe no té cap dia de feina apuntat.',
+  '{n} informes no tienen ningún día de trabajo apuntado.':
+    '{n} informes no tenen cap dia de feina apuntat.',
+  'Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.':
+    "Inclou el mes en curs: l'alumne ja no podrà apuntar més dies d'aquell mes.",
+  'Cada alumno verá esta valoración y este comentario, y su mes se cerrará.':
+    'Cada alumne veurà aquesta valoració i aquest comentari, i el seu mes es tancarà.',
+  'Confirmar valoración': 'Confirmar la valoració',
+  'Opcional si la valoración es positiva; si no, hay que explicar qué mejorar. Es el mismo para todos.':
+    'Opcional si la valoració és positiva; si no, cal explicar què millorar. És el mateix per a tots.',
+  'Revisar y confirmar': 'Revisar i confirmar',
+  'Resultado de la valoración': 'Resultat de la valoració',
+  '{n} requiere atención. Los que siguen pendientes quedan seleccionados.':
+    '{n} requereix atenció. Els que continuen pendents queden seleccionats.',
+  '{n} requieren atención. Los que siguen pendientes quedan seleccionados.':
+    '{n} requereixen atenció. Els que continuen pendents queden seleccionats.',
+  Cerrar: 'Tancar',
+  'Validar el informe de {mes} de {nombre}': "Validar l'informe de {mes} de {nombre}",
+  Pendiente: 'Pendent',
+  'Este mes: {horas} en': 'Aquest mes: {horas} en',
+  'Todavía no ha apuntado días de este mes': "Encara no ha apuntat dies d'aquest mes",
+  'Validar ›': 'Validar ›',
+  'Validado el': 'Validat el',
+  'No te queda ningún informe pendiente. En cuanto tus alumnos empiecen un mes nuevo, aparecerá aquí para que lo valores.':
+    'No et queda cap informe pendent. Quan els teus alumnes comencin un mes nou, apareixerà aquí perquè el valoris.',
 };
