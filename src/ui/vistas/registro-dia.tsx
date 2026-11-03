@@ -683,8 +683,7 @@ function FormularioDia({
   const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
 
   return (
-    // Tocar fuera de un campo cierra el teclado.
-    <Pressable accessible={false} onPress={Keyboard.dismiss}>
+    <View>
       <Tarjeta titulo="Qué has hecho">
         {local ? (
           <Mensaje
@@ -897,6 +896,6 @@ function FormularioDia({
           ) : null}
         </View>
       </Tarjeta>
-    </Pressable>
+    </View>
   );
 }
