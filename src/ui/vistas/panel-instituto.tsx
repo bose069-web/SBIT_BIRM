@@ -1,5 +1,5 @@
-import { ClasesCentro } from './clases-centro';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { incorporarAlumno, type PanelCentro } from '@/core/application/centro';
@@ -9,6 +9,8 @@ import type { Incidencia, MensajeIncidencia } from '@/core/domain/incidencia';
 import { container } from '@/config/container';
 import { Avatar } from '@/ui/components/avatar';
 import { Boton } from '@/ui/components/boton';
+import { CabeceraSeccion } from '@/ui/components/cabecera-seccion';
+import { Selector } from '@/ui/components/selector';
 import { Buscador } from '@/ui/components/buscador';
 import { Chip } from '@/ui/components/chip';
 import { Cifra } from '@/ui/components/cifra';
@@ -29,6 +31,9 @@ import { fechaCorta, hoyISO } from '@/ui/utils/fechas';
 import { pendientesCentro } from '@/ui/utils/pendientes';
 
 import { NuevoEvento, ProximasFechas } from './agenda';
+import { AltaInstituto } from './alta-instituto';
+import { ClasesCentro } from './clases-centro';
+import { ContenidoSeguimiento } from './seguimiento-profe';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import { COLOR_ESTADO, TEXTO_ESTADO } from './incidencias';
 import { t, tPlural } from '@/ui/utils/idioma';
@@ -75,13 +80,11 @@ function useIncidenciasCentro(centroId: string | null) {
   return resultado;
 }
 
-/**
- * Inicio del instituto y de la generalitat: el panel de gestión del centro. Primero el centro y lo
- * que pide una acción; después incidencias y convenios. Los alumnos se gestionan en segundo nivel.
- */
+/** Inicio del centro: resumen, tareas de gestión y seguimiento en su propia sección. */
 export function PanelInstituto() {
   const usuario = useUsuario();
   const ancho = useWebAncha();
+  const [seccion, setSeccion] = useState<'gestion' | 'seguimiento'>('gestion');
   const {
     esGeneralitat,
     centros,
@@ -99,6 +102,11 @@ export function PanelInstituto() {
   const subtitulo = esGeneralitat ? t('Gestión de los institutos') : t('Gestión de tu centro');
   const estiloTarjeta = ancho ? styles.tarjetaAncha : undefined;
   const hoy = hoyISO();
+  // Tras dar de alta un instituto se recarga la lista y se pasa a gestionarlo.
+  const alCrearInstituto = (centro: Centro) => {
+    centros.recargar();
+    elegirCentro(centro.id);
+  };
 
   const fechasGenerales = (
     <Tarjeta titulo={t('Fechas para todos')} style={estiloTarjeta}>
@@ -117,11 +125,15 @@ export function PanelInstituto() {
           centros.error ? (
             <ErrorCarga texto={centros.error} onReintentar={centros.recargar} />
           ) : centros.datos ? (
-            <EstadoVacio
-              titulo={t('Todavía no hay institutos')}
-              texto={t('Cuando se dé de alta un centro, aparecerá aquí para poder gestionarlo.')}
-              accion={{ texto: t('Volver a mirar'), onPress: centros.recargar }}
-            />
+            <>
+              <EstadoVacio
+                titulo={t('Todavía no hay institutos')}
+                texto={t('Da de alta el primero para empezar a gestionarlo.')}
+              />
+              <Tarjeta titulo={t('Dar de alta un instituto')} style={estiloTarjeta}>
+                <AltaInstituto abierto onCreado={alCrearInstituto} />
+              </Tarjeta>
+            </>
           ) : (
             <EsqueletoPanel tarjetas={2} />
           )
@@ -138,15 +150,19 @@ export function PanelInstituto() {
 
   // La generalitat lleva el instituto elegido a la pantalla secundaria.
   const params: Record<string, string> = esGeneralitat ? { centro: centroId } : {};
-  const abrirAlumnos = () => router.push({ pathname: '/alumnos', params });
+  const abrirAlumnos = (seccion?: 'alta' | 'reparto') =>
+    router.push({ pathname: '/alumnos', params: { ...params, ...(seccion ? { seccion } : {}) } });
   const abrirConvenios = () => router.push({ pathname: '/centro', params });
 
   const bloqueCentro = (
     <Tarjeta
-      titulo={esGeneralitat ? 'Institutos que gestionas' : 'Tu centro'}
+      titulo={esGeneralitat ? t('Institutos que gestionas') : t('Tu centro')}
       style={estiloTarjeta}>
       {esGeneralitat ? (
-        <SelectorCentros centros={centros.datos ?? []} valor={centroId} onCambio={elegirCentro} />
+        <>
+          <SelectorCentros centros={centros.datos ?? []} valor={centroId} onCambio={elegirCentro} />
+          <AltaInstituto onCreado={alCrearInstituto} />
+        </>
       ) : datos ? (
         <CabeceraCentro centro={datos.centro} />
       ) : null}
@@ -164,7 +180,7 @@ export function PanelInstituto() {
         hayErrorIncidencias={Boolean(incidencias.error)}
         params={params}
         hacer={hacer}
-        onAlumnos={abrirAlumnos}
+        onAlumnos={() => abrirAlumnos()}
         estilo={estiloTarjeta}
       />
     </>
@@ -199,7 +215,7 @@ export function PanelInstituto() {
     <ResumenConvenios datos={datos} onGestionar={abrirConvenios} estilo={estiloTarjeta} />
   ) : null;
   const bloqueAlumnos = datos ? (
-    <ResumenAlumnos datos={datos} onGestionar={abrirAlumnos} estilo={estiloTarjeta} />
+    <ResumenAlumnos datos={datos} onGestionar={() => abrirAlumnos()} estilo={estiloTarjeta} />
   ) : null;
 
   return (
@@ -216,39 +232,86 @@ export function PanelInstituto() {
         />
       ) : null}
       {datos ? (
-        ancho ? (
-          <View style={styles.columnas}>
-            <View style={styles.principal}>
-              {bloqueCentro}
+        <View style={styles.bloques}>
+          {bloqueCentro}
+          <Selector
+            etiqueta={t('Área de trabajo')}
+            opciones={[
+              { valor: 'gestion', texto: t('Gestión del centro') },
+              { valor: 'seguimiento', texto: t('Seguimiento de prácticas') },
+            ]}
+            valor={seccion}
+            onCambio={setSeccion}
+          />
+          {seccion === 'gestion' ? (
+            <>
               {cuerpo}
-              {bloqueIncidencias}
-            </View>
-            <View style={styles.lateral}>
-              {bloqueAlumnos}
-              <ClasesCentro
-                key={datos.centro.id}
-                centroId={datos.centro.id}
-                alumnos={datos.alumnos}
+              <View style={styles.bloques}>
+                <CabeceraSeccion
+                  titulo={t('Alumnos y profes')}
+                  descripcion={t('Altas, tutores y reparto del alumnado.')}
+                  acciones={
+                    <>
+                      <Boton texto={t('Dar de alta alumno')} onPress={() => abrirAlumnos('alta')} />
+                      <Boton
+                        texto={t('Asignar profe')}
+                        variante="secundario"
+                        onPress={() => abrirAlumnos('reparto')}
+                      />
+                    </>
+                  }
+                />
+                {bloqueAlumnos}
+              </View>
+              <View style={ancho ? styles.columnas : styles.bloques}>
+                <View style={ancho ? styles.columna : styles.bloques}>
+                  <ClasesCentro
+                    key={datos.centro.id}
+                    centroId={datos.centro.id}
+                    alumnos={datos.alumnos}
+                  />
+                </View>
+                <View style={ancho ? styles.columna : styles.bloques}>
+                  <CabeceraSeccion
+                    titulo={t('Empresas y convenios')}
+                    descripcion={t('Prepara las empresas donde harán las prácticas.')}
+                    acciones={<Boton texto={t('Nuevo convenio')} onPress={abrirConvenios} />}
+                  />
+                  {bloqueConvenios}
+                </View>
+              </View>
+              <CabeceraSeccion
+                titulo={t('Seguimiento')}
+                descripcion={t('Consulta horas, meses e incidencias de tus alumnos.')}
+                acciones={
+                  <Boton
+                    texto={t('Seguimiento de prácticas')}
+                    variante="secundario"
+                    onPress={() => setSeccion('seguimiento')}
+                  />
+                }
               />
-              {bloqueConvenios}
-              {fechasGenerales}
-            </View>
-          </View>
-        ) : (
-          <View style={styles.bloques}>
-            {bloqueCentro}
-            {cuerpo}
-            {bloqueIncidencias}
-            {bloqueConvenios}
-            {bloqueAlumnos}
-            <ClasesCentro
-              key={datos.centro.id}
-              centroId={datos.centro.id}
-              alumnos={datos.alumnos}
-            />
-            {fechasGenerales}
-          </View>
-        )
+            </>
+          ) : (
+            <>
+              <CabeceraSeccion
+                titulo={t('Seguimiento de prácticas')}
+                descripcion={t('Horas y valoraciones de todos los alumnos del centro.')}
+              />
+              <ContenidoSeguimiento
+                key={centroId}
+                centroId={centroId}
+                onFicha={(id) =>
+                  router.push({ pathname: '/alumnos', params: { ...params, dossier: id } })
+                }
+              />
+              <View style={ancho ? styles.columnas : styles.bloques}>
+                <View style={ancho ? styles.columna : styles.bloques}>{bloqueIncidencias}</View>
+                <View style={ancho ? styles.columna : styles.bloques}>{fechasGenerales}</View>
+              </View>
+            </>
+          )}
+        </View>
       ) : null}
     </Pantalla>
   );
@@ -344,7 +407,12 @@ function CifrasCentro({
   return (
     <View style={styles.cifras}>
       <Cifra style={estilo} valor={`${datos.alumnos.length}`} etiqueta={t('Alumnos')} />
-      <Cifra style={estilo} valor={`${datos.profes.length}`} etiqueta={t('Profes')} />
+      <Cifra
+        style={estilo}
+        valor={`${datos.alumnos.filter((a) => !a.profeId).length}`}
+        etiqueta={t('Sin profe')}
+        color={datos.alumnos.some((a) => !a.profeId) ? 'estadoPendiente' : 'text'}
+      />
       <Cifra style={estilo} valor={`${datos.convenios.length}`} etiqueta={t('Convenios')} />
       <Cifra
         style={estilo}
@@ -457,9 +525,7 @@ function FilaIncidencia({ conversacion }: { conversacion: ConversacionReciente }
       style={({ pressed }) => [styles.filaAccion, pressed && styles.pulsada]}>
       <Avatar nombre={autor} />
       <View style={styles.flex}>
-        <ThemedText type="smallBold" numberOfLines={1}>
-          {i.titulo}
-        </ThemedText>
+        <ThemedText type="smallBold">{i.titulo}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
           {autor}: {ultimo?.texto ?? i.descripcion}
         </ThemedText>
@@ -483,11 +549,17 @@ function ResumenConvenios({
 }) {
   const resto = datos.convenios.length - CONVENIOS_EN_INICIO;
   return (
-    <Tarjeta titulo={t('Convenios ({n})', { n: datos.convenios.length })} style={estilo}>
+    <Tarjeta
+      titulo={t('Convenios ({n})', { n: datos.convenios.length })}
+      style={estilo}
+      accion={
+        <Boton texto={t('Gestionar convenios')} variante="secundario" onPress={onGestionar} />
+      }>
       {datos.convenios.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay convenios. Los alumnos solo pueden hacer prácticas en empresas con
-          convenio.
+          {t(
+            'Todavía no hay convenios. Los alumnos solo pueden hacer prácticas en empresas con convenio.',
+          )}
         </ThemedText>
       ) : (
         <View style={styles.lista}>
@@ -511,7 +583,6 @@ function ResumenConvenios({
           ) : null}
         </View>
       )}
-      <Boton texto={t('Gestionar convenios')} variante="secundario" onPress={onGestionar} />
     </Tarjeta>
   );
 }
@@ -528,14 +599,17 @@ function ResumenAlumnos({
 }) {
   const sinProfe = datos.alumnos.filter((a) => !a.profeId).length;
   return (
-    <Tarjeta titulo={t('Alumnos ({n})', { n: datos.alumnos.length })} style={estilo}>
+    <Tarjeta
+      titulo={t('Alumnos ({n})', { n: datos.alumnos.length })}
+      style={estilo}
+      accion={<Boton texto={t('Gestionar alumnos')} variante="secundario" onPress={onGestionar} />}>
       <ThemedText type="small" themeColor="textSecondary">
         {t('Profe tutor de cada uno, altas, dossiers y seguimiento de las prácticas.')}
       </ThemedText>
+      <Chip texto={tPlural(datos.profes.length, '{n} profe', '{n} profes')} />
       {sinProfe > 0 ? (
         <Chip texto={t('{n} sin profe asignado', { n: sinProfe })} color="estadoPendiente" />
       ) : null}
-      <Boton texto={t('Gestionar alumnos')} onPress={onGestionar} />
     </Tarjeta>
   );
 }
@@ -555,11 +629,10 @@ function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.four },
-  principal: { flex: 1.7, gap: Spacing.four },
-  lateral: { flex: 1, gap: Spacing.four },
+  columna: { flex: 1, minWidth: 0, gap: Spacing.three },
   bloques: { gap: Spacing.four },
   tarjetaAncha: { padding: Spacing.four },
-  flex: { flex: 1, gap: 2 },
+  flex: { flex: 1, minWidth: 0, gap: Spacing.half },
   lista: { gap: Spacing.two },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   centro: {
@@ -580,7 +653,7 @@ const styles = StyleSheet.create({
   persona: {
     flexGrow: 1,
     flexShrink: 1,
-    flexBasis: 220,
+    flexBasis: 180,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,

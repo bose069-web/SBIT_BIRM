@@ -48,6 +48,12 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     gap: Spacing.three,
   },
-  cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titulo: { fontSize: 12, letterSpacing: 0.6 },
+  cabecera: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titulo: { flexShrink: 1, minWidth: 0, fontSize: 12, letterSpacing: 0.6 },
 });

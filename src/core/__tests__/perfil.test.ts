@@ -2,12 +2,15 @@ import {
   cambiarEmail,
   cambiarNombre,
   guardarDatosPersonales,
+  guardarIdioma,
   obtenerMiIdentidad,
 } from '../application/perfil';
 import { DatosInvalidosError, SinPermisoError } from '../domain/errores';
 import {
   DATOS_PERSONALES_VACIOS,
   enmascararDni,
+  formatoTelefono,
+  normalizarTelefono,
   telefonoValido,
   type DatosPersonales,
 } from '../domain/perfil';
@@ -46,38 +49,57 @@ describe('datos personales', () => {
       perfil,
       alumno,
       datos({
-        telefono: ' 600 111 222 ',
+        telefono: ' +34 600 111 222 ',
         emergenciaNombre: ' Madre ',
         cargo: 'Jefe',
       }),
     );
     expect(guardado).toMatchObject({
-      telefono: '600 111 222',
+      telefono: '600111222',
       emergenciaNombre: 'Madre',
       cargo: null,
     });
     const deEmpresa = await guardarDatosPersonales(
       perfil,
       empresa,
-      datos({ cargo: ' CTO ', departamento: 'Info' }),
+      datos({ telefono: '700111222', cargo: ' CTO ', departamento: 'Info' }),
     );
     expect(deEmpresa).toMatchObject({ cargo: 'CTO', departamento: null });
   });
 
   it('rechaza teléfonos y textos no válidos', () => {
     expect(() =>
-      guardarDatosPersonales(new PerfilFalso(), alumno, datos({ emergenciaTelefono: '12ab' })),
+      guardarDatosPersonales(
+        new PerfilFalso(),
+        alumno,
+        datos({ telefono: '600111222', emergenciaTelefono: '12ab' }),
+      ),
     ).toThrow(DatosInvalidosError);
     expect(() =>
-      guardarDatosPersonales(new PerfilFalso(), profe, datos({ departamento: 'x'.repeat(121) })),
+      guardarDatosPersonales(
+        new PerfilFalso(),
+        profe,
+        datos({ telefono: '600111222', departamento: 'x'.repeat(121) }),
+      ),
     ).toThrow(DatosInvalidosError);
   });
 
-  it('teléfonos: 9 a 15 cifras con + opcional', () => {
-    expect(telefonoValido('+34 600 111 222')).toBe(true);
-    expect(telefonoValido('93 123 45 67')).toBe(true);
-    expect(telefonoValido('12345')).toBe(false);
-    expect(telefonoValido('600-111-222')).toBe(false);
+  it('teléfonos españoles: 9 cifras que empiezan por 6-9, con +34 opcional', () => {
+    expect(normalizarTelefono('+34 600 111 222')).toBe('600111222');
+    expect(normalizarTelefono('0034 912-345-678')).toBe('912345678');
+    expect(normalizarTelefono('93.123.45.67')).toBe('931234567');
+    expect(telefonoValido('500111222')).toBe(false);
+    expect(telefonoValido('60011122')).toBe(false);
+    expect(telefonoValido('+44 600 111 222')).toBe(false);
+    expect(formatoTelefono('600111222')).toBe('600 111 222');
+  });
+
+  it('el teléfono es obligatorio, salvo al cambiar solo el idioma', async () => {
+    expect(() => guardarDatosPersonales(new PerfilFalso(), alumno, datos({}))).toThrow(
+      DatosInvalidosError,
+    );
+    const guardado = await guardarIdioma(new PerfilFalso(), alumno, datos({}), 'ca');
+    expect(guardado.idioma).toBe('ca');
   });
 });
 

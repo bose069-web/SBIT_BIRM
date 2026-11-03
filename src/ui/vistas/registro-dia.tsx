@@ -696,8 +696,9 @@ function FormularioDia({
   const copiables = ultimoTrabajo ? horasParaCopiar(ultimoTrabajo, actividades) : [];
 
   return (
-    // Tocar fuera de un campo cierra el teclado.
-    <Pressable accessible={false} onPress={Keyboard.dismiss}>
+    // Tocar fuera de un campo cierra el teclado. En web no: el clic en el campo también
+    // llega aquí y le quitaría el foco.
+    <Pressable accessible={false} onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}>
       <Tarjeta titulo={t('Qué has hecho')}>
         {local ? (
           <Mensaje
@@ -783,10 +784,12 @@ function FormularioDia({
 
             {ultimoTrabajo && copiables.length > 0 && !bloqueado ? (
               <Enlace
-                texto={t('Copiar horas del {fecha}', { fecha: fechaCorta(ultimoTrabajo.fecha) })}
-                onPress={() =>
-                  setHoras(Object.fromEntries(copiables.map((h) => [h.actividadId, h.horas])))
-                }
+                texto={t('Copiar del {fecha}', { fecha: fechaCorta(ultimoTrabajo.fecha) })}
+                onPress={() => {
+                  setHoras(Object.fromEntries(copiables.map((h) => [h.actividadId, h.horas])));
+                  // Lo ya escrito hoy no se pisa.
+                  if (!observaciones.trim()) setObservaciones(ultimoTrabajo.observaciones ?? '');
+                }}
               />
             ) : null}
 

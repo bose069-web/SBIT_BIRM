@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Quesito } from '@/ui/components/quesito';
 import { ThemedText } from '@/ui/components/themed-text';
-import { cambiarEsquemaWeb, useEsquemaWeb } from '@/ui/estado/preferencias-web';
+import { useEsquemaWeb } from '@/ui/estado/preferencias-web';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
 import { t } from '@/ui/utils/idioma';
+
+import { ControlesAcceso } from './controles-acceso';
 
 const LOGOTIPO = {
   light: require('@/assets/brand/kampus-logotipo.png'),
@@ -18,19 +20,12 @@ const ANCHO = 1120;
 export function Portada({ acceso }: { acceso: ReactNode }) {
   const theme = useTheme();
   const esquema = useEsquemaWeb();
-  const oscuro = esquema === 'dark';
 
   return (
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.pagina}>
       <View style={[styles.franja, styles.cabecera]}>
         <Image accessibilityLabel={t('Kampus')} source={LOGOTIPO[esquema]} style={styles.logo} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-          onPress={() => cambiarEsquemaWeb(oscuro ? 'light' : 'dark')}
-          style={[styles.botonModo, { borderColor: theme.border }]}>
-          <ThemedText type="small">{oscuro ? 'Modo claro' : 'Modo oscuro'}</ThemedText>
-        </Pressable>
+        <ControlesAcceso />
       </View>
 
       {/* Bloque principal: mensaje y vista de la app a la izquierda, acceso a la derecha. */}
@@ -110,13 +105,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
   },
   logo: { width: 120, height: 34, resizeMode: 'contain' },
-  botonModo: {
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    justifyContent: 'center',
-  },
   heroe: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -23,13 +23,16 @@ export function Chip({ texto, color = 'textSecondary' }: Props) {
         importantForAccessibility="no-hide-descendants"
         style={[styles.punto, { backgroundColor: theme[color] }]}
       />
-      <ThemedText type="small">{texto}</ThemedText>
+      <ThemedText type="small" style={styles.texto}>
+        {texto}
+      </ThemedText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
+    maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -39,5 +42,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     borderWidth: 1,
   },
-  punto: { width: 8, height: 8, borderRadius: 4 },
+  texto: { flexShrink: 1 },
+  punto: { flexShrink: 0, width: 8, height: 8, borderRadius: 4 },
 });

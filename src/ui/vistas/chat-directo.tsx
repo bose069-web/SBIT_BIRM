@@ -399,7 +399,7 @@ function Hilo({
         style={styles.flex}
         contentContainerStyle={styles.cuerpo}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
         onContentSizeChange={bajarAlFinal}
         onLayout={bajarAlFinal}>
         {cuerpo}

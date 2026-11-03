@@ -155,7 +155,7 @@ export function ultimaJornadaAntesDe(
 
 /**
  * Horas que se pueden copiar de una jornada: solo las de actividades que siguen en el dossier y
- * sin pasar de MAX_HORAS_DIA. Ni id, ni fecha, ni observaciones: lo escrito describe aquel día.
+ * sin pasar de MAX_HORAS_DIA. Ni id ni fecha; las observaciones las copia la pantalla aparte.
  */
 export function horasParaCopiar(
   jornada: Pick<RegistroDiario, 'horas'>,

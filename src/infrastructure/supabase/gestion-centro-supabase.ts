@@ -52,6 +52,8 @@ function comprobar(error: { message: string; code?: string } | null) {
   if (error.code === '23503') {
     throw new Error('No se puede: todavía hay dossiers que dependen de esto');
   }
+  // 23505: valor repetido. Pasa al dar de alta un instituto con un código que ya existe.
+  if (error.code === '23505') throw new Error('Ya existe un centro con ese código');
   throw new Error(error.message);
 }
 

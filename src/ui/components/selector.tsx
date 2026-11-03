@@ -58,6 +58,8 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   opcion: {
     minHeight: 44,
+    maxWidth: '100%',
+    paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     borderRadius: Radius.pill,
     borderWidth: 1,

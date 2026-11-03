@@ -11,8 +11,8 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
-import { ErrorCarga, EsqueletoPanel } from './comun';
 import { t } from '@/ui/utils/idioma';
+import { ErrorCarga, EsqueletoPanel } from './comun';
 
 export function RepartoProfesCentro({
   centroId,
@@ -34,7 +34,7 @@ export function RepartoProfesCentro({
   if (error) return <ErrorCarga texto={error} onReintentar={recargar} />;
   if (!datos) return <EsqueletoPanel />;
   const grupos = [
-    { id: 'sin-tutor', nombre: 'Sin tutor', alumnos: datos.sinProfe },
+    { id: 'sin-tutor', nombre: t('Sin tutor'), alumnos: datos.sinProfe },
     ...datos.profes,
   ];
   const profe = datos.profes.find((p) => p.id === destino) ?? null;
@@ -84,32 +84,6 @@ export function RepartoProfesCentro({
         </>
       ) : (
         <>
-          {grupos.map((g) => (
-            <View key={g.id} style={{ gap: Spacing.one }}>
-              <ThemedText type="smallBold">
-                {g.nombre} ({g.alumnos.length})
-              </ThemedText>
-              {g.alumnos.map((a) => (
-                <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <CasillaTarea
-                    titulo={a.nombre}
-                    hecha={ids.includes(a.id)}
-                    textos={{
-                      marcada: 'seleccionado',
-                      sinMarcar: 'sin seleccionar',
-                      pista: 'Selecciona al alumno para reasignarlo',
-                    }}
-                    onPress={() =>
-                      seleccionar((prev) =>
-                        prev.includes(a.id) ? prev.filter((id) => id !== a.id) : [...prev, a.id],
-                      )
-                    }
-                  />
-                  <ThemedText style={{ flex: 1 }}>{a.nombre}</ThemedText>
-                </View>
-              ))}
-            </View>
-          ))}
           <Selector
             etiqueta={t('Tutor de destino')}
             valor={destino}
@@ -124,6 +98,47 @@ export function RepartoProfesCentro({
               revisar(true);
             }}
           />
+          {grupos.every((g) => g.alumnos.length === 0) ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('Todavía no hay alumnos en el centro.')}
+            </ThemedText>
+          ) : null}
+          {datos.profes.length === 0 ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('Todavía no hay profes en el centro.')}
+            </ThemedText>
+          ) : null}
+          {grupos.map((g) => (
+            <View key={g.id} style={{ gap: Spacing.one }}>
+              <ThemedText type="smallBold">
+                {g.nombre} ({g.alumnos.length})
+              </ThemedText>
+              {g.alumnos.length === 0 ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {t('Sin alumnos asignados')}
+                </ThemedText>
+              ) : null}
+              {g.alumnos.map((a) => (
+                <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <CasillaTarea
+                    titulo={a.nombre}
+                    hecha={ids.includes(a.id)}
+                    textos={{
+                      marcada: t('seleccionado'),
+                      sinMarcar: t('sin seleccionar'),
+                      pista: t('Selecciona al alumno para reasignarlo'),
+                    }}
+                    onPress={() =>
+                      seleccionar((prev) =>
+                        prev.includes(a.id) ? prev.filter((id) => id !== a.id) : [...prev, a.id],
+                      )
+                    }
+                  />
+                  <ThemedText style={{ flex: 1 }}>{a.nombre}</ThemedText>
+                </View>
+              ))}
+            </View>
+          ))}
         </>
       )}
     </Tarjeta>
