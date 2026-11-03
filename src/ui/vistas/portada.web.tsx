@@ -6,6 +6,7 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useEsquemaWeb } from '@/ui/estado/preferencias-web';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 
 import { ControlesAcceso } from './controles-acceso';
 
@@ -23,7 +24,7 @@ export function Portada({ acceso }: { acceso: ReactNode }) {
   return (
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.pagina}>
       <View style={[styles.franja, styles.cabecera]}>
-        <Image accessibilityLabel="Kampus" source={LOGOTIPO[esquema]} style={styles.logo} />
+        <Image accessibilityLabel={t('Kampus')} source={LOGOTIPO[esquema]} style={styles.logo} />
         <ControlesAcceso />
       </View>
 
@@ -31,12 +32,13 @@ export function Portada({ acceso }: { acceso: ReactNode }) {
       <View style={[styles.franja, styles.heroe]}>
         <View style={styles.columnaTexto}>
           <ThemedText type="small" themeColor="textSecondary" style={styles.antetitulo}>
-            PRÁCTICAS DE FP · FCT Y DUAL
+            {t('PRÁCTICAS DE FP · FCT Y DUAL')}
           </ThemedText>
           <ThemedText style={styles.titular}>Las prácticas de FP,{'\n'}sin papeles.</ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.entradilla}>
-            Alumno, empresa, profe e instituto en el mismo sitio. Las horas se apuntan en un toque y
-            se validan en dos.
+            {t(
+              'Alumno, empresa, profe e instituto en el mismo sitio. Las horas se apuntan en un toque y se validan en dos.',
+            )}
           </ThemedText>
           <MovilDeMuestra />
         </View>
@@ -57,7 +59,7 @@ function MovilDeMuestra() {
       importantForAccessibility="no-hide-descendants">
       <View style={[styles.halo, { backgroundColor: theme.primarySuave }]} />
       <View style={[styles.movil, { backgroundColor: theme.surface, borderColor: theme.text }]}>
-        <ThemedText type="smallBold">Octubre 2026</ThemedText>
+        <ThemedText type="smallBold">{t('Octubre 2026')}</ThemedText>
         <View style={styles.mes}>
           {[...Array(3)].map((_, i) => (
             <View key={`h${i}`} style={styles.diaMovil} />
@@ -80,11 +82,11 @@ function MovilDeMuestra() {
           ))}
         </View>
         <View style={[styles.horasMovil, { borderTopColor: theme.border }]}>
-          <Quesito porcentaje={38} tamano={52} etiqueta="Ejemplo de progreso" />
+          <Quesito porcentaje={38} tamano={52} etiqueta={t('Ejemplo de progreso')} />
           <View>
-            <ThemedText type="smallBold">152 h</ThemedText>
+            <ThemedText type="smallBold">{t('152 h')}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              de 400 h
+              {t('de 400 h')}
             </ThemedText>
           </View>
         </View>

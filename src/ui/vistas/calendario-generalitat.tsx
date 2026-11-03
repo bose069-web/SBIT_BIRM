@@ -19,6 +19,7 @@ import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 import { NuevoEvento } from './agenda';
 import { ErrorCarga, EsqueletoPanel } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 // Mismo color que el chip de cada tipo, para los puntos del mes.
 const COLOR_PUNTO: Record<TipoEvento, ThemeColor> = {
@@ -54,18 +55,26 @@ export function CalendarioGeneralitat() {
       titulo={nombreMes(mes)}
       accion={
         <View style={styles.navegar}>
-          <Flecha texto="‹" etiqueta="Mes anterior" onPress={() => setMes(sumarMeses(mes, -1))} />
+          <Flecha
+            texto="‹"
+            etiqueta={t('Mes anterior')}
+            onPress={() => setMes(sumarMeses(mes, -1))}
+          />
           {mes !== hoy.slice(0, 7) ? (
             <Pressable
               accessibilityRole="button"
               onPress={() => setMes(hoy.slice(0, 7))}
               hitSlop={8}>
               <ThemedText type="small" themeColor="textSecondary">
-                Hoy
+                {t('Hoy')}
               </ThemedText>
             </Pressable>
           ) : null}
-          <Flecha texto="›" etiqueta="Mes siguiente" onPress={() => setMes(sumarMeses(mes, 1))} />
+          <Flecha
+            texto="›"
+            etiqueta={t('Mes siguiente')}
+            onPress={() => setMes(sumarMeses(mes, 1))}
+          />
         </View>
       }>
       <Mes mes={mes} hoy={hoy} fechas={fechas} />
@@ -79,7 +88,7 @@ export function CalendarioGeneralitat() {
       {cargando && !datos ? <EsqueletoPanel tarjetas={1} /> : null}
       {datos && fechas.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          No hay fechas de este tipo este mes.
+          {t('No hay fechas de este tipo este mes.')}
         </ThemedText>
       ) : null}
       <View>
@@ -91,9 +100,9 @@ export function CalendarioGeneralitat() {
   );
 
   const nueva = (
-    <Tarjeta titulo="Nueva fecha para toda la red">
+    <Tarjeta titulo={t('Nueva fecha para toda la red')}>
       <ThemedText type="small" themeColor="textSecondary">
-        La ven todos los institutos, profes, empresas y alumnos en su calendario.
+        {t('La ven todos los institutos, profes, empresas y alumnos en su calendario.')}
       </ThemedText>
       <NuevoEvento tipos={TIPOS_EVENTO_RED} tipoInicial="plazo" onCreado={recargar} />
     </Tarjeta>
@@ -101,8 +110,8 @@ export function CalendarioGeneralitat() {
 
   return (
     <Pantalla
-      titulo="Calendario"
-      subtitulo="Festivos, curso de prácticas y plazos de toda la red"
+      titulo={t('Calendario')}
+      subtitulo={t('Festivos, curso de prácticas y plazos de toda la red')}
       amplia={ancho}
       compacta>
       {ancho ? (
@@ -213,7 +222,7 @@ function Filtros({
   const theme = useTheme();
   const opciones: (TipoEvento | typeof TODOS)[] = [TODOS, ...TIPOS_EVENTO_RED];
   return (
-    <View style={styles.filtros} accessibilityRole="radiogroup" accessibilityLabel="Ver">
+    <View style={styles.filtros} accessibilityRole="radiogroup" accessibilityLabel={t('Ver')}>
       {opciones.map((o) => {
         const activo = o === valor;
         return (
@@ -253,7 +262,7 @@ function FilaFecha({ fecha, primera }: { fecha: FechaRed; primera: boolean }) {
           <ChipTipoEvento tipo={fecha.tipo} />
           {fecha.automatico ? (
             <ThemedText type="small" themeColor="textSecondary">
-              Automático
+              {t('Automático')}
             </ThemedText>
           ) : null}
         </View>

@@ -12,6 +12,7 @@ import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
 import { ErrorCarga, EsqueletoPanel } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 export function RepartoProfesCentro({
   centroId,
@@ -45,7 +46,10 @@ export function RepartoProfesCentro({
     guardar(true);
     try {
       const total = await reasignarAlumnos(container.centros, usuario, alumnos, profe);
-      avisar({ tipo: 'ok', texto: `Reasignación completada. Alumnos actualizados: ${total}.` });
+      avisar({
+        tipo: 'ok',
+        texto: t('Reasignación completada. Alumnos actualizados: {n}.', { n: total }),
+      });
       seleccionar([]);
       elegir(null);
       onCambio();
@@ -62,17 +66,17 @@ export function RepartoProfesCentro({
     }
   }
   return (
-    <Tarjeta titulo="Reparto por profesor">
+    <Tarjeta titulo={t('Reparto por profesor')}>
       {aviso && <Mensaje {...aviso} />}
       {revisando ? (
         <>
           <ThemedText type="smallBold">
-            {profe ? `Asignar a ${profe.nombre}` : 'Dejar sin tutor'}
+            {profe ? t('Asignar a {nombre}', { nombre: profe.nombre }) : t('Dejar sin tutor')}
           </ThemedText>
           <ThemedText>{alumnos.map((a) => a.nombre).join(', ')}</ThemedText>
-          <Boton texto="Confirmar reasignación" onPress={aplicar} cargando={guardando} />
+          <Boton texto={t('Confirmar reasignación')} onPress={aplicar} cargando={guardando} />
           <Boton
-            texto="Volver a la selección"
+            texto={t('Volver a la selección')}
             variante="secundario"
             onPress={() => revisar(false)}
             desactivado={guardando}
@@ -107,13 +111,13 @@ export function RepartoProfesCentro({
             </View>
           ))}
           <Selector
-            etiqueta="Tutor de destino"
+            etiqueta={t('Tutor de destino')}
             valor={destino}
             opciones={grupos.map((g) => ({ valor: g.id, texto: g.nombre }))}
             onCambio={elegir}
           />
           <Boton
-            texto={`Revisar reasignación (${destino ? alumnos.length : 0})`}
+            texto={t('Revisar reasignación ({n})', { n: destino ? alumnos.length : 0 })}
             desactivado={!destino || !alumnos.length || cargando}
             onPress={() => {
               avisar(null);

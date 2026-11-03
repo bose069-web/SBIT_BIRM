@@ -52,6 +52,7 @@ import {
   TEXTO_RESULTADO,
   porAlumno,
 } from './comun';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 const SUBTITULO: Partial<Record<Rol, string>> = {
   profe: 'Tus alumnos: horas, valoraciones de la empresa y valoración final',
@@ -75,14 +76,14 @@ export function SeguimientoProfe() {
   const acciones = creaDossiers ? (
     <View style={ancho ? styles.acciones : styles.accionesMovil}>
       <Boton
-        texto="+ Nuevo dossier"
+        texto={t('+ Nuevo dossier')}
         onPress={() => router.push({ pathname: '/', params: { nuevo: '1' } })}
       />
     </View>
   ) : null;
   return (
     <Pantalla
-      titulo="Seguimiento"
+      titulo={t('Seguimiento')}
       subtitulo={SUBTITULO[usuario.rol]}
       // En la web, las acciones junto al título, como el estado del mes en el Inicio del alumno.
       accion={ancho ? acciones : undefined}
@@ -144,8 +145,10 @@ export function ContenidoSeguimiento({
       {cargando && !datos ? <EsqueletoPanel /> : null}
       {datos?.length === 0 ? (
         <EstadoVacio
-          titulo="Todavía no hay alumnos con dossier"
-          texto="Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final."
+          titulo={t('Todavía no hay alumnos con dossier')}
+          texto={t(
+            'Cuando tus alumnos tengan su dossier de prácticas, aquí verás sus horas, las valoraciones de la empresa y podrás poner la valoración final.',
+          )}
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
@@ -153,7 +156,7 @@ export function ContenidoSeguimiento({
         <Columnas
           ancho={ancho}
           izquierda={
-            <Tarjeta titulo={`Alumnos (${datos.length})`}>
+            <Tarjeta titulo={t('Alumnos ({n})', { n: datos.length })}>
               <View>
                 {ordenados.map(({ dossier, datos: d }, i) => (
                   <FilaAlumno
@@ -171,7 +174,7 @@ export function ContenidoSeguimiento({
           derecha={
             <>
               <ResumenAlumnos alumnos={alumnos} />
-              <Tarjeta titulo="Próximas fechas">
+              <Tarjeta titulo={t('Próximas fechas')}>
                 <ProximasFechas hoy={hoy} />
               </Tarjeta>
             </>
@@ -187,29 +190,33 @@ function ResumenAlumnos({ alumnos }: { alumnos: AlumnoSeguido[] }) {
   const theme = useTheme();
   const r = resumirSeguimiento(alumnos);
   return (
-    <Tarjeta titulo="Resumen">
+    <Tarjeta titulo={t('Resumen')}>
       <View style={styles.quesito}>
-        <Quesito porcentaje={r.mediaPorcentaje} etiqueta="Progreso medio de horas" />
+        <Quesito porcentaje={r.mediaPorcentaje} etiqueta={t('Progreso medio de horas')} />
         <View style={styles.flex}>
           <ThemedText type="title">{r.mediaPorcentaje}%</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            de las horas hechas, de media entre {r.alumnos} {r.alumnos === 1 ? 'alumno' : 'alumnos'}
+            {tPlural(
+              r.alumnos,
+              'de las horas hechas, de media entre {n} alumno',
+              'de las horas hechas, de media entre {n} alumnos',
+            )}
           </ThemedText>
         </View>
       </View>
       <View style={[styles.cifras, styles.separado, { borderTopColor: theme.border }]}>
         <Cifra
-          etiqueta="Falta valorar la empresa"
+          etiqueta={t('Falta valorar la empresa')}
           valor={r.pendientesEmpresa}
           color={r.pendientesEmpresa ? 'estadoPendiente' : undefined}
         />
-        <Cifra etiqueta="Con valoración final" valor={r.conFinal} />
+        <Cifra etiqueta={t('Con valoración final')} valor={r.conFinal} />
       </View>
       {alumnos.length > 1 ? (
         <View style={[styles.separado, styles.grafico, { borderTopColor: theme.border }]}>
-          <ThemedText type="smallBold">Progreso por alumno</ThemedText>
+          <ThemedText type="smallBold">{t('Progreso por alumno')}</ThemedText>
           <GraficoBarras
-            titulo="Porcentaje de horas hechas por alumno, del más atrasado al más avanzado"
+            titulo={t('Porcentaje de horas hechas por alumno, del más atrasado al más avanzado')}
             barras={barrasProgreso(alumnos)}
             alto={110}
           />
@@ -345,7 +352,7 @@ function FilaAlumno({
       setAviso({ tipo: 'ok', texto: 'Valoración final guardada' });
       onCambio();
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({ tipo: 'error', texto: e instanceof Error ? t(e.message) : String(e) });
     } finally {
       setGuardando(false);
     }
@@ -356,13 +363,13 @@ function FilaAlumno({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: abierto }}
-        accessibilityLabel={`${dossier.alumnoNombre}, ${resumen.porcentaje}% de las horas. ${abierto ? 'Plegar' : 'Ver detalle'}`}
+        accessibilityLabel={`${t('{nombre}, {porcentaje}% de las horas.', { nombre: dossier.alumnoNombre, porcentaje: resumen.porcentaje })} ${abierto ? t('Plegar') : t('Ver detalle')}`}
         onPress={() => setAbierto((v) => !v)}
         style={({ pressed }) => [styles.fila, pressed && { opacity: 0.6 }]}>
         <Quesito
           porcentaje={resumen.porcentaje}
           tamano={44}
-          etiqueta={`Horas de ${dossier.alumnoNombre}`}
+          etiqueta={t('Horas de {nombre}', { nombre: dossier.alumnoNombre })}
         />
         <View style={styles.flex}>
           <ThemedText type="smallBold">{dossier.alumnoNombre}</ThemedText>
@@ -382,19 +389,25 @@ function FilaAlumno({
       </Pressable>
       {seguimiento.final ? (
         <Chip
-          texto={`Final: ${TEXTO_RESULTADO[seguimiento.final.resultado]}`}
+          texto={t('Final: {resultado}', {
+            resultado: t(TEXTO_RESULTADO[seguimiento.final.resultado]),
+          })}
           color={seguimiento.final.resultado === 'apto' ? 'estadoValidado' : 'danger'}
         />
       ) : seguimiento.sinValorar.length > 0 ? (
         <Chip
-          texto={`La empresa no ha valorado: ${seguimiento.sinValorar.map(nombreMes).join(', ')}`}
+          texto={t('La empresa no ha valorado: {meses}', {
+            meses: seguimiento.sinValorar.map(nombreMes).join(', '),
+          })}
           color="estadoPendiente"
         />
       ) : null}
 
       {tutor && seguimiento.sinConfirmar.length > 0 ? (
         <Chip
-          texto={`Por confirmar: ${seguimiento.sinConfirmar.map(nombreMes).join(', ')}`}
+          texto={t('Por confirmar: {meses}', {
+            meses: seguimiento.sinConfirmar.map(nombreMes).join(', '),
+          })}
           color="estadoPendiente"
         />
       ) : null}
@@ -402,10 +415,13 @@ function FilaAlumno({
         <View style={styles.detalle}>
           <View style={styles.cabeceraDetalle}>
             <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
-              Tutor de empresa: {dossier.tutorEmpresaNombre ?? 'sin asignar'} · del{' '}
-              {fechaCorta(dossier.fechaInicio)} al {fechaCorta(dossier.fechaFin)}
+              {t('Tutor de empresa: {nombre} · del {inicio} al {fin}', {
+                nombre: dossier.tutorEmpresaNombre ?? t('sin asignar'),
+                inicio: fechaCorta(dossier.fechaInicio),
+                fin: fechaCorta(dossier.fechaFin),
+              })}
             </ThemedText>
-            <Enlace texto="Ficha ›" onPress={onFicha} />
+            <Enlace texto={t('Ficha ›')} onPress={onFicha} />
           </View>
           <ListaValoraciones mensuales={seguimiento.mensuales} final={seguimiento.final} />
           {seguimiento.mensuales.map((v) => (
@@ -417,7 +433,11 @@ function FilaAlumno({
               {tutor ? (
                 <Boton
                   texto={v.confirmadaEn ? 'Quitar confirmación' : 'Confirmar mes'}
-                  accessibilityLabel={`${v.confirmadaEn ? 'Quitar confirmación de' : 'Confirmar'} ${nombreMes(v.mes)}`}
+                  accessibilityLabel={
+                    v.confirmadaEn
+                      ? t('Quitar confirmación de {mes}', { mes: nombreMes(v.mes) })
+                      : t('Confirmar {mes}', { mes: nombreMes(v.mes) })
+                  }
                   variante="secundario"
                   desactivado={guardando}
                   onPress={() => cambiarConfirmacion(v.mes, Boolean(v.confirmadaEn))}
@@ -454,14 +474,14 @@ function FilaAlumno({
                 onCambio={setResultado}
               />
               <Campo
-                etiqueta="Comentario"
+                etiqueta={t('Comentario')}
                 multiline
                 value={comentario}
                 onChangeText={setComentario}
-                ayuda="Obligatorio si no es apto. Cierra todos los meses del alumno."
+                ayuda={t('Obligatorio si no es apto. Cierra todos los meses del alumno.')}
               />
               {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
-              <Boton texto="Guardar valoración final" onPress={guardar} cargando={guardando} />
+              <Boton texto={t('Guardar valoración final')} onPress={guardar} cargando={guardando} />
             </>
           ) : aviso ? (
             <Mensaje tipo={aviso.tipo} texto={aviso.texto} />

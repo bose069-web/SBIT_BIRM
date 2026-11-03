@@ -61,6 +61,7 @@ import { pasoHoras } from '@/ui/utils/horas';
 
 import { CalendarioMes, ESTADOS_DIA } from './calendario-mes';
 import { Cargando } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 const TIPOS: { valor: TipoDia; texto: string }[] = [
   { valor: 'trabajo', texto: 'Fichado' },
@@ -109,20 +110,20 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
 
   if (!datos) {
     return (
-      <Pantalla titulo="Registrar día" compacta bajoCabecera>
+      <Pantalla titulo={t('Registrar día')} compacta bajoCabecera>
         {error ? (
           <>
             <Mensaje tipo="error" texto={error} />
             <ThemedText type="small" themeColor="textSecondary">
-              Si tenías un borrador en este dispositivo, no se ha borrado.
+              {t('Si tenías un borrador en este dispositivo, no se ha borrado.')}
             </ThemedText>
-            <Boton texto="Reintentar" onPress={recargar} />
+            <Boton texto={t('Reintentar')} onPress={recargar} />
           </>
         ) : cargando ? (
           <Cargando />
         ) : (
           <ThemedText themeColor="textSecondary">
-            No tienes un dossier de prácticas asignado.
+            {t('No tienes un dossier de prácticas asignado.')}
           </ThemedText>
         )}
       </Pantalla>
@@ -158,7 +159,10 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         { fecha, valores, huellaBase, ahora: new Date().toISOString() },
       );
       if (resultado.resultado === 'guardado') {
-        setAviso({ tipo: 'ok', texto: `Guardado en el servidor el ${fechaCorta(fecha)}` });
+        setAviso({
+          tipo: 'ok',
+          texto: t('Guardado en el servidor el {fecha}', { fecha: fechaCorta(fecha) }),
+        });
         recargar();
       } else if (resultado.resultado === 'sin-guardar-local') {
         setAviso({
@@ -175,7 +179,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       }
       return resultado;
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : String(e) });
+      setAviso({ tipo: 'error', texto: e instanceof Error ? t(e.message) : String(e) });
       return null;
     } finally {
       setGuardando(false);
@@ -254,13 +258,13 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         <View style={[styles.flechas, { borderColor: theme.border }]}>
           <BotonFlecha
             texto="‹"
-            etiqueta="Día anterior"
+            etiqueta={t('Día anterior')}
             onPress={() => irA(sumarDias(fecha, -1))}
           />
           <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
           <BotonFlecha
             texto="›"
-            etiqueta="Día siguiente"
+            etiqueta={t('Día siguiente')}
             onPress={() => irA(sumarDias(fecha, 1))}
           />
         </View>
@@ -324,7 +328,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pantalla
-        titulo="Registrar día"
+        titulo={t('Registrar día')}
         subtitulo={`${dossier.ciclo} · ${dossier.empresa ?? ''}`}
         amplia={ancha}
         compacta
@@ -332,7 +336,9 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         {!datos.contextoConservado ? (
           <Mensaje
             tipo="error"
-            texto="No se pudo conservar el contexto del formulario. No podrás recuperarlo al reabrir sin conexión."
+            texto={t(
+              'No se pudo conservar el contexto del formulario. No podrás recuperarlo al reabrir sin conexión.',
+            )}
           />
         ) : null}
         {ancha ? (
@@ -420,7 +426,7 @@ function BotonHoy({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Ir a hoy"
+      accessibilityLabel={t('Ir a hoy')}
       onPress={onPress}
       hitSlop={6}
       style={({ pressed }) => [
@@ -429,7 +435,7 @@ function BotonHoy({ onPress }: { onPress: () => void }) {
         pressed && { opacity: 0.6 },
       ]}>
       <ThemedText type="smallBold" themeColor="primary">
-        Hoy
+        {t('Hoy')}
       </ThemedText>
     </Pressable>
   );
@@ -445,7 +451,7 @@ function ChipEstado({ texto, estado }: { texto: string; estado: EstadoChip }) {
   return (
     <View
       accessible
-      accessibilityLabel={`Estado: ${texto}`}
+      accessibilityLabel={t('Estado: {estado}', { estado: t(texto) })}
       style={[
         styles.chip,
         {
@@ -581,13 +587,17 @@ interface PropsFormulario {
 }
 
 function textoConflicto(servidor: RegistroDiario | null): string {
-  if (!servidor) return 'Este día se ha borrado en el servidor desde que empezaste este borrador.';
+  if (!servidor)
+    return t('Este día se ha borrado en el servidor desde que empezaste este borrador.');
   const detalle =
     servidor.tipo === 'trabajo'
-      ? `${ESTADOS_DIA.trabajo.texto}, ${formatoHoras(totalHoras(servidor))}`
-      : ESTADOS_DIA[servidor.tipo].texto;
+      ? `${t(ESTADOS_DIA.trabajo.texto)}, ${formatoHoras(totalHoras(servidor))}`
+      : t(ESTADOS_DIA[servidor.tipo].texto);
   const nota = servidor.observaciones ? `, «${servidor.observaciones}»` : '';
-  return `Este día ha cambiado en el servidor desde que empezaste este borrador. Ahora pone: ${detalle}${nota}. Elige cuál se queda.`;
+  return t(
+    'Este día ha cambiado en el servidor desde que empezaste este borrador. Ahora pone: {detalle}. Elige cuál se queda.',
+    { detalle: `${detalle}${nota}` },
+  );
 }
 
 function FormularioDia({
@@ -627,7 +637,10 @@ function FormularioDia({
     : sinHoras
       ? 'Apunta las horas de al menos una actividad para guardar.'
       : pasado
-        ? `Un día no puede pasar de ${MAX_HORAS_DIA} h: quita ${formatoHoras(total - MAX_HORAS_DIA)}.`
+        ? t('Un día no puede pasar de {maximo} h: quita {horas}.', {
+            maximo: MAX_HORAS_DIA,
+            horas: formatoHoras(total - MAX_HORAS_DIA),
+          })
         : null;
 
   function cambiar(id: string, delta: number) {
@@ -686,11 +699,13 @@ function FormularioDia({
     // Tocar fuera de un campo cierra el teclado. En web no: el clic en el campo también
     // llega aquí y le quitaría el foco.
     <Pressable accessible={false} onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}>
-      <Tarjeta titulo="Qué has hecho">
+      <Tarjeta titulo={t('Qué has hecho')}>
         {local ? (
           <Mensaje
             tipo="error"
-            texto="Sin conexión: puedes editar el borrador con el contexto guardado en este dispositivo. Al enviar se comprobarán los permisos y el estado actual del mes."
+            texto={t(
+              'Sin conexión: puedes editar el borrador con el contexto guardado en este dispositivo. Al enviar se comprobarán los permisos y el estado actual del mes.',
+            )}
           />
         ) : null}
         {estados.length > 0 ? (
@@ -741,7 +756,7 @@ function FormularioDia({
           <>
             <View style={styles.total}>
               <ThemedText type="smallBold" themeColor="textSecondary">
-                Total del día
+                {t('Total del día')}
               </ThemedText>
               <ThemedText
                 type="smallBold"
@@ -752,18 +767,24 @@ function FormularioDia({
             </View>
             <BarraProgreso
               porcentaje={(total / JORNADA) * 100}
-              etiqueta={`Total del día, ${formatoHoras(total)} de una jornada de ${JORNADA} h`}
+              etiqueta={t('Total del día, {total} de una jornada de {jornada} h', {
+                total: formatoHoras(total),
+                jornada: JORNADA,
+              })}
               color={pasado ? 'danger' : 'primary'}
             />
             <ThemedText type="small" themeColor={pasado ? 'danger' : 'textSecondary'}>
               {pasado
-                ? `Máximo ${MAX_HORAS_DIA} h al día`
-                : `Jornada de referencia: ${JORNADA} h · máximo ${MAX_HORAS_DIA} h`}
+                ? t('Máximo {maximo} h al día', { maximo: MAX_HORAS_DIA })
+                : t('Jornada de referencia: {jornada} h · máximo {maximo} h', {
+                    jornada: JORNADA,
+                    maximo: MAX_HORAS_DIA,
+                  })}
             </ThemedText>
 
             {ultimoTrabajo && copiables.length > 0 && !bloqueado ? (
               <Enlace
-                texto={`Copiar del ${fechaCorta(ultimoTrabajo.fecha)}`}
+                texto={t('Copiar del {fecha}', { fecha: fechaCorta(ultimoTrabajo.fecha) })}
                 onPress={() => {
                   setHoras(Object.fromEntries(copiables.map((h) => [h.actividadId, h.horas])));
                   // Lo ya escrito hoy no se pisa.
@@ -797,7 +818,9 @@ function FormularioDia({
                         }>
                         <BotonIcono
                           texto="−"
-                          etiqueta={`Quitar media hora a ${a.descripcion}`}
+                          etiqueta={t('Quitar media hora a {actividad}', {
+                            actividad: a.descripcion,
+                          })}
                           desactivado={bloqueado || valor === 0}
                           onPress={() => cambiar(a.id, -0.5)}
                           // Mantener pulsado ajusta de 15 en 15 min.
@@ -811,7 +834,9 @@ function FormularioDia({
                         </ThemedText>
                         <BotonIcono
                           texto="+"
-                          etiqueta={`Añadir media hora a ${a.descripcion}`}
+                          etiqueta={t('Añadir media hora a {actividad}', {
+                            actividad: a.descripcion,
+                          })}
                           desactivado={bloqueado || total >= MAX_HORAS_DIA}
                           onPress={() => cambiar(a.id, 0.5)}
                           onLongPress={() => cambiar(a.id, 0.25)}
@@ -854,14 +879,14 @@ function FormularioDia({
           <View style={styles.botones}>
             <Mensaje tipo="error" texto={textoConflicto(conflicto)} />
             <Boton
-              texto="Quedarme con el del servidor"
+              texto={t('Quedarme con el del servidor')}
               variante="secundario"
               onPress={() => {
                 void borrador.descartar().then(onDescartado);
               }}
             />
             <Boton
-              texto="Enviar el mío y reemplazar"
+              texto={t('Enviar el mío y reemplazar')}
               variante="peligro"
               onPress={() => {
                 void enviar(true);
@@ -891,7 +916,7 @@ function FormularioDia({
           />
           {existente && !bloqueado ? (
             <Boton
-              texto="Borrar día"
+              texto={t('Borrar día')}
               variante="peligro"
               onPress={() => {
                 void onBorrar().then((borrado) => (borrado ? borrador.descartar() : undefined));
