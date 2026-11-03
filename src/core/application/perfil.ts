@@ -6,6 +6,7 @@ import {
   limpiarDatosPersonales,
   type DatosPersonales,
   type Identidad,
+  type Idioma,
   type ResultadoCambioEmail,
 } from '../domain/perfil';
 import { SinPermisoError } from '../domain/errores';
@@ -24,6 +25,16 @@ export function guardarDatosPersonales(
   datos: DatosPersonales,
 ): Promise<DatosPersonales> {
   return perfil.guardar(limpiarDatosPersonales(datos, usuario.rol));
+}
+
+/** Solo cambia el idioma: no exige el teléfono, que se pide al guardar el perfil. */
+export function guardarIdioma(
+  perfil: PerfilPort,
+  usuario: Usuario,
+  datos: DatosPersonales,
+  idioma: Idioma,
+): Promise<DatosPersonales> {
+  return perfil.guardar(limpiarDatosPersonales({ ...datos, idioma }, usuario.rol, false));
 }
 
 /** Devuelve el nombre limpio, para actualizar la sesión. */

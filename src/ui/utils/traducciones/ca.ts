@@ -69,6 +69,17 @@ export const CATALAN: Record<string, string> = {
   Contacto: 'Contacte',
   Preferencias: 'Preferències',
   Apariencia: 'Aparença',
+  'Poco segura': 'Poc segura',
+  Aceptable: 'Acceptable',
+  Bien: 'Bé',
+  'Muy segura': 'Molt segura',
+  'Seguridad de la contraseña': 'Seguretat de la contrasenya',
+  'Teléfono (obligatorio)': 'Telèfon (obligatori)',
+  '9 cifras que empiecen por 6, 7, 8 o 9. El +34 es opcional.':
+    '9 xifres que comencin per 6, 7, 8 o 9. El +34 és opcional.',
+  'El teléfono es obligatorio': 'El telèfon és obligatori',
+  'Teléfono no válido: 9 cifras que empiecen por 6, 7, 8 o 9 (el +34 es opcional)':
+    'Telèfon no vàlid: 9 xifres que comencin per 6, 7, 8 o 9 (el +34 és opcional)',
   Claro: 'Clar',
   Oscuro: 'Fosc',
   Tutoría: 'Tutoria',

@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { restablecerContrasena } from '@/core/application/recuperacion';
 import type { CredencialRecuperacion } from '@/core/domain/recuperacion';
 import { container } from '@/config/container';
+import { BarraContrasena } from '@/ui/components/barra-contrasena';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Mensaje } from '@/ui/components/mensaje';
@@ -73,6 +74,7 @@ export function VistaRestablecer({
               autoComplete="new-password"
               ayuda="Al menos 8 caracteres"
             />
+            <BarraContrasena contrasena={contrasena} />
             <Campo
               etiqueta="Repite la contraseña"
               value={repetida}

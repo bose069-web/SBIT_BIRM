@@ -16,6 +16,7 @@ import {
   enmascararDni,
   puedeCambiarSuEmail,
   puedeCambiarSuNombre,
+  formatoTelefono,
   type DatosPersonales,
 } from '@/core/domain/perfil';
 import type { Rol, Usuario } from '@/core/domain/usuario';
@@ -26,6 +27,7 @@ import { Chip } from '@/ui/components/chip';
 import { FilaDato } from '@/ui/components/fila-dato';
 import { Mensaje } from '@/ui/components/mensaje';
 import { Pantalla } from '@/ui/components/pantalla';
+import { BarraContrasena } from '@/ui/components/barra-contrasena';
 import { Selector } from '@/ui/components/selector';
 import { cambiarEsquemaWeb } from '@/ui/estado/preferencias-web';
 import { useColorScheme } from '@/ui/hooks/use-color-scheme';
@@ -210,11 +212,11 @@ function Formulario({
   const { renombrar, cambiarCorreo } = useSesion();
   const { idioma, cambiarIdioma } = useIdioma();
   const [nombre, setNombre] = useState(usuario.nombre);
-  const [datos, setDatos] = useState(inicial);
+  const [datos, setDatos] = useState(() => legible(inicial));
   const [email, setEmail] = useState(usuario.email);
   const [guardado, setGuardado] = useState({
     nombre: usuario.nombre,
-    datos: inicial,
+    datos: legible(inicial),
     email: usuario.email,
   });
   const editaNombre = puedeCambiarSuNombre(usuario.rol);
@@ -264,9 +266,9 @@ function Formulario({
           );
         }
       }
-      setDatos(guardados);
+      setDatos(legible(guardados));
       setNombre(nombreGuardado);
-      setGuardado({ nombre: nombreGuardado, datos: guardados, email: emailGuardado });
+      setGuardado({ nombre: nombreGuardado, datos: legible(guardados), email: emailGuardado });
       setAviso({ tipo: 'ok', texto: mensaje });
       // Con el idioma nuevo se vuelve a pintar toda la app.
       if (guardados.idioma !== idioma) cambiarIdioma(guardados.idioma);
@@ -338,10 +340,11 @@ function Formulario({
         />
       ) : null}
       <Campo
-        etiqueta={t('Teléfono')}
+        etiqueta={t('Teléfono (obligatorio)')}
         value={texto('telefono')}
         onChangeText={(v) => cambiar('telefono', v)}
         placeholder="600 123 456"
+        ayuda={t('9 cifras que empiecen por 6, 7, 8 o 9. El +34 es opcional.')}
         keyboardType="phone-pad"
         autoComplete="tel"
       />
@@ -519,6 +522,7 @@ function TarjetaContrasena() {
         autoComplete="new-password"
         ayuda={t('Al menos 8 caracteres.')}
       />
+      <BarraContrasena contrasena={nueva} />
       <Campo
         etiqueta={t('Repite la contraseña')}
         value={repetida}
@@ -662,3 +666,14 @@ const styles = StyleSheet.create({
   },
   pulsado: { opacity: 0.6 },
 });
+
+/** Los teléfonos se guardan solo con cifras; en pantalla se leen mejor agrupados. */
+function legible(datos: DatosPersonales): DatosPersonales {
+  const ver = (telefono: string | null) => (telefono ? formatoTelefono(telefono) : telefono);
+  return {
+    ...datos,
+    telefono: ver(datos.telefono),
+    emergenciaTelefono: ver(datos.emergenciaTelefono),
+    telefonoTrabajo: ver(datos.telefonoTrabajo),
+  };
+}

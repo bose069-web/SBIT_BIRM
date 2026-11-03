@@ -61,15 +61,34 @@ const CAMPOS_TEXTO: readonly CampoTexto[] = [
 const TELEFONOS: readonly CampoTexto[] = ['telefono', 'emergenciaTelefono', 'telefonoTrabajo'];
 const MAXIMO_TEXTO = 120;
 
-/** Dígitos, espacios y un + inicial; entre 9 y 15 cifras. */
+/**
+ * Teléfono español: 9 cifras que empiezan por 6, 7, 8 o 9, con +34 (o 0034) delante si se quiere.
+ * Se admiten espacios, puntos y guiones al escribirlo; se devuelven solo las 9 cifras, o `null`
+ * si no es válido.
+ */
+export function normalizarTelefono(telefono: string): string | null {
+  const cifras = telefono.trim().replace(/[\s.-]/g, '');
+  const sinPrefijo = cifras.replace(/^(\+34|0034)/, '');
+  return /^[6-9]\d{8}$/.test(sinPrefijo) ? sinPrefijo : null;
+}
+
 export function telefonoValido(telefono: string): boolean {
-  if (!/^\+?[\d\s]+$/.test(telefono)) return false;
-  const cifras = telefono.replace(/\D/g, '').length;
-  return cifras >= 9 && cifras <= 15;
+  return normalizarTelefono(telefono) !== null;
+}
+
+/** `600123456` → `600 123 456`; lo que no son 9 cifras se deja tal cual. */
+export function formatoTelefono(telefono: string): string {
+  return /^\d{9}$/.test(telefono)
+    ? telefono.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
+    : telefono;
 }
 
 /** Recorta textos, vacía los que no son de su rol y comprueba teléfonos y longitudes. */
-export function limpiarDatosPersonales(datos: DatosPersonales, rol: Rol): DatosPersonales {
+export function limpiarDatosPersonales(
+  datos: DatosPersonales,
+  rol: Rol,
+  exigirTelefono = true,
+): DatosPersonales {
   const propios = new Set<CampoTexto>(['telefono', ...CAMPOS_ROL[rol]]);
   const limpio: DatosPersonales = { ...datos };
   for (const campo of CAMPOS_TEXTO) {
@@ -78,9 +97,18 @@ export function limpiarDatosPersonales(datos: DatosPersonales, rol: Rol): DatosP
   if (!(IDIOMAS as readonly string[]).includes(limpio.idioma)) {
     throw new DatosInvalidosError('Idioma no válido');
   }
+  if (exigirTelefono && !limpio.telefono)
+    throw new DatosInvalidosError('El teléfono es obligatorio');
   for (const campo of TELEFONOS) {
     const valor = limpio[campo];
-    if (valor && !telefonoValido(valor)) throw new DatosInvalidosError('Teléfono no válido');
+    if (!valor) continue;
+    const normalizado = normalizarTelefono(valor);
+    if (!normalizado) {
+      throw new DatosInvalidosError(
+        'Teléfono no válido: 9 cifras que empiecen por 6, 7, 8 o 9 (el +34 es opcional)',
+      );
+    }
+    limpio[campo] = normalizado;
   }
   for (const campo of propios) {
     if ((limpio[campo]?.length ?? 0) > MAXIMO_TEXTO) {
@@ -144,4 +172,23 @@ export function enmascararDni(dni: string): string {
   const limpio = dni.replace(/[\s-]/g, '').toUpperCase();
   if (limpio.length < 5) return '*'.repeat(limpio.length);
   return limpio.slice(0, 2) + '*'.repeat(limpio.length - 5) + limpio.slice(-3);
+}
+
+export type NivelContrasena = 0 | 1 | 2 | 3;
+
+// Orientativo para la barra visual: las reglas que obligan son las de `comprobarContrasena`.
+const CONTRASENAS_TIPICAS = ['kampus', 'contrasena', 'password', '12345678', 'qwerty', 'abc123'];
+
+/** 0 poco segura, 1 aceptable, 2 bien, 3 muy segura. */
+export function nivelContrasena(contrasena: string): NivelContrasena {
+  const minusculas = contrasena.toLowerCase();
+  if (contrasena.length < 8 || CONTRASENAS_TIPICAS.some((c) => minusculas.includes(c))) return 0;
+  const variedad = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) =>
+    r.test(contrasena),
+  ).length;
+  const puntos = variedad + (contrasena.length >= 12 ? 1 : 0) + (contrasena.length >= 16 ? 1 : 0);
+  if (puntos >= 5) return 3;
+  if (puntos >= 4) return 2;
+  if (puntos >= 2) return 1;
+  return 0;
 }
