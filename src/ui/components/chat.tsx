@@ -14,6 +14,7 @@ import { useMovimientoReducido } from '@/ui/hooks/use-movimiento-reducido';
 import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/interaccion-web';
 import { FontFamily, Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
+import { t } from '@/ui/utils/idioma';
 
 // Piezas del chat: avatar, burbujas agrupadas con separadores de día y el campo para escribir.
 
@@ -228,13 +229,13 @@ export function Compositor({
           { backgroundColor: theme.surface, borderColor: theme.border },
         ]}>
         <TextInput
-          accessibilityLabel="Mensaje"
+          accessibilityLabel={t('Mensaje')}
           accessibilityHint={
             Platform.OS === 'web'
               ? 'Intro para enviar, Mayúsculas más Intro para otra línea'
               : undefined
           }
-          placeholder="Escribe un mensaje…"
+          placeholder={t('Escribe un mensaje…')}
           placeholderTextColor={theme.textSecondary}
           multiline
           value={texto}
@@ -250,7 +251,7 @@ export function Compositor({
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Enviar mensaje"
+          accessibilityLabel={t('Enviar mensaje')}
           accessibilityState={{ disabled: vacio, busy: enviando }}
           onPress={enviar}
           style={({ hovered, pressed }: EstadoPressable) => [

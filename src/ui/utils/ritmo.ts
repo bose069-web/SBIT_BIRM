@@ -1,6 +1,7 @@
 import type { Dossier } from '@/core/domain/dossier';
 
 import { diasHasta, fechaCorta, formatoHoras } from './fechas';
+import { t } from './idioma';
 
 // El tutor de empresa no necesita saber "159 de 400 h": necesita saber si ese alumno va al ritmo
 // del calendario y si hay algo que hacer con él. Aquí va esa cuenta, con el mismo periodo que usa
@@ -98,19 +99,19 @@ export function avisosAlumno(
         avisos.push('No ha apuntado ningún día todavía');
       }
     } else if (diasHasta(hoy, ultimoDia) > DIAS_SIN_APUNTAR) {
-      avisos.push(`Sin apuntar desde el ${fechaCorta(ultimoDia)}`);
+      avisos.push(t('Sin apuntar desde el {fecha}', { fecha: fechaCorta(ultimoDia) }));
     }
   }
 
   if (ritmo.estado === 'por_debajo') {
-    avisos.push(`Va ${formatoHoras(-ritmo.desviacion)} por debajo del ritmo`);
+    avisos.push(t('Va {horas} por debajo del ritmo', { horas: formatoHoras(-ritmo.desviacion) }));
   }
 
   if (ritmo.diasRestantes >= 0 && ritmo.diasRestantes <= DIAS_AVISO_FIN) {
     avisos.push(
       ritmo.diasRestantes === 0
         ? 'Las prácticas terminan hoy'
-        : `Le quedan ${ritmo.diasRestantes} días de prácticas`,
+        : t('Le quedan {n} días de prácticas', { n: ritmo.diasRestantes }),
     );
   }
 

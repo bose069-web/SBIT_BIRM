@@ -6,6 +6,7 @@ import { Cristal } from '@/ui/components/cristal';
 
 import { ThemedText } from '@/ui/components/themed-text';
 import { Radius, Spacing } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 
 interface Props {
   titulo?: string;
@@ -28,7 +29,7 @@ export function Tarjeta({ titulo, accion, children, style }: Props) {
                 type="smallBold"
                 themeColor="textSecondary"
                 style={styles.titulo}>
-                {titulo.toUpperCase()}
+                {t(titulo).toUpperCase()}
               </ThemedText>
             ) : null}
             {accion}

@@ -6,6 +6,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 import { fechaCorta, limitesMes, nombreMes } from '@/ui/utils/fechas';
 import { pasosDelMes, type PasoMes } from '@/ui/utils/progreso';
+import { t } from '@/ui/utils/idioma';
 
 const PASOS = [
   { clave: 'alumno', texto: 'Apuntas' },
@@ -39,15 +40,15 @@ export function EstadoMes({
 
   return (
     <View
-      accessibilityLabel={`${nombreMes(mes)}: ${PASOS.map((p) => `${p.texto}, ${NOMBRE_PASO[pasos[p.clave]]}`).join('; ')}`}
+      accessibilityLabel={`${nombreMes(mes)}: ${PASOS.map((p) => `${t(p.texto)}, ${t(NOMBRE_PASO[pasos[p.clave]])}`).join('; ')}`}
       style={
         enTarjeta
           ? styles.suelto
           : [styles.caja, { backgroundColor: theme.surface, borderColor: theme.border }]
       }>
       <ThemedText type="small" themeColor="textSecondary">
-        {nombreMes(mes).charAt(0).toUpperCase() + nombreMes(mes).slice(1)} · se valida al acabar el
-        mes ({fechaCorta(cierre)})
+        {nombreMes(mes).charAt(0).toUpperCase() + nombreMes(mes).slice(1)} ·{' '}
+        {t('se valida al acabar el mes ({fecha})', { fecha: fechaCorta(cierre) })}
       </ThemedText>
       <View style={styles.pasos}>
         {PASOS.map((p, i) => {

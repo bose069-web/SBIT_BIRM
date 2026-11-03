@@ -14,6 +14,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useRecargarAlVolver } from '@/ui/hooks/use-recargar-al-volver';
 
 import { ErrorCarga } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 /** Mensajes de los alumnos que quieren restablecer su contraseña, con el enlace para hacerlo. */
 export function SolicitudesContrasena() {
@@ -48,12 +49,15 @@ export function SolicitudesContrasena() {
   const pendientes = (datos ?? []).filter((s) => !visibles.includes(s.id));
 
   return (
-    <Tarjeta titulo="Restablecer contraseña">
+    <Tarjeta titulo={t('Restablecer contraseña')}>
       {errorCarga ? (
-        <ErrorCarga texto="No se pudieron consultar las solicitudes." onReintentar={recargar} />
+        <ErrorCarga
+          texto={t('No se pudieron consultar las solicitudes.')}
+          onReintentar={recargar}
+        />
       ) : datos && pendientes.length === 0 && generadas.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Ningún alumno ha pedido restablecer su contraseña.
+          {t('Ningún alumno ha pedido restablecer su contraseña.')}
         </ThemedText>
       ) : null}
       {pendientes.map((s) => (
@@ -67,8 +71,8 @@ export function SolicitudesContrasena() {
             </ThemedText>
           </View>
           <Boton
-            texto="Generar enlace"
-            accessibilityLabel={`Generar enlace para ${s.alumnoNombre}`}
+            texto={t('Generar enlace')}
+            accessibilityLabel={t('Generar enlace para {nombre}', { nombre: s.alumnoNombre })}
             variante="secundario"
             cargando={generando === s.id}
             desactivado={generando !== null}
@@ -108,7 +112,7 @@ function EnlaceGenerado({ nombre, url }: { nombre: string; url: string }) {
         {url}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Pásaselo solo a tu alumno, en privado. Sirve una vez y caduca en una hora.
+        {t('Pásaselo solo a tu alumno, en privado. Sirve una vez y caduca en una hora.')}
       </ThemedText>
       <Boton
         texto={Platform.OS === 'web' ? (copiado ? 'Copiado' : 'Copiar enlace') : 'Compartir enlace'}

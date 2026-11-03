@@ -1,6 +1,7 @@
 import type { Dossier } from '@/core/domain/dossier';
 
 import { fechaCorta } from './fechas';
+import { t } from './idioma';
 
 // Contactos y mensajes del chat directo: cálculos sin pantalla ni backend.
 
@@ -68,7 +69,9 @@ export function conversacionesDe(dossiers: Dossier[], empresaId: string): Conver
     conversaciones.push({
       id,
       titulo: d.tutorNombre,
-      etiqueta: `Profe de ${(alumnosPorProfe.get(d.tutorId) ?? []).join(', ')}`,
+      etiqueta: t('Profe de {alumnos}', {
+        alumnos: (alumnosPorProfe.get(d.tutorId) ?? []).join(', '),
+      }),
       rol: 'profe',
     });
   }
@@ -180,13 +183,13 @@ export function horaDe(iso: string): string {
 /** `hace 5 min`, `hace 3 h`, `ayer`, `hace 4 días` o la fecha a partir de una semana. */
 export function hace(iso: string, ahora: Date = new Date()): string {
   const minutos = Math.floor((ahora.getTime() - new Date(iso).getTime()) / 60_000);
-  if (minutos < 1) return 'ahora';
-  if (minutos < 60) return `hace ${minutos} min`;
+  if (minutos < 1) return t('ahora');
+  if (minutos < 60) return t('hace {n} min', { n: minutos });
   const horas = Math.floor(minutos / 60);
-  if (horas < 24) return `hace ${horas} h`;
+  if (horas < 24) return t('hace {n} h', { n: horas });
   const dias = Math.floor(horas / 24);
-  if (dias === 1) return 'ayer';
-  if (dias < 7) return `hace ${dias} días`;
+  if (dias === 1) return t('ayer');
+  if (dias < 7) return t('hace {n} días', { n: dias });
   return fechaCorta(iso.slice(0, 10));
 }
 

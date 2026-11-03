@@ -20,6 +20,7 @@ import { leerFecha } from '@/ui/utils/fecha-escrita';
 import { fechaCorta, hoyISO, sumarDias } from '@/ui/utils/fechas';
 
 import { Cargando, ErrorCarga } from './comun';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 type Aviso = { tipo: 'error' | 'ok'; texto: string } | null;
 
@@ -56,7 +57,7 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
     return error ? (
       <ErrorCarga texto={error} onReintentar={recargar} />
     ) : (
-      <Cargando texto="Cargando tareas…" />
+      <Cargando texto={t('Cargando tareas…')} />
     );
   }
 
@@ -72,7 +73,9 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
           ? gestiona
             ? 'Todavía no hay tareas para este alumno.'
             : 'Tu tutor todavía no te ha encargado ninguna tarea.'
-          : `${pendientes} pendiente${pendientes === 1 ? '' : 's'} de ${datos.length}`}
+          : tPlural(pendientes, '{n} pendiente de {total}', '{n} pendientes de {total}', {
+              total: datos.length,
+            })}
       </ThemedText>
       {visibles.map((t) => (
         <FilaTarea
@@ -98,7 +101,9 @@ export function TareasDossier({ dossier, onCambio }: { dossier: Dossier; onCambi
           hitSlop={8}
           style={({ pressed }) => pressed && { opacity: 0.6 }}>
           <ThemedText type="small" themeColor="textSecondary">
-            {verHechas ? 'Ocultar las hechas' : `${hechas} hecha${hechas === 1 ? '' : 's'} ›`}
+            {verHechas
+              ? t('Ocultar las hechas')
+              : `${tPlural(hechas, '{n} hecha', '{n} hechas')} ›`}
           </ThemedText>
         </Pressable>
       ) : null}
@@ -176,7 +181,10 @@ function FilaTarea({
           ) : null}
           {tarea.fechaLimite && !tarea.completada ? (
             vencida ? (
-              <Chip texto={`Vencida: ${fechaCorta(tarea.fechaLimite)}`} color="danger" />
+              <Chip
+                texto={t('Vencida: {fecha}', { fecha: fechaCorta(tarea.fechaLimite) })}
+                color="danger"
+              />
             ) : (
               <ThemedText type="small" themeColor={pronto ? 'avisoLeve' : 'textSecondary'}>
                 Para el {fechaCorta(tarea.fechaLimite)}
@@ -189,11 +197,11 @@ function FilaTarea({
       {onBorrar ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Borrar la tarea ${tarea.titulo}`}
+          accessibilityLabel={t('Borrar la tarea {titulo}', { titulo: tarea.titulo })}
           onPress={onBorrar}
           style={styles.borrar}>
           <ThemedText type="small" themeColor="danger">
-            Borrar
+            {t('Borrar')}
           </ThemedText>
         </Pressable>
       ) : null}
@@ -220,7 +228,11 @@ function NuevaTarea({
 
   if (!abierto) {
     return (
-      <Boton texto="+ Encargar una tarea" variante="secundario" onPress={() => setAbierto(true)} />
+      <Boton
+        texto={t('+ Encargar una tarea')}
+        variante="secundario"
+        onPress={() => setAbierto(true)}
+      />
     );
   }
 
@@ -239,19 +251,19 @@ function NuevaTarea({
   return (
     <View style={[styles.contenedor, styles.formulario]}>
       <Campo
-        etiqueta="Nueva tarea"
-        placeholder="Qué tiene que hacer"
+        etiqueta={t('Nueva tarea')}
+        placeholder={t('Qué tiene que hacer')}
         value={titulo}
         onChangeText={setTitulo}
       />
       <Campo
-        etiqueta="Descripción (opcional)"
+        etiqueta={t('Descripción (opcional)')}
         multiline
         value={descripcion}
         onChangeText={setDescripcion}
       />
       <SelectorFecha
-        etiqueta="Fecha límite (opcional)"
+        etiqueta={t('Fecha límite (opcional)')}
         valor={fecha}
         onCambio={setFecha}
         opcional
@@ -262,12 +274,12 @@ function NuevaTarea({
         </ThemedText>
       ) : null}
       <Boton
-        texto="Encargar tarea"
+        texto={t('Encargar tarea')}
         onPress={enviar}
         cargando={enviando}
         desactivado={!titulo.trim() || leida.tipo === 'error'}
       />
-      <Boton texto="Cancelar" variante="secundario" onPress={() => setAbierto(false)} />
+      <Boton texto={t('Cancelar')} variante="secundario" onPress={() => setAbierto(false)} />
     </View>
   );
 }

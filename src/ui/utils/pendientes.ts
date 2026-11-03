@@ -5,6 +5,7 @@ import { mesCerrado } from '@/core/domain/valoracion';
 import type { AlumnoSinApuntar } from './avisos-profe';
 import { fechaCorta, nombreMes } from './fechas';
 import type { InformePendiente } from './validaciones';
+import { t, tPlural } from './idioma';
 
 // Qué tiene pendiente cada rol y adónde le lleva cada aviso. Solo traduce los datos que ya cargan
 // los paneles: aquí no se calcula ninguna métrica nueva.
@@ -77,7 +78,7 @@ function avisosIncidencias(
   return [
     {
       id: 'incidencias',
-      titulo: `${abiertas.length} incidencias abiertas`,
+      titulo: t('{n} incidencias abiertas', { n: abiertas.length }),
       detalle: abiertas[0].titulo,
       accion: 'Ver chat',
       destino: { pathname: '/chat' },
@@ -117,12 +118,11 @@ export function pendientesAlumno(datos: DatosPendientesAlumno): Pendiente[] {
   if (anteriores.length > 0) {
     lista.push({
       id: 'sin-apuntar',
-      titulo:
-        anteriores.length === 1 ? '1 día sin apuntar' : `${anteriores.length} días sin apuntar`,
+      titulo: tPlural(anteriores.length, '{n} día sin apuntar', '{n} días sin apuntar'),
       detalle:
         anteriores.length === 1
           ? fechaCorta(anteriores[0])
-          : `Empieza por el ${fechaCorta(anteriores[0])}`,
+          : t('Empieza por el {fecha}', { fecha: fechaCorta(anteriores[0]) }),
       accion: 'Apuntar',
       destino: { pathname: '/registro', params: { fecha: anteriores[0] } },
       prioridad: 'importante',
@@ -150,8 +150,11 @@ export function pendientesEmpresa(informes: InformePendiente[]): Pendiente[] {
     titulo: suyos[0].dossier.alumnoNombre,
     detalle:
       suyos.length === 1
-        ? `Informe de ${nombreMes(suyos[0].mes)}`
-        : `${suyos.length} informes: ${suyos.map((i) => nombreMes(i.mes)).join(', ')}`,
+        ? t('Informe de {mes}', { mes: nombreMes(suyos[0].mes) })
+        : t('{n} informes: {meses}', {
+            n: suyos.length,
+            meses: suyos.map((i) => nombreMes(i.mes)).join(', '),
+          }),
     accion: 'Valorar',
     destino: {
       pathname: '/',
@@ -182,20 +185,21 @@ export function pendientesProfe(datos: DatosPendientesProfe): Pendiente[] {
     porAlumno.set(dossierId, alumno);
   };
   for (const a of datos.sinApuntar) {
-    anotar(a.dossierId, a.nombre, `${a.dias} días laborables sin apuntar`);
+    anotar(a.dossierId, a.nombre, t('{n} días laborables sin apuntar', { n: a.dias }));
   }
   for (const a of datos.faltaValorar) {
     anotar(
       a.dossierId,
       a.nombre,
-      `${a.empresa ?? 'Su empresa'} no ha valorado ${a.meses.map(nombreMes).join(', ')}`,
+      t('{empresa} no ha valorado {meses}', {
+        empresa: a.empresa ?? t('Su empresa'),
+        meses: a.meses.map(nombreMes).join(', '),
+      }),
     );
   }
   return [
-    ...avisosIncidencias(
-      datos.incidencias,
-      'importante',
-      (i) => `Incidencia de ${i.creadaPorNombre ?? 'un alumno'}`,
+    ...avisosIncidencias(datos.incidencias, 'importante', (i) =>
+      t('Incidencia de {nombre}', { nombre: i.creadaPorNombre ?? t('un alumno') }),
     ),
     ...[...porAlumno.entries()].map(([dossierId, { nombre, detalles }]): Pendiente => ({
       id: `alumno-${dossierId}`,
@@ -227,10 +231,7 @@ export function pendientesCentro(datos: DatosPendientesCentro): Pendiente[] {
   if (alumnosSinProfe > 0) {
     lista.push({
       id: 'sin-profe',
-      titulo:
-        alumnosSinProfe === 1
-          ? '1 alumno sin profe tutor'
-          : `${alumnosSinProfe} alumnos sin profe tutor`,
+      titulo: tPlural(alumnosSinProfe, '{n} alumno sin profe tutor', '{n} alumnos sin profe tutor'),
       detalle: plural(alumnosSinProfe, 'Asígnale un profe', 'Asígnales un profe'),
       accion: 'Asignar',
       destino: { pathname: '/alumnos', params },

@@ -46,6 +46,7 @@ import {
   TEXTO_VALORACION,
   porAlumno,
 } from './comun';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 /** Lo que necesita la pantalla de cada alumno: su seguimiento y los días que ha apuntado. */
 interface CargaValidacion extends CargaSeguimiento {
@@ -115,11 +116,13 @@ export function VistaValidaciones() {
   const resumen = datos ? (
     <View style={styles.chips}>
       <Chip
-        texto={pendientes.length ? `${pendientes.length} por validar` : 'Todo validado'}
+        texto={
+          pendientes.length ? t('{n} por validar', { n: pendientes.length }) : t('Todo validado')
+        }
         color={pendientes.length ? 'estadoPendiente' : 'estadoValidado'}
       />
       <Chip
-        texto={`${validadas.length} ${validadas.length === 1 ? 'mes validado' : 'meses validados'}`}
+        texto={tPlural(validadas.length, '{n} mes validado', '{n} meses validados')}
         color="estadoValidado"
       />
     </View>
@@ -127,15 +130,17 @@ export function VistaValidaciones() {
 
   return (
     <Pantalla
-      titulo="Validaciones"
-      subtitulo="Los informes mensuales de tus alumnos"
+      titulo={t('Validaciones')}
+      subtitulo={t('Los informes mensuales de tus alumnos')}
       accion={resumen}>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {datos && datos.length === 0 ? (
         <EstadoVacio
-          titulo="No tienes alumnos asignados"
-          texto="Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus meses para validar."
+          titulo={t('No tienes alumnos asignados')}
+          texto={t(
+            'Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus meses para validar.',
+          )}
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
@@ -143,7 +148,7 @@ export function VistaValidaciones() {
       {datos && datos.length > 0 ? (
         <>
           <Tarjeta
-            titulo="Por validar"
+            titulo={t('Por validar')}
             accion={
               <Chip
                 texto={pendientes.length ? `${pendientes.length}` : 'Nada'}
@@ -197,11 +202,11 @@ export function VistaValidaciones() {
           ) : null}
 
           <Tarjeta
-            titulo="Ya validadas"
+            titulo={t('Ya validadas')}
             accion={<Chip texto={validadas.length ? `${validadas.length}` : 'Ninguna'} />}>
             {validadas.length === 0 ? (
               <ThemedText type="small" themeColor="textSecondary">
-                Todavía no has validado ningún mes. Los que vayas cerrando aparecerán aquí.
+                {t('Todavía no has validado ningún mes. Los que vayas cerrando aparecerán aquí.')}
               </ThemedText>
             ) : (
               <View style={styles.lista}>
@@ -269,36 +274,41 @@ function ValoracionEnBloque({
   }
 
   return (
-    <Tarjeta titulo="Valorar la selección">
+    <Tarjeta titulo={t('Valorar la selección')}>
       {revisando && valoracion ? (
         <>
-          <ThemedText type="smallBold">Revisa antes de confirmar</ThemedText>
+          <ThemedText type="smallBold">{t('Revisa antes de confirmar')}</ThemedText>
           <ThemedText type="small">
             {resumen.alumnos} {resumen.alumnos === 1 ? 'alumno' : 'alumnos'} · {resumen.informes}{' '}
             {resumen.informes === 1 ? 'mes' : 'meses'} · {formatoHoras(resumen.horas)}
           </ThemedText>
           <ThemedText type="small">Valoración: {TEXTO_VALORACION[valoracion]}</ThemedText>
           <ThemedText type="small">
-            {comentario.trim() ? `Comentario: ${comentario.trim()}` : 'Sin comentario'}
+            {comentario.trim()
+              ? t('Comentario: {texto}', { texto: comentario.trim() })
+              : t('Sin comentario')}
           </ThemedText>
           {resumen.sinDias > 0 ? (
             <ThemedText type="smallBold" themeColor="estadoPendiente">
-              {resumen.sinDias} {resumen.sinDias === 1 ? 'informe no tiene' : 'informes no tienen'}{' '}
-              ningún día de trabajo apuntado.
+              {tPlural(
+                resumen.sinDias,
+                '{n} informe no tiene ningún día de trabajo apuntado.',
+                '{n} informes no tienen ningún día de trabajo apuntado.',
+              )}
             </ThemedText>
           ) : null}
           {resumen.delMesEnCurso > 0 ? (
             <ThemedText type="smallBold" themeColor="estadoPendiente">
-              Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.
+              {t('Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.')}
             </ThemedText>
           ) : null}
           <ThemedText type="small" themeColor="textSecondary">
-            Cada alumno verá esta valoración y este comentario, y su mes se cerrará.
+            {t('Cada alumno verá esta valoración y este comentario, y su mes se cerrará.')}
           </ThemedText>
           {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
-          <Boton texto="Confirmar valoración" onPress={confirmar} cargando={enviando} />
+          <Boton texto={t('Confirmar valoración')} onPress={confirmar} cargando={enviando} />
           <Boton
-            texto="Volver"
+            texto={t('Volver')}
             variante="secundario"
             desactivado={enviando}
             onPress={() => setRevisando(false)}
@@ -307,20 +317,22 @@ function ValoracionEnBloque({
       ) : (
         <>
           <Selector
-            etiqueta="Valoración"
+            etiqueta={t('Valoración')}
             opciones={VALORACIONES_MES.map((v) => ({ valor: v, texto: TEXTO_VALORACION[v] }))}
             valor={valoracion}
             onCambio={setValoracion}
           />
           <Campo
-            etiqueta="Comentario"
+            etiqueta={t('Comentario')}
             multiline
             value={comentario}
             onChangeText={setComentario}
-            ayuda="Opcional si la valoración es positiva; si no, hay que explicar qué mejorar. Es el mismo para todos."
+            ayuda={t(
+              'Opcional si la valoración es positiva; si no, hay que explicar qué mejorar. Es el mismo para todos.',
+            )}
           />
           {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
-          <Boton texto="Revisar y confirmar" onPress={revisar} />
+          <Boton texto={t('Revisar y confirmar')} onPress={revisar} />
         </>
       )}
     </Tarjeta>
@@ -337,12 +349,12 @@ function ResultadoBloque({
   const hechos = resultados.filter((r) => r.ok);
   const fallidos = resultados.filter((r) => !r.ok);
   return (
-    <Tarjeta titulo="Resultado de la valoración">
+    <Tarjeta titulo={t('Resultado de la valoración')}>
       {hechos.length > 0 ? (
         <>
           <Mensaje
             tipo="ok"
-            texto={`${hechos.length} ${hechos.length === 1 ? 'mes valorado' : 'meses valorados'}`}
+            texto={tPlural(hechos.length, '{n} mes valorado', '{n} meses valorados')}
           />
           {hechos.map((r) => (
             <ThemedText key={`${r.dossierId}|${r.mes}`} type="small">
@@ -355,7 +367,11 @@ function ResultadoBloque({
         <>
           <Mensaje
             tipo="error"
-            texto={`${fallidos.length} ${fallidos.length === 1 ? 'requiere' : 'requieren'} atención. Los que siguen pendientes quedan seleccionados.`}
+            texto={tPlural(
+              fallidos.length,
+              '{n} requiere atención. Los que siguen pendientes quedan seleccionados.',
+              '{n} requieren atención. Los que siguen pendientes quedan seleccionados.',
+            )}
           />
           {fallidos.map((r) => (
             <ThemedText key={`${r.dossierId}|${r.mes}`} type="small">
@@ -364,7 +380,7 @@ function ResultadoBloque({
           ))}
         </>
       ) : null}
-      <Boton texto="Cerrar" variante="secundario" onPress={onCerrar} />
+      <Boton texto={t('Cerrar')} variante="secundario" onPress={onCerrar} />
     </Tarjeta>
   );
 }
@@ -390,7 +406,10 @@ function FilaPendiente({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Validar el informe de ${nombreMes(mes)} de ${dossier.alumnoNombre}`}
+      accessibilityLabel={t('Validar el informe de {mes} de {nombre}', {
+        mes: nombreMes(mes),
+        nombre: dossier.alumnoNombre,
+      })}
       onPress={onValidar}
       style={({ pressed }) => [
         styles.pendiente,
@@ -401,22 +420,22 @@ function FilaPendiente({
         <ThemedText type="smallBold" style={styles.flex}>
           {dossier.alumnoNombre} · {nombreMes(mes)}
         </ThemedText>
-        <Chip texto="Pendiente" color="estadoPendiente" />
+        <Chip texto={t('Pendiente')} color="estadoPendiente" />
       </View>
       <ThemedText type="small" themeColor="textSecondary">
         {[dossier.ciclo, dossier.centro, dossier.empresa].filter(Boolean).join(' · ')}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Tutor del centro: {dossier.tutorNombre ?? 'sin asignar'}
+        {t('Tutor del centro: {nombre}', { nombre: dossier.tutorNombre ?? t('sin asignar') })}
       </ThemedText>
       <View style={styles.filaArriba}>
         <ThemedText type="small" themeColor="textSecondary">
           {dias
-            ? `Este mes: ${formatoHoras(horas)} en ${dias} ${dias === 1 ? 'día' : 'días'}`
+            ? `${t('Este mes: {horas} en', { horas: formatoHoras(horas) })} ${tPlural(dias, '{n} día', '{n} días')}`
             : 'Todavía no ha apuntado días de este mes'}
         </ThemedText>
         <ThemedText type="smallBold" style={{ color: theme.primary }}>
-          Validar ›
+          {t('Validar ›')}
         </ThemedText>
       </View>
     </Pressable>

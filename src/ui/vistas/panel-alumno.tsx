@@ -40,6 +40,7 @@ import { EstadoMes } from './estado-mes';
 import { MiniCalendario } from './mini-calendario';
 import { TareasDossier } from './tareas';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio, ListaValoraciones } from './comun';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 export function PanelAlumno() {
   const usuario = useUsuario();
@@ -70,16 +71,22 @@ export function PanelAlumno() {
   const semana = datos ? semanaDePracticas(datos.dossier, hoy) : null;
   const estadoMes = <EstadoMes hoy={hoy} mesesValidados={mesesValidados} />;
   const valoraciones = datos ? (
-    <Tarjeta titulo="Valoraciones de la empresa">
+    <Tarjeta titulo={t('Valoraciones de la empresa')}>
       <ListaValoraciones mensuales={datos.seguimiento.mensuales} final={datos.seguimiento.final} />
     </Tarjeta>
   ) : null;
 
   return (
     <Pantalla
-      titulo={`Hola, ${usuario.nombre.split(' ')[0]}`}
+      titulo={t('Hola, {nombre}', { nombre: usuario.nombre.split(' ')[0] })}
       subtitulo={
-        semana ? `${fechaCorta(hoy)} · semana ${semana.actual} de ${semana.total}` : fechaCorta(hoy)
+        semana
+          ? t('{fecha} · semana {actual} de {total}', {
+              fecha: fechaCorta(hoy),
+              actual: semana.actual,
+              total: semana.total,
+            })
+          : fechaCorta(hoy)
       }
       // En la web el estado del mes llena el hueco junto al saludo; el botón de registrar ya
       // está en la cabecera.
@@ -90,9 +97,11 @@ export function PanelAlumno() {
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
       {!cargando && !datos && !error ? (
         <EstadoVacio
-          titulo="Todavía no tienes prácticas asignadas"
-          texto="Cuando tu tutor del centro cree tu dossier de prácticas, aquí verás tus horas, el calendario y las valoraciones de la empresa."
-          accion={{ texto: 'Volver a mirar', onPress: recargar }}
+          titulo={t('Todavía no tienes prácticas asignadas')}
+          texto={t(
+            'Cuando tu tutor del centro cree tu dossier de prácticas, aquí verás tus horas, el calendario y las valoraciones de la empresa.',
+          )}
+          accion={{ texto: t('Volver a mirar'), onPress: recargar }}
         />
       ) : null}
       {datos ? (
@@ -114,14 +123,14 @@ export function PanelAlumno() {
               />
               {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
                   sola con el calendario arriba. */}
-              <Tarjeta titulo="Horas de prácticas">
+              <Tarjeta titulo={t('Horas de prácticas')}>
                 {ancho ? null : (
                   <MiniCalendario hoy={hoy} registros={datos.registros} periodo={datos.dossier} />
                 )}
                 <View style={styles.quesito}>
                   <Quesito
                     porcentaje={datos.resumen.porcentaje}
-                    etiqueta="Horas de prácticas completadas"
+                    etiqueta={t('Horas de prácticas completadas')}
                   />
                   <View style={ancho ? undefined : styles.flex}>
                     <View style={styles.horas}>
@@ -143,7 +152,7 @@ export function PanelAlumno() {
                   titulo={nombreMes(mes)}
                   accion={
                     <Enlace
-                      texto="Ver calendario ›"
+                      texto={t('Ver calendario ›')}
                       onPress={() => router.navigate('/calendario')}
                     />
                   }>
@@ -167,9 +176,12 @@ export function PanelAlumno() {
                   </View>
                 </Tarjeta>
               ) : (
-                <Tarjeta titulo="Este mes">
+                <Tarjeta titulo={t('Este mes')}>
                   <EstadoMes hoy={hoy} mesesValidados={mesesValidados} enTarjeta />
-                  <Boton texto="Registrar el día de hoy" onPress={() => router.push('/registro')} />
+                  <Boton
+                    texto={t('Registrar el día de hoy')}
+                    onPress={() => router.push('/registro')}
+                  />
                 </Tarjeta>
               )}
               {/* En la web las valoraciones van con el mes: así las dos columnas quedan
@@ -179,21 +191,21 @@ export function PanelAlumno() {
           }
           derecha={
             <>
-              <Tarjeta titulo="Tareas">
+              <Tarjeta titulo={t('Tareas')}>
                 <TareasDossier dossier={datos.dossier} onCambio={recargar} />
               </Tarjeta>
               <Tarjeta
-                titulo="Últimos registros"
+                titulo={t('Últimos registros')}
                 accion={
-                  <Enlace texto="Ver todo ›" onPress={() => router.navigate('/calendario')} />
+                  <Enlace texto={t('Ver todo ›')} onPress={() => router.navigate('/calendario')} />
                 }>
                 <UltimosRegistros dossier={datos.dossier} registros={datos.registros} />
               </Tarjeta>
               <Tarjeta
-                titulo="Mis prácticas"
+                titulo={t('Mis prácticas')}
                 accion={
                   <Enlace
-                    texto="Ficha ›"
+                    texto={t('Ficha ›')}
                     onPress={() =>
                       router.push({ pathname: '/', params: { dossier: datos.dossier.id } })
                     }
@@ -254,7 +266,7 @@ function HorasActividades({
       <View style={styles.horas}>
         <ThemedText type="subtitle">{formatoHoras(total)}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          este mes
+          {t('este mes')}
         </ThemedText>
       </View>
       {filas.map((f) => (
@@ -298,7 +310,7 @@ function UltimosRegistros({
   if (ultimos.length === 0) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
-        Todavía no has apuntado ningún día.
+        {t('Todavía no has apuntado ningún día.')}
       </ThemedText>
     );
   }
@@ -315,7 +327,10 @@ function UltimosRegistros({
           <Pressable
             key={r.id}
             accessibilityRole="button"
-            accessibilityLabel={`${fechaCorta(r.fecha)}: ${detalle}. Abrir el registro`}
+            accessibilityLabel={t('{fecha}: {detalle}. Abrir el registro', {
+              fecha: fechaCorta(r.fecha),
+              detalle,
+            })}
             onPress={() => router.push({ pathname: '/registro', params: { fecha: r.fecha } })}
             style={({ pressed }) => [
               styles.registro,
@@ -356,21 +371,21 @@ function DatosProgreso({ progreso }: { progreso: Progreso }) {
   return (
     <View style={styles.datos}>
       <View style={styles.cifras}>
-        <Cifra etiqueta="Te quedan" valor={formatoHoras(quedan)} />
-        <Cifra etiqueta="Esta semana" valor={formatoHoras(horasSemana)} />
+        <Cifra etiqueta={t('Te quedan')} valor={formatoHoras(quedan)} />
+        <Cifra etiqueta={t('Esta semana')} valor={formatoHoras(horasSemana)} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
             pendientes
-              ? `${pendientes} días sin apuntar. Apuntar el primero`
-              : 'Todos los días apuntados'
+              ? t('{n} días sin apuntar. Apuntar el primero', { n: pendientes })
+              : t('Todos los días apuntados')
           }
           disabled={!pendientes}
           onPress={() => router.push({ pathname: '/registro', params: { fecha: sinApuntar[0] } })}
           style={({ pressed }) => [styles.flex, pressed && { opacity: 0.6 }]}>
           <Cifra
-            etiqueta="Sin apuntar"
-            valor={`${pendientes} ${pendientes === 1 ? 'día' : 'días'}${pendientes ? ' ›' : ''}`}
+            etiqueta={t('Sin apuntar')}
+            valor={`${tPlural(pendientes, '{n} día', '{n} días')}${pendientes ? ' ›' : ''}`}
             color={colorAviso ? theme[colorAviso] : undefined}
           />
         </Pressable>
@@ -379,7 +394,11 @@ function DatosProgreso({ progreso }: { progreso: Progreso }) {
         <ThemedText type="small">
           {quedan === 0
             ? 'Horas completadas'
-            : `A este ritmo terminas el ${fechaCorta(finEstimado)}${aTiempo ? ', a tiempo' : ', después del fin previsto'}`}
+            : aTiempo
+              ? t('A este ritmo terminas el {fecha}, a tiempo', { fecha: fechaCorta(finEstimado) })
+              : t('A este ritmo terminas el {fecha}, después del fin previsto', {
+                  fecha: fechaCorta(finEstimado),
+                })}
         </ThemedText>
       ) : null}
     </View>
@@ -479,23 +498,28 @@ function AvisoToqueAlumno({ dossier }: { dossier: Dossier }) {
   }
   if (error)
     return (
-      <ErrorCarga texto="No se pudieron consultar los avisos del tutor." onReintentar={recargar} />
+      <ErrorCarga
+        texto={t('No se pudieron consultar los avisos del tutor.')}
+        onReintentar={recargar}
+      />
     );
   if (!datos) return null;
   return (
-    <Tarjeta titulo="Aviso de tu tutor">
+    <Tarjeta titulo={t('Aviso de tu tutor')}>
       <ThemedText>
-        Tu tutor te ha dado un toque: llevas {datos.diasSinApuntar} días sin apuntar
+        {t('Tu tutor te ha dado un toque: llevas {n} días sin apuntar', {
+          n: datos.diasSinApuntar,
+        })}
       </ThemedText>
       {fallo && (
         <ThemedText themeColor="danger">
-          No se pudo marcar el aviso como visto. Puedes reintentar o abrir Registro.
+          {t('No se pudo marcar el aviso como visto. Puedes reintentar o abrir Registro.')}
         </ThemedText>
       )}
-      <Boton texto="Apuntar ahora" cargando={abriendo} onPress={apuntar} />
+      <Boton texto={t('Apuntar ahora')} cargando={abriendo} onPress={apuntar} />
       {fallo && (
         <Boton
-          texto="Abrir Registro"
+          texto={t('Abrir Registro')}
           variante="secundario"
           onPress={() => router.push('/registro')}
         />

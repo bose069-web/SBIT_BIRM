@@ -2,16 +2,28 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { FontFamily, Fonts, ThemeColor } from '@/ui/theme/theme';
 import { useTheme } from '@/ui/hooks/use-theme';
+import { traducirHijos } from '@/ui/utils/idioma';
 
 export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
   themeColor?: ThemeColor;
 };
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+export function ThemedText({
+  style,
+  type = 'default',
+  themeColor,
+  children,
+  ...rest
+}: ThemedTextProps) {
   const theme = useTheme();
 
-  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
+  // Los textos fijos salen en el idioma de la app (ver traducirHijos).
+  return (
+    <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest}>
+      {traducirHijos(children)}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({

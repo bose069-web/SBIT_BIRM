@@ -1,6 +1,13 @@
 import type { RegistroDiario } from '@/core/domain/registro-diario';
 
-export const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+import { idiomaActual } from './idioma';
+
+/** Iniciales de lunes a domingo, en el idioma de la app. */
+export function diasSemana(): string[] {
+  return idiomaActual() === 'ca'
+    ? ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg']
+    : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+}
 
 /** Semanas de un mes (`AAAA-MM`) de lunes a domingo; los huecos de otros meses son `null`. */
 export function semanasDelMes(mes: string): (string | null)[][] {

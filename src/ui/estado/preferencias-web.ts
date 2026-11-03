@@ -24,23 +24,40 @@ function crearValor<T>(inicial: T) {
   };
 }
 
-function leerGuardado(): Esquema {
+function leerGuardado(): Esquema | null {
   try {
-    return globalThis.localStorage?.getItem(CLAVE) === 'dark' ? 'dark' : 'light';
+    const guardado = globalThis.localStorage?.getItem(CLAVE);
+    return guardado === 'dark' || guardado === 'light' ? guardado : null;
   } catch {
-    return 'light';
+    return null;
   }
 }
 
-// Claro por defecto: solo es oscuro si la persona lo eligió.
-const esquema = crearValor<Esquema>(leerGuardado());
+const esquema = crearValor<Esquema | null>(null);
 const desplazado = crearValor(false);
 
+// Se lee al pintar, no al importar: en el móvil, localStorage se instala al cargar el container.
+let leido = false;
+function leerEsquema() {
+  if (!leido) {
+    leido = true;
+    esquema.poner(leerGuardado());
+  }
+  return esquema.leer();
+}
+
+/** Lo que eligió la persona; null si todavía no ha elegido. */
+export function useEsquemaElegido(): Esquema | null {
+  return useSyncExternalStore(esquema.suscribir, leerEsquema, () => null);
+}
+
+/** En la web, claro por defecto: solo es oscuro si la persona lo eligió. */
 export function useEsquemaWeb(): Esquema {
-  return useSyncExternalStore(esquema.suscribir, esquema.leer, () => 'light');
+  return useEsquemaElegido() ?? 'light';
 }
 
 export function cambiarEsquemaWeb(nuevo: Esquema) {
+  leido = true;
   esquema.poner(nuevo);
   try {
     globalThis.localStorage?.setItem(CLAVE, nuevo);

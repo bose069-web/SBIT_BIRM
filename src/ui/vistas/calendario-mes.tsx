@@ -10,6 +10,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { estadoDia, semanasDelMes, sumarMeses, type EstadoDia } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
+import { idiomaActual, t } from '@/ui/utils/idioma';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 
@@ -119,19 +120,19 @@ export function CalendarioMes({
         <View style={[styles.controles, { backgroundColor: theme.subtle }]}>
           <BotonMes
             texto="‹"
-            etiqueta="Mes anterior"
+            etiqueta={t('Mes anterior')}
             desactivado={mes <= mesDe(periodo.fechaInicio)}
             onPress={() => onCambiarMes(sumarMeses(mes, -1))}
           />
           <BotonMes
-            texto="Hoy"
-            etiqueta="Ir al mes de hoy"
+            texto={t('Hoy')}
+            etiqueta={t('Ir al mes de hoy')}
             desactivado={mes === mesHoy}
             onPress={() => onCambiarMes(mesHoy)}
           />
           <BotonMes
             texto="›"
-            etiqueta="Mes siguiente"
+            etiqueta={t('Mes siguiente')}
             desactivado={mes >= mesDe(periodo.fechaFin)}
             onPress={() => onCambiarMes(sumarMeses(mes, 1))}
           />
@@ -140,7 +141,7 @@ export function CalendarioMes({
 
       <View>
         <View style={styles.semana}>
-          {DIAS_SEMANA_CORTOS.map((d) => (
+          {diasCortos().map((d) => (
             <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.diaSemana}>
               {d}
             </ThemedText>
@@ -182,7 +183,7 @@ export function CalendarioMes({
                   <Pressable
                     key={fecha}
                     accessibilityRole="button"
-                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}: ${info.texto}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
+                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? t(', hoy') : ''}: ${t(info.texto)}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
                     accessibilityState={{ disabled: estado === 'fuera', selected: elegida }}
                     disabled={estado === 'fuera'}
                     onPress={() => onElegir(fecha)}
@@ -263,7 +264,11 @@ export function CalendarioMes({
   );
 }
 
-const DIAS_SEMANA_CORTOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+function diasCortos(): string[] {
+  return idiomaActual() === 'ca'
+    ? ['dl', 'dt', 'dc', 'dj', 'dv', 'ds', 'dg']
+    : ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+}
 
 const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 

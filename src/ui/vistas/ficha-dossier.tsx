@@ -21,6 +21,7 @@ import { contarDias, horasPorActividad } from '@/ui/utils/horas-actividad';
 
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import { SeccionHistorial } from './seccion-historial';
+import { t, tPlural } from '@/ui/utils/idioma';
 
 /** Ficha de solo lectura de un dossier: quién, dónde, cuándo y las horas de cada actividad. */
 export function FichaDossier({
@@ -52,18 +53,18 @@ export function FichaDossier({
   }, [dossierId]);
   useRecargarAlVolver(recargar);
 
-  const volver = <Boton texto="‹ Volver" variante="secundario" onPress={onVolver} />;
+  const volver = <Boton texto={t('‹ Volver')} variante="secundario" onPress={onVolver} />;
 
   if (!datos) {
     return (
-      <Pantalla titulo="Ficha del dossier">
+      <Pantalla titulo={t('Ficha del dossier')}>
         {volver}
         {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
         {cargando ? <EsqueletoPanel tarjetas={3} /> : null}
         {!cargando && !error ? (
           <EstadoVacio
-            titulo="No se encuentra el dossier"
-            texto="Puede que se haya borrado o que no tengas permiso para verlo."
+            titulo={t('No se encuentra el dossier')}
+            texto={t('Puede que se haya borrado o que no tengas permiso para verlo.')}
           />
         ) : null}
       </Pantalla>
@@ -72,27 +73,39 @@ export function FichaDossier({
 
   const { dossier, resumen, actividades, dias } = datos;
   return (
-    <Pantalla titulo={dossier.alumnoNombre} subtitulo={`Ficha del dossier · ${dossier.ciclo}`}>
+    <Pantalla
+      titulo={dossier.alumnoNombre}
+      subtitulo={t('Ficha del dossier · {ciclo}', { ciclo: dossier.ciclo })}>
       {volver}
       {gestionaDossier(usuario, dossier) ? (
-        <Boton texto="Editar dossier" variante="secundario" onPress={() => onEditar(dossier.id)} />
+        <Boton
+          texto={t('Editar dossier')}
+          variante="secundario"
+          onPress={() => onEditar(dossier.id)}
+        />
       ) : null}
 
-      <Tarjeta titulo="Prácticas">
-        <Dato etiqueta="Ciclo" valor={dossier.ciclo} />
-        <Dato etiqueta="Centro" valor={dossier.centro ?? 'Sin centro'} />
-        <Dato etiqueta="Empresa" valor={dossier.empresa ?? 'Sin empresa'} />
-        <Dato etiqueta="Tutor del centro" valor={dossier.tutorNombre ?? 'Sin asignar'} />
-        <Dato etiqueta="Tutor de empresa" valor={dossier.tutorEmpresaNombre ?? 'Sin asignar'} />
+      <Tarjeta titulo={t('Prácticas')}>
+        <Dato etiqueta={t('Ciclo')} valor={dossier.ciclo} />
+        <Dato etiqueta={t('Centro')} valor={dossier.centro ?? 'Sin centro'} />
+        <Dato etiqueta={t('Empresa')} valor={dossier.empresa ?? 'Sin empresa'} />
+        <Dato etiqueta={t('Tutor del centro')} valor={dossier.tutorNombre ?? 'Sin asignar'} />
         <Dato
-          etiqueta="Periodo"
-          valor={`Del ${fechaCorta(dossier.fechaInicio)} al ${fechaCorta(dossier.fechaFin)}`}
+          etiqueta={t('Tutor de empresa')}
+          valor={dossier.tutorEmpresaNombre ?? 'Sin asignar'}
+        />
+        <Dato
+          etiqueta={t('Periodo')}
+          valor={t('Del {inicio} al {fin}', {
+            inicio: fechaCorta(dossier.fechaInicio),
+            fin: fechaCorta(dossier.fechaFin),
+          })}
         />
       </Tarjeta>
 
-      <Tarjeta titulo="Horas">
+      <Tarjeta titulo={t('Horas')}>
         <View style={styles.quesito}>
-          <Quesito porcentaje={resumen.porcentaje} etiqueta="Horas de prácticas completadas" />
+          <Quesito porcentaje={resumen.porcentaje} etiqueta={t('Horas de prácticas completadas')} />
           <View style={styles.flex}>
             <View style={styles.horas}>
               <ThemedText type="title">{formatoHoras(resumen.realizadas)}</ThemedText>
@@ -108,10 +121,10 @@ export function FichaDossier({
         </View>
       </Tarjeta>
 
-      <Tarjeta titulo={`Actividades (${actividades.length})`}>
+      <Tarjeta titulo={t('Actividades ({n})', { n: actividades.length })}>
         {actividades.length === 0 ? (
           <ThemedText type="small" themeColor="textSecondary">
-            Este dossier todavía no tiene actividades formativas.
+            {t('Este dossier todavía no tiene actividades formativas.')}
           </ThemedText>
         ) : (
           actividades.map(({ actividad, horas, porcentaje }) => (
@@ -130,7 +143,8 @@ export function FichaDossier({
   );
 }
 
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+const plural = (n: number, uno: string, varios: string) =>
+  tPlural(n, `{n} ${uno}`, `{n} ${varios}`);
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
@@ -157,7 +171,11 @@ function FilaActividad({
     <View
       style={[styles.actividad, { borderBottomColor: theme.border }]}
       accessible
-      accessibilityLabel={`${descripcion}: ${formatoHoras(horas)}, ${porcentaje}% de las horas`}>
+      accessibilityLabel={t('{actividad}: {horas}, {porcentaje}% de las horas', {
+        actividad: descripcion,
+        horas: formatoHoras(horas),
+        porcentaje,
+      })}>
       <View style={styles.filaActividad}>
         <ThemedText type="small" style={styles.flex}>
           {descripcion}

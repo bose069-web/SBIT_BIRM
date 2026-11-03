@@ -3,6 +3,7 @@ import type { EntradaHistorial } from '@/core/domain/historial';
 import type { Rol } from '@/core/domain/usuario';
 
 import { fechaCorta, horaCorta, nombreMes } from './fechas';
+import { t } from './idioma';
 
 const NOMBRE_ROL: Record<Rol, string> = {
   alumno: 'Alumno',
@@ -36,20 +37,21 @@ const TEXTO_VALORACION: Record<string, string> = {
 export function textoEntrada({ entidad, accion, detalle }: EntradaHistorial): string {
   switch (entidad) {
     case 'dossier':
-      return `Dossier ${VERBO[accion]}`;
+      return t(`Dossier ${VERBO[accion]}`);
     case 'registro':
-      return `Día ${detalle.fecha ? fechaCorta(detalle.fecha) : ''} ${VERBO[accion]}`.replace(
-        '  ',
-        ' ',
-      );
+      return detalle.fecha
+        ? t(`Día {fecha} ${VERBO[accion]}`, { fecha: fechaCorta(detalle.fecha) })
+        : t(`Día ${VERBO[accion]}`);
     case 'valoracion_mensual': {
-      const mes = detalle.mes ? ` de ${nombreMes(detalle.mes)}` : '';
-      const valor = detalle.valoracion ? `: ${TEXTO_VALORACION[detalle.valoracion]}` : '';
-      return `Valoración${mes} ${VERBO_FEMENINO[accion]}${valor}`;
+      const valor = detalle.valoracion ? `: ${t(TEXTO_VALORACION[detalle.valoracion])}` : '';
+      const frase = detalle.mes
+        ? t(`Valoración de {mes} ${VERBO_FEMENINO[accion]}`, { mes: nombreMes(detalle.mes) })
+        : t(`Valoración ${VERBO_FEMENINO[accion]}`);
+      return `${frase}${valor}`;
     }
     case 'valoracion_final': {
-      const valor = detalle.resultado ? `: ${TEXTO_VALORACION[detalle.resultado]}` : '';
-      return `Valoración final ${VERBO_FEMENINO[accion]}${valor}`;
+      const valor = detalle.resultado ? `: ${t(TEXTO_VALORACION[detalle.resultado])}` : '';
+      return `${t(`Valoración final ${VERBO_FEMENINO[accion]}`)}${valor}`;
     }
   }
 }
@@ -75,7 +77,7 @@ export function autorEntrada(
   if (actorId === dossier.tutorEmpresaId && dossier.tutorEmpresaNombre) {
     return dossier.tutorEmpresaNombre;
   }
-  return actorRol ? NOMBRE_ROL[actorRol] : 'Otra persona';
+  return actorRol ? t(NOMBRE_ROL[actorRol]) : t('Otra persona');
 }
 
 /** Fecha y hora en la zona del dispositivo: el instante guardado va en UTC. */
