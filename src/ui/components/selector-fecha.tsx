@@ -10,6 +10,7 @@ import { fondoHoverWeb, transicionWeb, type EstadoPressable } from '@/ui/utils/i
 import { FontFamily, Movimiento, Radius, Spacing } from '@/ui/theme/theme';
 import { diasSemana, semanasDelMes, sumarMeses } from '@/ui/utils/calendario';
 import { fechaCorta, hoyISO, nombreMes } from '@/ui/utils/fechas';
+import { t } from '@/ui/utils/idioma';
 
 interface Props {
   etiqueta: string;
@@ -39,7 +40,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
       <ThemedText type="smallBold">{etiqueta}</ThemedText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${etiqueta}: ${valor ? fechaCorta(valor) : 'sin elegir'}`}
+        accessibilityLabel={`${t(etiqueta)}: ${valor ? fechaCorta(valor) : t('sin elegir')}`}
         accessibilityHint={
           abierto ? 'Cierra el calendario' : 'Abre un calendario para elegir el día'
         }
@@ -71,7 +72,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
           <View style={styles.cabecera}>
             <BotonFlecha
               texto="‹"
-              etiqueta="Mes anterior"
+              etiqueta={t('Mes anterior')}
               onPress={() => setMes(sumarMeses(mes, -1))}
             />
             <ThemedText type="smallBold" style={styles.mes}>
@@ -79,7 +80,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
             </ThemedText>
             <BotonFlecha
               texto="›"
-              etiqueta="Mes siguiente"
+              etiqueta={t('Mes siguiente')}
               onPress={() => setMes(sumarMeses(mes, 1))}
             />
           </View>
@@ -100,7 +101,7 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
                   <Pressable
                     key={fecha}
                     accessibilityRole="button"
-                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}`}
+                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? t(', hoy') : ''}`}
                     accessibilityState={{ selected: elegido }}
                     onPress={() => elegir(fecha)}
                     style={({ hovered, pressed }: EstadoPressable) => [
@@ -126,8 +127,10 @@ export function SelectorFecha({ etiqueta, valor, onCambio, opcional }: Props) {
             </View>
           ))}
           <View style={styles.pie}>
-            <BotonTexto texto="Hoy" onPress={() => elegir(hoy)} />
-            {opcional && valor ? <BotonTexto texto="Sin fecha" onPress={() => elegir('')} /> : null}
+            <BotonTexto texto={t('Hoy')} onPress={() => elegir(hoy)} />
+            {opcional && valor ? (
+              <BotonTexto texto={t('Sin fecha')} onPress={() => elegir('')} />
+            ) : null}
           </View>
         </Animated.View>
       ) : null}

@@ -38,6 +38,7 @@ import { fechaCorta, formatoHoras, hoyISO, nombreMes } from '@/ui/utils/fechas';
 
 import { LEYENDA_DIAS } from './calendario-mes';
 import { MiniCalendario } from './mini-calendario';
+import { t } from '@/ui/utils/idioma';
 
 const TEXTO_TIPO: Record<TipoDia, string> = {
   trabajo: 'Fichado',
@@ -68,7 +69,7 @@ export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
   if (cargando && !datos) {
     return (
       <ThemedText type="small" themeColor="textSecondary">
-        Cargando horas…
+        {t('Cargando horas…')}
       </ThemedText>
     );
   }
@@ -91,7 +92,7 @@ export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
       <View style={styles.cabecera}>
         <BotonMes
           texto="‹"
-          etiqueta="Mes anterior"
+          etiqueta={t('Mes anterior')}
           desactivado={mes <= mesDe(dossier.fechaInicio)}
           onPress={() => cambiarMes(sumarMeses(mes, -1))}
         />
@@ -103,12 +104,12 @@ export function HorasAlumno({ dossier, seguimiento, onCambio }: Props) {
         </View>
         <BotonMes
           texto="›"
-          etiqueta="Mes siguiente"
+          etiqueta={t('Mes siguiente')}
           desactivado={mes >= mesDe(dossier.fechaFin)}
           onPress={() => cambiarMes(sumarMeses(mes, 1))}
         />
       </View>
-      {bloqueado(`${mes}-01`) ? <Chip texto="Bloqueado" color="estadoValidado" /> : null}
+      {bloqueado(`${mes}-01`) ? <Chip texto={t('Bloqueado')} color="estadoValidado" /> : null}
       <MiniCalendario
         hoy={hoy}
         cabecera={false}
@@ -210,7 +211,7 @@ function DetalleDia({
       </ThemedText>
       {registro ? null : (
         <ThemedText type="small" themeColor="textSecondary">
-          Sin apuntar.
+          {t('Sin apuntar.')}
         </ThemedText>
       )}
       {registro?.horas.map((h) => (
@@ -305,7 +306,7 @@ function EditorDia({
         {registro ? 'Corregir' : 'Añadir'} {fechaCorta(fecha)}
       </ThemedText>
       <Selector
-        etiqueta="Tipo de día"
+        etiqueta={t('Tipo de día')}
         opciones={TIPOS_DIA.map((t) => ({ valor: t, texto: TEXTO_TIPO[t] }))}
         valor={tipo}
         onCambio={setTipo}
@@ -318,12 +319,12 @@ function EditorDia({
               keyboardType="decimal-pad"
               value={horas[a.id] ?? ''}
               onChangeText={(v) => setHoras((h) => ({ ...h, [a.id]: v }))}
-              ayuda="Horas, en cuartos: 1,25"
+              ayuda={t('Horas, en cuartos: 1,25')}
             />
           ))
         : null}
       <Campo
-        etiqueta="Observaciones"
+        etiqueta={t('Observaciones')}
         multiline
         value={observaciones}
         onChangeText={setObservaciones}
@@ -331,13 +332,20 @@ function EditorDia({
       {valorado ? (
         <Mensaje
           tipo="error"
-          texto="La empresa ya valoró este mes con las horas anteriores. Avísala si cambias algo."
+          texto={t(
+            'La empresa ya valoró este mes con las horas anteriores. Avísala si cambias algo.',
+          )}
         />
       ) : null}
       {error ? <Mensaje tipo="error" texto={error} /> : null}
       <View style={styles.botones}>
-        <Boton texto="Guardar" cargando={guardando} onPress={guardar} />
-        <Boton texto="Cancelar" variante="secundario" desactivado={guardando} onPress={onCerrar} />
+        <Boton texto={t('Guardar')} cargando={guardando} onPress={guardar} />
+        <Boton
+          texto={t('Cancelar')}
+          variante="secundario"
+          desactivado={guardando}
+          onPress={onCerrar}
+        />
         {registro ? (
           <Boton
             texto={confirmandoBorrado ? 'Confirmar borrado' : 'Borrar día'}
