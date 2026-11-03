@@ -12,6 +12,7 @@ import { useUsuario } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Spacing } from '@/ui/theme/theme';
 import { autorEntrada, cuandoEntrada, textoEntrada } from '@/ui/utils/historial';
+import { t } from '@/ui/utils/idioma';
 
 const VISIBLES = 5;
 
@@ -26,28 +27,28 @@ export function SeccionHistorial({ dossier }: { dossier: Dossier }) {
   );
 
   return (
-    <Tarjeta titulo="Historial">
+    <Tarjeta titulo={t('Historial')}>
       {error ? (
         <>
           <ThemedText type="small" themeColor="textSecondary">
-            No se ha podido cargar el historial.
+            {t('No se ha podido cargar el historial.')}
           </ThemedText>
-          <Boton texto="Reintentar" variante="secundario" onPress={recargar} />
+          <Boton texto={t('Reintentar')} variante="secundario" onPress={recargar} />
         </>
       ) : null}
       {!datos && !error && cargando ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Cargando el historial…
+          {t('Cargando el historial…')}
         </ThemedText>
       ) : null}
       {datos && !datos.disponible ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Historial no disponible todavía
+          {t('Historial no disponible todavía')}
         </ThemedText>
       ) : null}
       {datos?.disponible && datos.entradas.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay cambios anotados. Se anotan a partir de ahora, no los anteriores.
+          {t('Todavía no hay cambios anotados. Se anotan a partir de ahora, no los anteriores.')}
         </ThemedText>
       ) : null}
       {datos?.disponible
@@ -65,7 +66,7 @@ export function SeccionHistorial({ dossier }: { dossier: Dossier }) {
         : null}
       {datos?.disponible && datos.entradas.length > VISIBLES ? (
         <Boton
-          texto={verTodo ? 'Ver menos' : `Ver los ${datos.entradas.length}`}
+          texto={verTodo ? t('Ver menos') : t('Ver los {n}', { n: datos.entradas.length })}
           variante="secundario"
           onPress={() => setVerTodo((v) => !v)}
         />

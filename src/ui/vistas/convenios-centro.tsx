@@ -36,7 +36,7 @@ export function ConveniosCentro({ centroPedido }: { centroPedido: string | null 
     usePanelCentro(centroPedido);
   return (
     <Pantalla
-      titulo="Convenios"
+      titulo={t('Convenios')}
       subtitulo={datos?.centro.nombre ?? 'Empresas con las que el centro tiene convenio'}
       amplia={ancho}
       bajoCabecera>
@@ -57,8 +57,8 @@ export function ConveniosCentro({ centroPedido }: { centroPedido: string | null 
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {!centroId && !cargando && !centros.error ? (
         <EstadoVacio
-          titulo="Sin centro"
-          texto="Elige un centro desde Inicio para gestionar sus convenios."
+          titulo={t('Sin centro')}
+          texto={t('Elige un centro desde Inicio para gestionar sus convenios.')}
         />
       ) : null}
       {datos ? (
@@ -87,8 +87,8 @@ export function ConveniosCentro({ centroPedido }: { centroPedido: string | null 
 function Cifras({ datos }: { datos: PanelCentro }) {
   return (
     <View style={styles.cifras}>
-      <Cifra valor={`${datos.convenios.length}`} etiqueta="Con convenio" />
-      <Cifra valor={`${datos.empresasSinConvenio.length}`} etiqueta="Empresas sin convenio" />
+      <Cifra valor={`${datos.convenios.length}`} etiqueta={t('Con convenio')} />
+      <Cifra valor={`${datos.empresasSinConvenio.length}`} etiqueta={t('Empresas sin convenio')} />
     </View>
   );
 }
@@ -97,9 +97,9 @@ function ListaConvenios({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCe
   const usuario = useUsuario();
   const theme = useTheme();
   return (
-    <Tarjeta titulo={`Convenios con empresas (${datos.convenios.length})`}>
+    <Tarjeta titulo={t('Convenios con empresas ({n})', { n: datos.convenios.length })}>
       <ThemedText type="small" themeColor="textSecondary">
-        Los alumnos solo pueden hacer prácticas en empresas con convenio.
+        {t('Los alumnos solo pueden hacer prácticas en empresas con convenio.')}
       </ThemedText>
       {datos.convenios.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -115,17 +115,19 @@ function ListaConvenios({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCe
             <View style={styles.flex}>
               <ThemedText type="smallBold">{c.empresaNombre}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {c.firmadoEn ? `Firmado el ${fechaCorta(c.firmadoEn)}` : 'Sin fecha de firma'}
+                {c.firmadoEn
+                  ? t('Firmado el {fecha}', { fecha: fechaCorta(c.firmadoEn) })
+                  : t('Sin fecha de firma')}
               </ThemedText>
             </View>
           </View>
           <Boton
-            texto="Quitar convenio"
+            texto={t('Quitar convenio')}
             variante="peligro"
             onPress={() =>
               hacer(
                 () => quitarConvenio(container.centros, usuario, c),
-                `Convenio con ${c.empresaNombre} quitado`,
+                t('Convenio con {empresa} quitado', { empresa: c.empresaNombre }),
               )
             }
           />
@@ -153,15 +155,15 @@ function NuevoConvenio({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCen
   return (
     <>
       {datos.empresasSinConvenio.length > 0 ? (
-        <Tarjeta titulo="Firmar convenio">
+        <Tarjeta titulo={t('Firmar convenio')}>
           <Selector
-            etiqueta="Empresa existente"
+            etiqueta={t('Empresa existente')}
             opciones={datos.empresasSinConvenio.map((e) => ({ valor: e.id, texto: e.nombre }))}
             valor={empresaId}
             onCambio={setEmpresaId}
           />
           <Boton
-            texto="Firmar convenio"
+            texto={t('Firmar convenio')}
             desactivado={!empresaId}
             onPress={() => {
               const empresa = datos.empresasSinConvenio.find((e) => e.id === empresaId);
@@ -170,23 +172,28 @@ function NuevoConvenio({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCen
               void hacer(
                 () =>
                   firmarConvenio(container.centros, usuario, datos.centro.id, empresa.id, hoyISO()),
-                `Convenio firmado con ${empresa.nombre}`,
+                t('Convenio firmado con {empresa}', { empresa: empresa.nombre }),
               );
             }}
           />
         </Tarjeta>
       ) : null}
-      <Tarjeta titulo="Empresa nueva">
-        <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} placeholder="Empresa SL" />
+      <Tarjeta titulo={t('Empresa nueva')}>
         <Campo
-          etiqueta="CIF"
+          etiqueta={t('Nombre')}
+          value={nombre}
+          onChangeText={setNombre}
+          placeholder={t('Empresa SL')}
+        />
+        <Campo
+          etiqueta={t('CIF')}
           value={cif}
           onChangeText={setCif}
-          placeholder="Opcional"
+          placeholder={t('Opcional')}
           autoCapitalize="characters"
         />
         <Boton
-          texto="Dar de alta y firmar convenio"
+          texto={t('Dar de alta y firmar convenio')}
           desactivado={nombre.trim().length < 2}
           onPress={nuevaEmpresa}
         />

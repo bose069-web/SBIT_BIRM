@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 
-import { guardarDatosPersonales, obtenerDatosPersonales } from '@/core/application/perfil';
+import { guardarIdioma, obtenerDatosPersonales } from '@/core/application/perfil';
 import type { Idioma } from '@/core/domain/perfil';
 import { container } from '@/config/container';
 import { useSesion } from '@/ui/hooks/use-sesion';
@@ -85,7 +85,7 @@ export function IdiomaProvider({ children }: { children: ReactNode }) {
         const elegido = elegidoSinSesion.current;
         elegidoSinSesion.current = null;
         if (elegido && elegido !== datos.idioma) {
-          await guardarDatosPersonales(container.perfil, usuario, { ...datos, idioma: elegido });
+          await guardarIdioma(container.perfil, usuario, datos, elegido);
           return;
         }
         if (vigente) cambiarIdioma(datos.idioma);

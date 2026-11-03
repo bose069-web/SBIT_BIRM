@@ -46,7 +46,10 @@ export function RepartoProfesCentro({
     guardar(true);
     try {
       const total = await reasignarAlumnos(container.centros, usuario, alumnos, profe);
-      avisar({ tipo: 'ok', texto: `Reasignación completada. Alumnos actualizados: ${total}.` });
+      avisar({
+        tipo: 'ok',
+        texto: t('Reasignación completada. Alumnos actualizados: {n}.', { n: total }),
+      });
       seleccionar([]);
       elegir(null);
       onCambio();

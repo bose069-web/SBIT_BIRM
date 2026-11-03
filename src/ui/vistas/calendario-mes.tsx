@@ -10,7 +10,7 @@ import { useTheme } from '@/ui/hooks/use-theme';
 import { FontFamily, Movimiento, Radius, Spacing, type ThemeColor } from '@/ui/theme/theme';
 import { estadoDia, semanasDelMes, sumarMeses, type EstadoDia } from '@/ui/utils/calendario';
 import { fechaCorta, formatoHoras, nombreMes } from '@/ui/utils/fechas';
-import { idiomaActual } from '@/ui/utils/idioma';
+import { idiomaActual, t } from '@/ui/utils/idioma';
 
 type Forma = 'punto' | 'anillo' | 'cuadrado' | 'rombo';
 
@@ -120,19 +120,19 @@ export function CalendarioMes({
         <View style={[styles.controles, { backgroundColor: theme.subtle }]}>
           <BotonMes
             texto="‹"
-            etiqueta="Mes anterior"
+            etiqueta={t('Mes anterior')}
             desactivado={mes <= mesDe(periodo.fechaInicio)}
             onPress={() => onCambiarMes(sumarMeses(mes, -1))}
           />
           <BotonMes
-            texto="Hoy"
-            etiqueta="Ir al mes de hoy"
+            texto={t('Hoy')}
+            etiqueta={t('Ir al mes de hoy')}
             desactivado={mes === mesHoy}
             onPress={() => onCambiarMes(mesHoy)}
           />
           <BotonMes
             texto="›"
-            etiqueta="Mes siguiente"
+            etiqueta={t('Mes siguiente')}
             desactivado={mes >= mesDe(periodo.fechaFin)}
             onPress={() => onCambiarMes(sumarMeses(mes, 1))}
           />
@@ -183,7 +183,7 @@ export function CalendarioMes({
                   <Pressable
                     key={fecha}
                     accessibilityRole="button"
-                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? ', hoy' : ''}: ${info.texto}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
+                    accessibilityLabel={`${fechaCorta(fecha)}${esHoy ? t(', hoy') : ''}: ${t(info.texto)}${horas ? `, ${formatoHoras(horas)}` : ''}${delDia.length ? `. ${delDia.join('; ')}` : ''}`}
                     accessibilityState={{ disabled: estado === 'fuera', selected: elegida }}
                     disabled={estado === 'fuera'}
                     onPress={() => onElegir(fecha)}

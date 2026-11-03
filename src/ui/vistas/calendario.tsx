@@ -22,6 +22,7 @@ import { hoyISO, limitesMes } from '@/ui/utils/fechas';
 import { NuevoEvento, ProximasFechas } from './agenda';
 import { CalendarioMes } from './calendario-mes';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
+import { t } from '@/ui/utils/idioma';
 
 /** Pestaña Calendario: el alumno ve su mes con lo apuntado; los demás, las fechas que les tocan. */
 export function VistaCalendario() {
@@ -35,17 +36,19 @@ function CalendarioGeneral({ hoy, ponFechas }: { hoy: string; ponFechas: boolean
   const ancho = useWebAncha();
   return (
     <Pantalla
-      titulo="Calendario"
-      subtitulo="Entregas, reuniones y festivos"
+      titulo={t('Calendario')}
+      subtitulo={t('Entregas, reuniones y festivos')}
       amplia={ancho}
       compacta>
-      <Tarjeta titulo="Próximas fechas">
+      <Tarjeta titulo={t('Próximas fechas')}>
         <ProximasFechas hoy={hoy} />
       </Tarjeta>
       {ponFechas ? (
-        <Tarjeta titulo="Fechas para todos">
+        <Tarjeta titulo={t('Fechas para todos')}>
           <ThemedText type="small" themeColor="textSecondary">
-            Festivos, entregas o reuniones generales: los ven todos los alumnos en su calendario.
+            {t(
+              'Festivos, entregas o reuniones generales: los ven todos los alumnos en su calendario.',
+            )}
           </ThemedText>
           <NuevoEvento />
         </Tarjeta>
@@ -66,26 +69,26 @@ function CalendarioDelAlumno({ hoy }: { hoy: string }) {
 
   return (
     <Pantalla
-      titulo="Calendario"
-      subtitulo="Toca un día para ver qué hay y registrarlo"
+      titulo={t('Calendario')}
+      subtitulo={t('Toca un día para ver qué hay y registrarlo')}
       amplia={ancho}
       compacta>
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
       {!cargando && !datos && !error ? (
         <EstadoVacio
-          titulo="Todavía no tienes prácticas asignadas"
-          texto="Cuando tu tutor cree tu dossier, aquí verás tu calendario de prácticas."
+          titulo={t('Todavía no tienes prácticas asignadas')}
+          texto={t('Cuando tu tutor cree tu dossier, aquí verás tu calendario de prácticas.')}
           accion={{ texto: 'Volver a mirar', onPress: recargar }}
         />
       ) : null}
       {datos ? (
         // En la web el calendario ocupa todo el ancho y las próximas fechas van debajo.
         <>
-          <Tarjeta titulo="Mis días">
+          <Tarjeta titulo={t('Mis días')}>
             <CalendarioAlumno dossier={datos.dossier} seguimiento={datos.seguimiento} hoy={hoy} />
           </Tarjeta>
-          <Tarjeta titulo="Próximas fechas">
+          <Tarjeta titulo={t('Próximas fechas')}>
             <ProximasFechas hoy={hoy} dossierId={datos.dossier.id} />
           </Tarjeta>
         </>
@@ -129,7 +132,7 @@ export function CalendarioAlumno({
     for (const [fecha, dia] of agendaDelMes(mes, delDossier, pendientes)) {
       agenda.set(fecha, [
         ...dia.eventos.map((e) => e.titulo),
-        ...dia.tareas.map((t) => `Entrega: ${t.titulo}`),
+        ...dia.tareas.map((tarea) => t('Entrega: {titulo}', { titulo: tarea.titulo })),
       ]);
     }
     return { registros, agenda };

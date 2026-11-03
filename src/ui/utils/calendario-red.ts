@@ -2,6 +2,7 @@ import type { Evento, TipoEvento } from '@/core/domain/evento';
 
 import { sumarMeses } from './calendario';
 import { nombreDelMes } from './fechas';
+import { t } from './idioma';
 
 /** Una fecha del calendario de la red: las que pone la generalitat y los avisos automáticos. */
 export interface FechaRed {
@@ -32,8 +33,8 @@ export function recordatoriosDelMes(mes: string): FechaRed[] {
     fecha: `${mes}-${String(dia).padStart(2, '0')}`,
     titulo:
       i === 0
-        ? `Las empresas validan ${anterior}`
-        : `Segundo aviso a las empresas que no han validado ${anterior}`,
+        ? t('Las empresas validan {mes}', { mes: anterior })
+        : t('Segundo aviso a las empresas que no han validado {mes}', { mes: anterior }),
     tipo: 'plazo',
     automatico: true,
   }));

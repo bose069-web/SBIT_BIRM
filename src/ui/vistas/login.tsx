@@ -22,10 +22,8 @@ import { useSesion } from '@/ui/hooks/use-sesion';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
+import { ControlesAcceso } from './controles-acceso';
 import { Portada } from './portada';
-import { Selector } from '@/ui/components/selector';
-import { useIdioma } from '@/ui/hooks/use-idioma';
-import { OPCIONES_IDIOMA } from '@/ui/utils/traducciones/opciones';
 import { t } from '@/ui/utils/idioma';
 
 const CUENTAS_DEMO = [
@@ -36,11 +34,13 @@ const CUENTAS_DEMO = [
   { rol: 'Generalitat', email: 'generalitat@kampus.test' },
 ];
 
+// Solo para probar en local: nunca en lo publicado, ni en Expo Go si no se activa a propósito.
+const CUENTAS_PRUEBA = __DEV__ && process.env.EXPO_PUBLIC_CUENTAS_PRUEBA === '1';
+
 export function VistaLogin() {
   const theme = useTheme();
   const oscuro = useColorScheme() === 'dark';
   const { entrar } = useSesion();
-  const { idioma, cambiarIdioma } = useIdioma();
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -96,25 +96,22 @@ export function VistaLogin() {
 
   const caja = (
     <View style={[styles.caja, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <Image
-        accessibilityLabel="Kampus"
-        source={
-          oscuro
-            ? require('@/assets/brand/kampus-logotipo-blanco.png')
-            : require('@/assets/brand/kampus-logotipo.png')
-        }
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <View style={styles.cabecera}>
+        <Image
+          accessibilityLabel="Kampus"
+          source={
+            oscuro
+              ? require('@/assets/brand/kampus-logotipo-blanco.png')
+              : require('@/assets/brand/kampus-logotipo.png')
+          }
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        {conPortada ? null : <ControlesAcceso />}
+      </View>
       <ThemedText themeColor="textSecondary">
         {t('Seguimiento de las prácticas FCT y Dual')}
       </ThemedText>
-      <Selector
-        etiqueta={t('Idioma')}
-        opciones={OPCIONES_IDIOMA}
-        valor={idioma}
-        onCambio={cambiarIdioma}
-      />
 
       <Campo
         etiqueta={t('Correo')}
@@ -159,7 +156,7 @@ export function VistaLogin() {
       )}
       {enlaceRecuperar}
 
-      {__DEV__ ? (
+      {CUENTAS_PRUEBA ? (
         <View style={[styles.demo, { borderTopColor: theme.border }]}>
           <ThemedText type="small" themeColor="textSecondary">
             {t('Cuentas de prueba (contraseña kampus)')}
@@ -206,6 +203,12 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   enlace: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
   logo: { width: 170, height: 48 },
   demo: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
   filaDemo: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

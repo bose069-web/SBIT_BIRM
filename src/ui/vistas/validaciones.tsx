@@ -384,7 +384,7 @@ function ValoracionEnBloque({
       }>
       {revisando && valoracion ? (
         <>
-          <ThemedText type="smallBold">Revisa antes de confirmar</ThemedText>
+          <ThemedText type="smallBold">{t('Revisa antes de confirmar')}</ThemedText>
           <ThemedText type="small">
             {tPlural(resumen.alumnos, '{n} alumno', '{n} alumnos')} ·{' '}
             {tPlural(resumen.informes, '{n} mes', '{n} meses')} · {formatoHoras(resumen.horas)}
@@ -408,11 +408,11 @@ function ValoracionEnBloque({
           ) : null}
           {resumen.delMesEnCurso > 0 ? (
             <ThemedText type="smallBold" themeColor="estadoPendiente">
-              Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.
+              {t('Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.')}
             </ThemedText>
           ) : null}
           <ThemedText type="small" themeColor="textSecondary">
-            Cada alumno verá esta valoración y este comentario, y su mes se cerrará.
+            {t('Cada alumno verá esta valoración y este comentario, y su mes se cerrará.')}
           </ThemedText>
           {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
           <Boton texto={t('Confirmar valoración')} onPress={confirmar} cargando={enviando} />

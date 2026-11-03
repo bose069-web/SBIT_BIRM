@@ -4,12 +4,14 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { restablecerContrasena } from '@/core/application/recuperacion';
 import type { CredencialRecuperacion } from '@/core/domain/recuperacion';
 import { container } from '@/config/container';
+import { BarraContrasena } from '@/ui/components/barra-contrasena';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Mensaje } from '@/ui/components/mensaje';
 import { ThemedText } from '@/ui/components/themed-text';
 import { useTheme } from '@/ui/hooks/use-theme';
 import { Radius, Spacing } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 
 /** El enlace enviado por correo trae la sesión tras la almohadilla de la URL. */
 function credencialDelCorreo(): CredencialRecuperacion | null {
@@ -57,24 +59,25 @@ export function VistaRestablecer({
     <View style={[styles.fondo, { backgroundColor: theme.background }]}>
       <View style={[styles.caja, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <ThemedText accessibilityRole="header" type="subtitle">
-          Nueva contraseña
+          {t('Nueva contraseña')}
         </ThemedText>
         {hecho ? (
-          <Mensaje tipo="ok" texto="Contraseña cambiada. Ya puedes iniciar sesión con ella." />
+          <Mensaje tipo="ok" texto={t('Contraseña cambiada. Ya puedes iniciar sesión con ella.')} />
         ) : !credencial ? (
-          <Mensaje tipo="error" texto="Este enlace no es válido. Pide uno nuevo a tu profe." />
+          <Mensaje tipo="error" texto={t('Este enlace no es válido. Pide uno nuevo a tu profe.')} />
         ) : (
           <>
             <Campo
-              etiqueta="Contraseña nueva"
+              etiqueta={t('Contraseña nueva')}
               value={contrasena}
               onChangeText={setContrasena}
               secureTextEntry
               autoComplete="new-password"
-              ayuda="Al menos 8 caracteres"
+              ayuda={t('Al menos 8 caracteres')}
             />
+            <BarraContrasena contrasena={contrasena} />
             <Campo
-              etiqueta="Repite la contraseña"
+              etiqueta={t('Repite la contraseña')}
               value={repetida}
               onChangeText={setRepetida}
               secureTextEntry
@@ -82,11 +85,11 @@ export function VistaRestablecer({
               onSubmitEditing={guardar}
             />
             {error ? <Mensaje tipo="error" texto={error} /> : null}
-            <Boton texto="Guardar contraseña" onPress={guardar} cargando={guardando} />
+            <Boton texto={t('Guardar contraseña')} onPress={guardar} cargando={guardando} />
           </>
         )}
         <Boton
-          texto="Ir al inicio de sesión"
+          texto={t('Ir al inicio de sesión')}
           variante="secundario"
           desactivado={guardando}
           onPress={onTerminar}

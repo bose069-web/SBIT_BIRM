@@ -53,7 +53,7 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
   const creaDossiers = !!usuario.centroId && puedeCrearDossier(usuario, usuario.centroId);
   const nuevoDossier = creaDossiers ? (
     <Boton
-      texto="+ Nuevo dossier"
+      texto={t('+ Nuevo dossier')}
       onPress={() => router.push({ pathname: '/alumnos', params: { nuevo: '1' } })}
     />
   ) : null;
@@ -72,7 +72,7 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
 
   return (
     <Pantalla
-      titulo="Alumnos"
+      titulo={t('Alumnos')}
       subtitulo={datos?.centro.nombre ?? 'Alumnos del centro'}
       accion={ancho ? nuevoDossier : undefined}
       amplia={ancho}
@@ -126,8 +126,8 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
           {cargando && !datos ? <EsqueletoPanel tarjetas={2} /> : null}
           {!centroId && !cargando && !centros.error ? (
             <EstadoVacio
-              titulo="Sin centro"
-              texto="Elige un centro desde Inicio para gestionar sus alumnos."
+              titulo={t('Sin centro')}
+              texto={t('Elige un centro desde Inicio para gestionar sus alumnos.')}
             />
           ) : null}
           {datos ? (
@@ -161,14 +161,14 @@ function Cifras({ datos }: { datos: PanelCentro }) {
   const sinProfe = datos.alumnos.filter((a) => !a.profeId).length;
   return (
     <View style={styles.cifras}>
-      <Cifra valor={`${datos.alumnos.length}`} etiqueta="Alumnos" />
+      <Cifra valor={`${datos.alumnos.length}`} etiqueta={t('Alumnos')} />
       <Cifra
         valor={`${sinProfe}`}
-        etiqueta="Sin profe"
+        etiqueta={t('Sin profe')}
         color={sinProfe ? 'estadoPendiente' : 'text'}
       />
-      <Cifra valor={`${datos.profes.length}`} etiqueta="Profes" />
-      <Cifra valor={`${datos.cuentasNuevas.length}`} etiqueta="Cuentas nuevas" />
+      <Cifra valor={`${datos.profes.length}`} etiqueta={t('Profes')} />
+      <Cifra valor={`${datos.cuentasNuevas.length}`} etiqueta={t('Cuentas nuevas')} />
     </View>
   );
 }
@@ -185,27 +185,29 @@ function TarjetaAlumnos({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCe
     const profe = datos.profes.find((p) => p.id === valor) ?? null;
     void hacer(
       () => asignarProfe(container.centros, usuario, alumno, profe),
-      profe ? `${alumno.nombre} asignado a ${profe.nombre}` : `${alumno.nombre} queda sin profe`,
+      profe
+        ? t('{alumno} asignado a {profe}', { alumno: alumno.nombre, profe: profe.nombre })
+        : t('{alumno} queda sin profe', { alumno: alumno.nombre }),
     );
   }
 
   return (
-    <Tarjeta titulo={`Profe tutor de cada alumno (${datos.alumnos.length})`}>
+    <Tarjeta titulo={t('Profe tutor de cada alumno ({n})', { n: datos.alumnos.length })}>
       {datos.profes.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay profes en el centro.
+          {t('Todavía no hay profes en el centro.')}
         </ThemedText>
       ) : null}
       {datos.alumnos.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Todavía no hay alumnos en el centro.
+          {t('Todavía no hay alumnos en el centro.')}
         </ThemedText>
       ) : (
         datos.alumnos.map((a) => (
           <View key={a.id} style={[styles.fila, { borderColor: theme.border }]}>
             <FilaPersona nombre={a.nombre} email={a.email} />
             <Selector
-              etiqueta="Profe tutor"
+              etiqueta={t('Profe tutor')}
               opciones={opciones}
               valor={a.profeId ?? SIN_PROFE}
               onCambio={(v) => cambiar(a, v)}
@@ -258,20 +260,22 @@ function TarjetaAltaAlumno({
   }
 
   return (
-    <Tarjeta titulo="Dar de alta un alumno">
+    <Tarjeta titulo={t('Dar de alta un alumno')}>
       <ThemedText type="small" themeColor="textSecondary">
-        Crea su cuenta en {datos.centro.nombre} con una contraseña inicial que verás una sola vez.
+        {t('Crea su cuenta en {centro} con una contraseña inicial que verás una sola vez.', {
+          centro: datos.centro.nombre,
+        })}
       </ThemedText>
       {error ? <Mensaje tipo="error" texto={error} /> : null}
       <Campo
-        etiqueta="Nombre y apellidos"
+        etiqueta={t('Nombre y apellidos')}
         value={nombre}
         onChangeText={setNombre}
         autoComplete="off"
         returnKeyType="next"
       />
       <Campo
-        etiqueta="Correo"
+        etiqueta={t('Correo')}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -281,7 +285,7 @@ function TarjetaAltaAlumno({
         returnKeyType="done"
         onSubmitEditing={crear}
       />
-      <Boton texto="Dar de alta" onPress={crear} cargando={guardando} />
+      <Boton texto={t('Dar de alta')} onPress={crear} cargando={guardando} />
       {creada ? (
         <View
           accessibilityLiveRegion="polite"
@@ -296,14 +300,16 @@ function TarjetaAltaAlumno({
           <ThemedText selectable style={styles.contrasena}>
             {creada.contrasena}
           </ThemedText>
-          <ThemedText type="small">Compártela con el alumno; no se volverá a mostrar.</ThemedText>
+          <ThemedText type="small">
+            {t('Compártela con el alumno; no se volverá a mostrar.')}
+          </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Ya puede entrar con su correo y esta contraseña, y cambiarla en su perfil.
+            {t('Ya puede entrar con su correo y esta contraseña, y cambiarla en su perfil.')}
           </ThemedText>
           <Boton
-            texto="Ocultar"
+            texto={t('Ocultar')}
             variante="secundario"
-            accessibilityLabel="Ocultar la contraseña"
+            accessibilityLabel={t('Ocultar la contraseña')}
             onPress={onOcultar}
           />
         </View>
@@ -316,7 +322,7 @@ function TarjetaCuentasNuevas({ datos, hacer }: { datos: PanelCentro; hacer: Hac
   const usuario = useUsuario();
   const theme = useTheme();
   return (
-    <Tarjeta titulo={`Cuentas nuevas (${datos.cuentasNuevas.length})`}>
+    <Tarjeta titulo={t('Cuentas nuevas ({n})', { n: datos.cuentasNuevas.length })}>
       <ThemedText type="small" themeColor="textSecondary">
         {datos.cuentasNuevas.length === 0
           ? 'No hay cuentas por añadir. Aquí aparecerían las que existan sin centro.'
@@ -326,12 +332,15 @@ function TarjetaCuentasNuevas({ datos, hacer }: { datos: PanelCentro; hacer: Hac
         <View key={p.id} style={[styles.fila, { borderColor: theme.border }]}>
           <FilaPersona nombre={p.nombre} email={p.email} />
           <Boton
-            texto="Añadir como alumno"
+            texto={t('Añadir como alumno')}
             variante="secundario"
             onPress={() =>
               hacer(
                 () => incorporarAlumno(container.centros, usuario, p, datos.centro.id),
-                `${p.nombre} ya es alumno de ${datos.centro.nombre}`,
+                t('{nombre} ya es alumno de {centro}', {
+                  nombre: p.nombre,
+                  centro: datos.centro.nombre,
+                }),
               )
             }
           />
