@@ -382,6 +382,111 @@ export const CATALAN: Record<string, string> = {
     "Obligatori si la valoració no és positiva. En valorar, el mes es tanca per a l'alumne.",
   'Guardar valoración': 'Desar la valoració',
 
+  // Validaciones y tareas del centro
+  'Área de trabajo': 'Àrea de treball',
+  'Gestión del centro': 'Gestió del centre',
+  'Alumnos y profes': 'Alumnes i profes',
+  'Altas, tutores y reparto del alumnado.': 'Altes, tutors i repartiment de l’alumnat.',
+  'Dar de alta alumno': 'Donar d’alta un alumne',
+  'Asignar profe': 'Assignar profe',
+  'Cerrar alta': 'Tancar l’alta',
+  Clases: 'Classes',
+  'Nueva clase': 'Classe nova',
+  'Organiza grupos y reparte sus alumnos.': 'Organitza grups i reparteix els seus alumnes.',
+  'Crea una clase o abre la gestión para editar grupos y asignar alumnos.':
+    'Crea una classe o obre la gestió per editar grups i assignar alumnes.',
+  'Empresas y convenios': 'Empreses i convenis',
+  'Nuevo convenio': 'Conveni nou',
+  'Ver convenios': 'Veure convenis',
+  'Prepara las empresas donde harán las prácticas.':
+    'Prepara les empreses on faran les pràctiques.',
+  'Seguimiento de prácticas': 'Seguiment de pràctiques',
+  'Consulta horas, meses e incidencias de tus alumnos.':
+    'Consulta hores, mesos i incidències dels teus alumnes.',
+  'Horas y valoraciones de todos los alumnos del centro.':
+    'Hores i valoracions de tots els alumnes del centre.',
+  '{n} profe': '{n} profe',
+  '{n} profes': '{n} profes',
+  'Sin profe': 'Sense profe',
+  'Tutores y altas': 'Tutors i altes',
+  'Reparto por profesor': 'Repartiment per professor',
+  'Sin tutor': 'Sense tutor',
+  'Tutor de destino': 'Tutor de destinació',
+  'Revisar reasignación ({n})': 'Revisar la reassignació ({n})',
+  'Confirmar reasignación': 'Confirmar la reassignació',
+  'Volver a la selección': 'Tornar a la selecció',
+  'Asignar a {nombre}': 'Assignar a {nombre}',
+  'Dejar sin tutor': 'Deixar sense tutor',
+  'Selecciona al alumno para reasignarlo': 'Selecciona l’alumne per reassignar-lo',
+  'Sin alumnos asignados': 'Sense alumnes assignats',
+  'Todavía no hay alumnos en el centro.': 'Encara no hi ha alumnes al centre.',
+  'Todavía no hay profes en el centro.': 'Encara no hi ha profes al centre.',
+  'Todavía no hay convenios. Firma el primero con una empresa existente o da de alta una nueva.':
+    'Encara no hi ha convenis. Signa el primer amb una empresa existent o dona’n d’alta una de nova.',
+  'Los alumnos solo pueden hacer prácticas en empresas con convenio.':
+    'Els alumnes només poden fer pràctiques en empreses amb conveni.',
+  'Resumen de validaciones': 'Resum de validacions',
+  'Los informes mensuales de tus alumnos': 'Els informes mensuals dels teus alumnes',
+  'No tienes nada pendiente de validar': 'No tens res pendent de validar',
+  '{n} mes pendiente de validar': '{n} mes pendent de validar',
+  '{n} meses pendientes de validar': '{n} mesos pendents de validar',
+  '{n} mes pendiente': '{n} mes pendent',
+  '{n} meses pendientes': '{n} mesos pendents',
+  '{n} alumno con pendientes': '{n} alumne amb pendents',
+  '{n} alumnos con pendientes': '{n} alumnes amb pendents',
+  '{n} mes validado': '{n} mes validat',
+  '{n} meses validados': '{n} mesos validats',
+  'Quitar la selección': 'Treure la selecció',
+  'Seleccionar todos': 'Seleccionar-ho tot',
+  'Los nuevos meses aparecerán aquí cuando empiecen las prácticas.':
+    'Els mesos nous apareixeran aquí quan comencin les pràctiques.',
+  'Cuando el centro te ponga como tutor de empresa de un alumno, aquí llegarán sus meses para validar.':
+    'Quan el centre et posi com a tutor d’empresa d’un alumne, aquí arribaran els seus mesos per validar.',
+  'Informes del alumno': 'Informes de l’alumne',
+  'Al día': 'Al dia',
+  'Ocultar meses validados ({n})': 'Amagar mesos validats ({n})',
+  'Ver meses validados ({n})': 'Veure mesos validats ({n})',
+  'Todavía no has validado ningún mes. Los que vayas cerrando aparecerán aquí.':
+    'Encara no has validat cap mes. Els que vagis tancant apareixeran aquí.',
+  'Valorar {mes}': 'Valorar {mes}',
+  'Valorar la selección': 'Valorar la selecció',
+  'Elige la valoración': 'Tria la valoració',
+  'Explica qué tiene que mejorar el alumno': 'Explica què ha de millorar l’alumne',
+  Cerrar: 'Tancar',
+  'Revisa antes de confirmar': 'Revisa abans de confirmar',
+  '{n} mes': '{n} mes',
+  '{n} meses': '{n} mesos',
+  'Valoración: {valoracion}': 'Valoració: {valoracion}',
+  'Comentario: {comentario}': 'Comentari: {comentario}',
+  'Sin comentario': 'Sense comentari',
+  '{n} informe no tiene ningún día de trabajo apuntado.':
+    '{n} informe no té cap dia de feina apuntat.',
+  '{n} informes no tienen ningún día de trabajo apuntado.':
+    '{n} informes no tenen cap dia de feina apuntat.',
+  'Incluye el mes en curso: el alumno ya no podrá apuntar más días de ese mes.':
+    'Inclou el mes en curs: l’alumne ja no podrà apuntar més dies d’aquest mes.',
+  'Cada alumno verá esta valoración y este comentario, y su mes se cerrará.':
+    'Cada alumne veurà aquesta valoració i aquest comentari, i el seu mes es tancarà.',
+  'Confirmar valoración': 'Confirmar la valoració',
+  'Revisar y confirmar': 'Revisar i confirmar',
+  'Opcional si la valoración es positiva; si no, hay que explicar qué mejorar. Es el mismo para todos.':
+    'Opcional si la valoració és positiva; si no, cal explicar què millorar. És el mateix per a tothom.',
+  'Resultado de la valoración': 'Resultat de la valoració',
+  '{n} mes valorado': '{n} mes valorat',
+  '{n} meses valorados': '{n} mesos valorats',
+  '{n} requiere atención. Los que siguen pendientes quedan seleccionados.':
+    '{n} requereix atenció. Els que continuen pendents queden seleccionats.',
+  '{n} requieren atención. Los que siguen pendientes quedan seleccionados.':
+    '{n} requereixen atenció. Els que continuen pendents queden seleccionats.',
+  seleccionado: 'seleccionat',
+  'Añade o quita este informe de la valoración en bloque':
+    'Afegeix o treu aquest informe de la valoració en bloc',
+  'Este mes: {horas} en {dias}': 'Aquest mes: {horas} en {dias}',
+  'Todavía no ha apuntado días de este mes': 'Encara no ha apuntat dies d’aquest mes',
+  Validar: 'Validar',
+  'Validar el informe de {mes} de {nombre}': 'Validar l’informe de {mes} de {nombre}',
+  'Validado el {fecha}': 'Validat el {fecha}',
+
   // Inicio del instituto y la generalitat
   'Gestión de los institutos': 'Gestió dels instituts',
   'Gestión de tu centro': 'Gestió del teu centre',

@@ -9,6 +9,8 @@ import {
 } from '@/core/application/centro';
 import { container } from '@/config/container';
 import { Avatar } from '@/ui/components/avatar';
+import { CabeceraSeccion } from '@/ui/components/cabecera-seccion';
+import { t } from '@/ui/utils/idioma';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Cifra } from '@/ui/components/cifra';
@@ -29,6 +31,7 @@ import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 /** Segundo nivel del panel del centro: convenios con empresas y altas de empresas. */
 export function ConveniosCentro({ centroPedido }: { centroPedido: string | null }) {
   const ancho = useWebAncha();
+  const [creando, setCreando] = useState(true);
   const { centroId, centros, datos, error, cargando, recargar, aviso, hacer } =
     usePanelCentro(centroPedido);
   return (
@@ -37,6 +40,17 @@ export function ConveniosCentro({ centroPedido }: { centroPedido: string | null 
       subtitulo={datos?.centro.nombre ?? 'Empresas con las que el centro tiene convenio'}
       amplia={ancho}
       bajoCabecera>
+      <CabeceraSeccion
+        titulo={t('Empresas y convenios')}
+        descripcion={t('Prepara las empresas donde harán las prácticas.')}
+        acciones={
+          <Boton
+            texto={t(creando ? 'Ver convenios' : 'Nuevo convenio')}
+            variante={creando ? 'secundario' : 'primario'}
+            onPress={() => setCreando(!creando)}
+          />
+        }
+      />
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {centros.error ? <ErrorCarga texto={centros.error} onReintentar={centros.recargar} /> : null}
       {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
@@ -55,14 +69,14 @@ export function ConveniosCentro({ centroPedido }: { centroPedido: string | null 
               <ListaConvenios datos={datos} hacer={hacer} />
             </View>
             <View style={styles.lateral}>
-              <NuevoConvenio datos={datos} hacer={hacer} />
+              {creando ? <NuevoConvenio datos={datos} hacer={hacer} /> : null}
             </View>
           </View>
         ) : (
           <View style={styles.bloques}>
             <Cifras datos={datos} />
+            {creando ? <NuevoConvenio datos={datos} hacer={hacer} /> : null}
             <ListaConvenios datos={datos} hacer={hacer} />
-            <NuevoConvenio datos={datos} hacer={hacer} />
           </View>
         )
       ) : null}
@@ -87,6 +101,13 @@ function ListaConvenios({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCe
       <ThemedText type="small" themeColor="textSecondary">
         Los alumnos solo pueden hacer prácticas en empresas con convenio.
       </ThemedText>
+      {datos.convenios.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {t(
+            'Todavía no hay convenios. Firma el primero con una empresa existente o da de alta una nueva.',
+          )}
+        </ThemedText>
+      ) : null}
       {datos.convenios.map((c) => (
         <View key={c.empresaId} style={[styles.fila, { borderColor: theme.border }]}>
           <View style={styles.persona}>
@@ -176,11 +197,11 @@ function NuevoConvenio({ datos, hacer }: { datos: PanelCentro; hacer: HacerEnCen
 
 const styles = StyleSheet.create({
   columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.four },
-  principal: { flex: 1.7, gap: Spacing.four },
-  lateral: { flex: 1, gap: Spacing.four },
+  principal: { minWidth: 0, flex: 1.7, gap: Spacing.four },
+  lateral: { minWidth: 0, flex: 1, gap: Spacing.four },
   bloques: { gap: Spacing.four },
   cifras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  flex: { flex: 1, gap: 2 },
+  flex: { flex: 1, minWidth: 0, gap: Spacing.half },
   persona: {
     flexGrow: 1,
     flexShrink: 1,

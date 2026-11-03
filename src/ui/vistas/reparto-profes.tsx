@@ -11,6 +11,7 @@ import { ThemedText } from '@/ui/components/themed-text';
 import { useDatos } from '@/ui/hooks/use-datos';
 import { useUsuario } from '@/ui/hooks/use-sesion';
 import { Spacing } from '@/ui/theme/theme';
+import { t } from '@/ui/utils/idioma';
 import { ErrorCarga, EsqueletoPanel } from './comun';
 
 export function RepartoProfesCentro({
@@ -33,7 +34,7 @@ export function RepartoProfesCentro({
   if (error) return <ErrorCarga texto={error} onReintentar={recargar} />;
   if (!datos) return <EsqueletoPanel />;
   const grupos = [
-    { id: 'sin-tutor', nombre: 'Sin tutor', alumnos: datos.sinProfe },
+    { id: 'sin-tutor', nombre: t('Sin tutor'), alumnos: datos.sinProfe },
     ...datos.profes,
   ];
   const profe = datos.profes.find((p) => p.id === destino) ?? null;
@@ -62,17 +63,17 @@ export function RepartoProfesCentro({
     }
   }
   return (
-    <Tarjeta titulo="Reparto por profesor">
+    <Tarjeta titulo={t('Reparto por profesor')}>
       {aviso && <Mensaje {...aviso} />}
       {revisando ? (
         <>
           <ThemedText type="smallBold">
-            {profe ? `Asignar a ${profe.nombre}` : 'Dejar sin tutor'}
+            {profe ? t('Asignar a {nombre}', { nombre: profe.nombre }) : t('Dejar sin tutor')}
           </ThemedText>
           <ThemedText>{alumnos.map((a) => a.nombre).join(', ')}</ThemedText>
-          <Boton texto="Confirmar reasignación" onPress={aplicar} cargando={guardando} />
+          <Boton texto={t('Confirmar reasignación')} onPress={aplicar} cargando={guardando} />
           <Boton
-            texto="Volver a la selección"
+            texto={t('Volver a la selección')}
             variante="secundario"
             onPress={() => revisar(false)}
             desactivado={guardando}
@@ -80,20 +81,49 @@ export function RepartoProfesCentro({
         </>
       ) : (
         <>
+          <Selector
+            etiqueta={t('Tutor de destino')}
+            valor={destino}
+            opciones={grupos.map((g) => ({ valor: g.id, texto: g.nombre }))}
+            onCambio={elegir}
+          />
+          <Boton
+            texto={t('Revisar reasignación ({n})', { n: destino ? alumnos.length : 0 })}
+            desactivado={!destino || !alumnos.length || cargando}
+            onPress={() => {
+              avisar(null);
+              revisar(true);
+            }}
+          />
+          {grupos.every((g) => g.alumnos.length === 0) ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('Todavía no hay alumnos en el centro.')}
+            </ThemedText>
+          ) : null}
+          {datos.profes.length === 0 ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('Todavía no hay profes en el centro.')}
+            </ThemedText>
+          ) : null}
           {grupos.map((g) => (
             <View key={g.id} style={{ gap: Spacing.one }}>
               <ThemedText type="smallBold">
                 {g.nombre} ({g.alumnos.length})
               </ThemedText>
+              {g.alumnos.length === 0 ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {t('Sin alumnos asignados')}
+                </ThemedText>
+              ) : null}
               {g.alumnos.map((a) => (
                 <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <CasillaTarea
                     titulo={a.nombre}
                     hecha={ids.includes(a.id)}
                     textos={{
-                      marcada: 'seleccionado',
-                      sinMarcar: 'sin seleccionar',
-                      pista: 'Selecciona al alumno para reasignarlo',
+                      marcada: t('seleccionado'),
+                      sinMarcar: t('sin seleccionar'),
+                      pista: t('Selecciona al alumno para reasignarlo'),
                     }}
                     onPress={() =>
                       seleccionar((prev) =>
@@ -106,20 +136,6 @@ export function RepartoProfesCentro({
               ))}
             </View>
           ))}
-          <Selector
-            etiqueta="Tutor de destino"
-            valor={destino}
-            opciones={grupos.map((g) => ({ valor: g.id, texto: g.nombre }))}
-            onCambio={elegir}
-          />
-          <Boton
-            texto={`Revisar reasignación (${destino ? alumnos.length : 0})`}
-            desactivado={!destino || !alumnos.length || cargando}
-            onPress={() => {
-              avisar(null);
-              revisar(true);
-            }}
-          />
         </>
       )}
     </Tarjeta>

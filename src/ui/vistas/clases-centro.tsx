@@ -13,6 +13,7 @@ import { nombreGrupo, type Grupo } from '@/core/domain/grupo';
 import type { Persona } from '@/core/domain/centro';
 import { DatosInvalidosError, SinPermisoError } from '@/core/domain/errores';
 import { container } from '@/config/container';
+import { CabeceraSeccion } from '@/ui/components/cabecera-seccion';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { CasillaTarea } from '@/ui/components/casilla-tarea';
@@ -53,20 +54,49 @@ export function MisClases() {
 }
 
 export function ClasesCentro({ centroId, alumnos }: { centroId: string; alumnos: Persona[] }) {
-  const [abierto, abrir] = useState(false);
+  const [modo, abrir] = useState<'lista' | 'crear' | null>(null);
   return (
-    <Tarjeta titulo={t('Clases del centro')}>
-      <Boton
-        texto={abierto ? t('Cerrar gestión de clases') : t('Gestionar clases')}
-        variante="secundario"
-        onPress={() => abrir(!abierto)}
+    <View style={{ gap: Spacing.three }}>
+      <CabeceraSeccion
+        titulo={t('Clases')}
+        descripcion={t('Organiza grupos y reparte sus alumnos.')}
+        acciones={<Boton texto={t('Nueva clase')} onPress={() => abrir('crear')} />}
       />
-      {abierto && <GestionClases centroId={centroId} alumnos={alumnos} />}
-    </Tarjeta>
+      <Tarjeta
+        titulo={t('Clases del centro')}
+        accion={
+          <Boton
+            texto={modo ? t('Cerrar gestión de clases') : t('Gestionar clases')}
+            variante="secundario"
+            onPress={() => abrir(modo ? null : 'lista')}
+          />
+        }>
+        {modo ? (
+          <GestionClases
+            key={modo}
+            centroId={centroId}
+            alumnos={alumnos}
+            crearAlAbrir={modo === 'crear'}
+          />
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary">
+            {t('Crea una clase o abre la gestión para editar grupos y asignar alumnos.')}
+          </ThemedText>
+        )}
+      </Tarjeta>
+    </View>
   );
 }
 
-function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Persona[] }) {
+function GestionClases({
+  centroId,
+  alumnos,
+  crearAlAbrir,
+}: {
+  centroId: string;
+  alumnos: Persona[];
+  crearAlAbrir: boolean;
+}) {
   const usuario = useUsuario();
   const { datos, error, recargar, cargando } = useDatos(async () => {
     const clases = await listarClases(container.grupos, usuario, centroId);
@@ -74,7 +104,9 @@ function GestionClases({ centroId, alumnos }: { centroId: string; alumnos: Perso
     return { clases, reparto };
   }, [usuario.id, centroId]);
   const [id, elegir] = useState<string | null>(null);
-  const [modo, cambiarModo] = useState<'lista' | 'crear' | 'editar' | 'borrar'>('lista');
+  const [modo, cambiarModo] = useState<'lista' | 'crear' | 'editar' | 'borrar'>(
+    crearAlAbrir ? 'crear' : 'lista',
+  );
   const [ciclo, ponerCiclo] = useState(''),
     [curso, ponerCurso] = useState(''),
     [letra, ponerLetra] = useState('');

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -12,6 +12,8 @@ import {
 import type { Persona } from '@/core/domain/centro';
 import { container } from '@/config/container';
 import { Avatar } from '@/ui/components/avatar';
+import { CabeceraSeccion } from '@/ui/components/cabecera-seccion';
+import { t } from '@/ui/utils/idioma';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
 import { Cifra } from '@/ui/components/cifra';
@@ -40,7 +42,11 @@ type AltaCreada = { nombre: string; email: string; contrasena: string };
 export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }) {
   const usuario = useUsuario();
   const ancho = useWebAncha();
-  const [seccion, setSeccion] = useState<Seccion>('personas');
+  const { seccion: tarea } = useLocalSearchParams<{ seccion?: string }>();
+  const [seccion, setSeccion] = useState<Seccion>(
+    tarea === 'reparto' || tarea === 'seguimiento' ? tarea : 'personas',
+  );
+  const [altaAbierta, setAltaAbierta] = useState(tarea === 'alta');
   const [altaCreada, setAltaCreada] = useState<AltaCreada | null>(null);
   const { centroId, centros, datos, error, cargando, recargar, aviso, hacer } =
     usePanelCentro(centroPedido);
@@ -51,17 +57,18 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
       onPress={() => router.push({ pathname: '/alumnos', params: { nuevo: '1' } })}
     />
   ) : null;
-  const altaAlumno = datos ? (
-    <TarjetaAltaAlumno
-      datos={datos}
-      creada={altaCreada}
-      onCreada={(alta) => {
-        setAltaCreada(alta);
-        recargar();
-      }}
-      onOcultar={() => setAltaCreada(null)}
-    />
-  ) : null;
+  const altaAlumno =
+    datos && altaAbierta ? (
+      <TarjetaAltaAlumno
+        datos={datos}
+        creada={altaCreada}
+        onCreada={(alta) => {
+          setAltaCreada(alta);
+          recargar();
+        }}
+        onOcultar={() => setAltaCreada(null)}
+      />
+    ) : null;
 
   return (
     <Pantalla
@@ -71,11 +78,33 @@ export function GestionAlumnos({ centroPedido }: { centroPedido: string | null }
       amplia={ancho}
       bajoCabecera>
       {ancho ? null : nuevoDossier}
+      <CabeceraSeccion
+        titulo={t('Alumnos y profes')}
+        descripcion={t('Altas, tutores y reparto del alumnado.')}
+        acciones={
+          <>
+            <Boton
+              texto={t(
+                altaAbierta && seccion === 'personas' ? 'Cerrar alta' : 'Dar de alta alumno',
+              )}
+              onPress={() => {
+                setAltaAbierta(seccion !== 'personas' || !altaAbierta);
+                setSeccion('personas');
+              }}
+            />
+            <Boton
+              texto={t('Asignar profe')}
+              variante="secundario"
+              onPress={() => setSeccion('reparto')}
+            />
+          </>
+        }
+      />
       <Selector<Seccion>
         opciones={[
-          { valor: 'personas', texto: 'Tutores y altas' },
-          { valor: 'reparto', texto: 'Reparto por profesor' },
-          { valor: 'seguimiento', texto: 'Seguimiento de prácticas' },
+          { valor: 'personas', texto: t('Tutores y altas') },
+          { valor: 'reparto', texto: t('Reparto por profesor') },
+          { valor: 'seguimiento', texto: t('Seguimiento de prácticas') },
         ]}
         valor={seccion}
         onCambio={setSeccion}
@@ -318,7 +347,7 @@ function FilaPersona({ nombre, email }: { nombre: string; email: string }) {
       <Avatar nombre={nombre} />
       <View style={styles.flex}>
         <ThemedText type="smallBold">{nombre}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+        <ThemedText type="small" themeColor="textSecondary">
           {email}
         </ThemedText>
       </View>
@@ -328,11 +357,11 @@ function FilaPersona({ nombre, email }: { nombre: string; email: string }) {
 
 const styles = StyleSheet.create({
   columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.four },
-  principal: { flex: 1.7, gap: Spacing.four },
-  lateral: { flex: 1, gap: Spacing.four },
+  principal: { minWidth: 0, flex: 1.7, gap: Spacing.four },
+  lateral: { minWidth: 0, flex: 1, gap: Spacing.four },
   bloques: { gap: Spacing.four },
   cifras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  flex: { flex: 1, gap: 2 },
+  flex: { flex: 1, minWidth: 0, gap: Spacing.half },
   persona: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   credencial: {
     gap: Spacing.two,

@@ -66,7 +66,7 @@ export function Boton({
       {cargando ? (
         <ActivityIndicator color={color} />
       ) : (
-        <ThemedText type="smallBold" style={{ color }}>
+        <ThemedText type="smallBold" style={{ color, textAlign: 'center', flexShrink: 1 }}>
           {texto}
         </ThemedText>
       )}
@@ -77,6 +77,8 @@ export function Boton({
 const styles = StyleSheet.create({
   boton: {
     minHeight: 44,
+    maxWidth: '100%',
+    paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
     borderRadius: Radius.button,
     alignItems: 'center',
