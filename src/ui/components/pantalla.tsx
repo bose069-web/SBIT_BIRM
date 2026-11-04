@@ -21,6 +21,8 @@ interface Props {
   bajoCabecera?: boolean;
   /** Acción fija fuera del scroll, situada por encima de las pestañas en móvil. */
   pie?: ReactNode;
+  /** Coloca la acción junto al título en vez de separarla al extremo derecho. */
+  accionJunta?: boolean;
 }
 
 /** Contenedor común de las pantallas: scroll, ancho máximo y hueco para las pestañas. */
@@ -33,6 +35,7 @@ export function Pantalla({
   compacta,
   bajoCabecera,
   pie,
+  accionJunta,
 }: Props) {
   const theme = useTheme();
   const web = Platform.OS === 'web';
@@ -70,6 +73,7 @@ export function Pantalla({
             style={[
               styles.cabecera,
               accion ? styles.conAccion : null,
+              accion && accionJunta ? styles.accionJunta : null,
               compacta && styles.sinMargen,
             ]}>
             <View style={styles.titulos}>
@@ -129,5 +133,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
+  accionJunta: { justifyContent: 'flex-start' },
   titulos: { gap: Spacing.one },
 });

@@ -81,6 +81,8 @@ interface Props {
   cerrado: boolean;
   seleccionada?: string;
   onElegir: (fecha: string) => void;
+  /** Ocupa la altura disponible en la columna del registro de día. */
+  expandido?: boolean;
   /** Lo que hay apuntado cada día (eventos y fechas límite de tareas), por `AAAA-MM-DD`. */
   agenda?: Map<string, string[]>;
 }
@@ -96,6 +98,7 @@ export function CalendarioMes({
   seleccionada,
   onElegir,
   agenda,
+  expandido = false,
 }: Props) {
   const theme = useTheme();
   const animar = useAnimar();
@@ -107,7 +110,7 @@ export function CalendarioMes({
   const mesHoy = mesDe(hoy);
 
   return (
-    <View style={styles.contenedor}>
+    <View style={[styles.contenedor, expandido && styles.contenedorExpandido]}>
       <View style={styles.cabecera}>
         <View style={styles.titulo}>
           <ThemedText accessibilityRole="header" style={styles.textoTitulo}>
@@ -139,7 +142,7 @@ export function CalendarioMes({
         </View>
       </View>
 
-      <View>
+      <View style={expandido ? styles.rejillaExpandida : undefined}>
         <View style={styles.semana}>
           {diasCortos().map((d) => (
             <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.diaSemana}>
@@ -151,9 +154,17 @@ export function CalendarioMes({
         {/* La clave hace que al cambiar de mes la rejilla entre con un fundido. */}
         <Animated.View
           key={mes}
+          style={expandido ? styles.mesesExpandidos : undefined}
           entering={!animar ? undefined : FadeIn.duration(Movimiento.normal)}>
           {rejillaCompleta(mes).map((semana, i) => (
-            <View key={i} style={[styles.semana, styles.fila, { borderTopColor: theme.border }]}>
+            <View
+              key={i}
+              style={[
+                styles.semana,
+                styles.fila,
+                expandido && styles.filaExpandida,
+                { borderTopColor: theme.border },
+              ]}>
               {semana.map((fecha, j) => {
                 const borde = j > 0 && {
                   borderLeftWidth: StyleSheet.hairlineWidth,
@@ -315,6 +326,9 @@ function BotonMes({
 
 const styles = StyleSheet.create({
   contenedor: { gap: Spacing.three },
+  contenedorExpandido: { flex: 1, paddingTop: Spacing.two },
+  rejillaExpandida: { flex: 1 },
+  mesesExpandidos: { flex: 1 },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   titulo: { flex: 1 },
   textoTitulo: { fontSize: 26, lineHeight: 32, fontFamily: FontFamily.semibold },
@@ -329,6 +343,7 @@ const styles = StyleSheet.create({
   },
   semana: { flexDirection: 'row' },
   fila: { borderTopWidth: StyleSheet.hairlineWidth },
+  filaExpandida: { flex: 1 },
   diaSemana: {
     flex: 1,
     textAlign: 'right',

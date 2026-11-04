@@ -5,7 +5,7 @@ import { RegistroInvalidoError } from './errores';
 export const TIPOS_DIA = ['trabajo', 'ausencia', 'festivo'] as const;
 export type TipoDia = (typeof TIPOS_DIA)[number];
 
-export const MAX_HORAS_DIA = 12;
+export const MAX_HORAS_DIA = 8;
 
 export interface HorasActividad {
   actividadId: string;

@@ -55,14 +55,14 @@ describe('comprobarBorrador', () => {
     ],
     ['horas a cero', borrador({ horas: [{ actividadId: 'act1', horas: 0 }] }), '15 minutos'],
     [
-      'más de 12 horas',
+      'más de 8 horas',
       borrador({
         horas: [
           { actividadId: 'act1', horas: 8 },
           { actividadId: 'act2', horas: 4.25 },
         ],
       }),
-      '12 horas',
+      '8 horas',
     ],
     ['festivo con horas', borrador({ tipo: 'festivo' }), 'no lleva horas'],
   ])('rechaza un día %s', (_caso, b, mensaje) => {

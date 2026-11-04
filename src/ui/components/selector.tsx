@@ -16,10 +16,17 @@ interface Props<T extends string> {
   opciones: Opcion<T>[];
   valor: T | null;
   onCambio: (valor: T) => void;
+  compacto?: boolean;
 }
 
 /** Grupo de opciones excluyentes (como un control segmentado). */
-export function Selector<T extends string>({ etiqueta, opciones, valor, onCambio }: Props<T>) {
+export function Selector<T extends string>({
+  etiqueta,
+  opciones,
+  valor,
+  onCambio,
+  compacto = false,
+}: Props<T>) {
   const theme = useTheme();
   const reducido = useMovimientoReducido();
   return (
@@ -36,7 +43,7 @@ export function Selector<T extends string>({ etiqueta, opciones, valor, onCambio
               accessibilityState={{ checked: activa }}
               onPress={() => onCambio(o.valor)}
               style={({ hovered }: EstadoPressable) => [
-                styles.opcion,
+                compacto ? styles.opcionCompacta : styles.opcion,
                 { borderColor: activa ? theme.primary : theme.border },
                 { backgroundColor: activa ? theme.primary : theme.surface },
                 transicionWeb(reducido),
@@ -60,6 +67,15 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxWidth: '100%',
     paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+  },
+  opcionCompacta: {
+    minHeight: 36,
+    maxWidth: '100%',
+    paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Radius.pill,
     borderWidth: 1,
