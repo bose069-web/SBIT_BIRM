@@ -18,13 +18,13 @@ interface FilaIncidencia {
   categoria: Incidencia['categoria'];
   prioridad: Incidencia['prioridad'];
   estado: Incidencia['estado'];
-  escalada: boolean;
+  nivel: Incidencia['nivel'];
   respuesta: string | null;
   atendida_por: string | null;
   creada_en: string;
   resuelta_en: string | null;
   autor: { nombre: string } | null;
-  dossier: { tutor_id: string | null } | null;
+  dossier: { tutor_id: string | null; tutor_empresa_id: string | null } | null;
 }
 
 interface FilaMensaje {
@@ -41,9 +41,10 @@ const COLUMNAS_MENSAJE =
 
 const COLUMNAS =
   'id, centro_id, dossier_id, creada_por, titulo, descripcion, categoria, prioridad, estado, ' +
-  'escalada, respuesta, atendida_por, creada_en, resuelta_en, ' +
+  'nivel, respuesta, atendida_por, creada_en, resuelta_en, ' +
   // Dos FK a perfiles: hay que decir cuál es la del autor.
-  'autor:perfiles!incidencias_creada_por_fkey(nombre), dossier:dossiers(tutor_id)';
+  'autor:perfiles!incidencias_creada_por_fkey(nombre), ' +
+  'dossier:dossiers(tutor_id, tutor_empresa_id)';
 
 function aIncidencia(f: FilaIncidencia): Incidencia {
   return {
@@ -51,6 +52,7 @@ function aIncidencia(f: FilaIncidencia): Incidencia {
     centroId: f.centro_id,
     dossierId: f.dossier_id,
     tutorId: f.dossier?.tutor_id ?? null,
+    empresaTutorId: f.dossier?.tutor_empresa_id ?? null,
     creadaPor: f.creada_por,
     creadaPorNombre: f.autor?.nombre ?? null,
     titulo: f.titulo,
@@ -58,7 +60,7 @@ function aIncidencia(f: FilaIncidencia): Incidencia {
     categoria: f.categoria,
     prioridad: f.prioridad,
     estado: f.estado,
-    escalada: f.escalada,
+    nivel: f.nivel,
     respuesta: f.respuesta,
     atendidaPor: f.atendida_por,
     creadaEn: f.creada_en,
@@ -115,7 +117,7 @@ export class IncidenciaSupabase implements IncidenciaPort {
     if (c.estado !== undefined) fila.estado = c.estado;
     if (c.prioridad !== undefined) fila.prioridad = c.prioridad;
     if (c.respuesta !== undefined) fila.respuesta = c.respuesta;
-    if (c.escalada !== undefined) fila.escalada = c.escalada;
+    if (c.nivel !== undefined) fila.nivel = c.nivel;
     return this.actualizar(id, fila);
   }
 

@@ -16,6 +16,7 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     centroId: IDS_DEMO.centro,
     dossierId: IDS_DEMO.dossier,
     tutorId: IDS_DEMO.profe,
+    empresaTutorId: IDS_DEMO.empresa,
     creadaPor: IDS_DEMO.alumno,
     creadaPorNombre: 'Alumno Demo',
     titulo: 'No me han dado acceso al repositorio de la empresa',
@@ -23,7 +24,7 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     categoria: 'empresa',
     prioridad: 'alta',
     estado: 'abierta',
-    escalada: false,
+    nivel: 'destinatario',
     respuesta: null,
     atendidaPor: null,
     creadaEn: '2026-10-22T08:30:00.000Z',
@@ -34,6 +35,7 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     centroId: null,
     dossierId: null,
     tutorId: null,
+    empresaTutorId: null,
     creadaPor: IDS_DEMO.empresa,
     creadaPorNombre: 'Tutor Empresa Demo',
     titulo: 'El convenio caduca a final de curso',
@@ -41,7 +43,7 @@ const INCIDENCIAS_DEMO: Incidencia[] = [
     categoria: 'convenio',
     prioridad: 'media',
     estado: 'en_curso',
-    escalada: false,
+    nivel: 'generalitat',
     respuesta: 'Lo estamos revisando con los institutos.',
     atendidaPor: IDS_DEMO.generalitat,
     creadaEn: '2026-10-18T12:00:00.000Z',
@@ -85,11 +87,12 @@ export class IncidenciaMemory implements IncidenciaPort {
       id: `incidencia-${this.siguienteId++}`,
       centroId: dossier ? dossier.centroId : usuario.centroId,
       tutorId: dossier?.tutorId ?? null,
+      empresaTutorId: dossier?.tutorEmpresaId ?? null,
       creadaPor: usuario.id,
       creadaPorNombre: USUARIOS_DEMO.find((u) => u.id === usuario.id)?.nombre ?? usuario.nombre,
       prioridad: 'media',
       estado: 'abierta',
-      escalada: false,
+      nivel: 'destinatario',
       respuesta: null,
       atendidaPor: null,
       creadaEn: new Date().toISOString(),
@@ -111,7 +114,7 @@ export class IncidenciaMemory implements IncidenciaPort {
     }
     if (c.prioridad !== undefined) cambios.prioridad = c.prioridad;
     if (c.respuesta !== undefined) cambios.respuesta = c.respuesta;
-    if (c.escalada !== undefined) cambios.escalada = c.escalada;
+    if (c.nivel !== undefined) cambios.nivel = c.nivel;
     return this.cambiar(id, cambios);
   }
 

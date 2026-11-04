@@ -15,12 +15,17 @@ import {
 import {
   atiendeIncidencia,
   CATEGORIAS_INCIDENCIA,
+  destinoDe,
   ESTADOS_INCIDENCIA,
+  siguienteNivel,
   type CategoriaIncidencia,
+  type DestinoIncidencia,
   type EstadoIncidencia,
   type Incidencia,
+  type NivelIncidencia,
   type PrioridadIncidencia,
 } from '@/core/domain/incidencia';
+import type { Rol } from '@/core/domain/usuario';
 import { container } from '@/config/container';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -62,6 +67,26 @@ export const TEXTO_PRIORIDAD: Record<PrioridadIncidencia, string> = {
   media: 'Prioridad media',
   alta: 'Prioridad alta',
 };
+/** A quién le llega, para avisarlo antes de abrirla. */
+export const TEXTO_DESTINO: Record<DestinoIncidencia, string> = {
+  profe: 'tu profe tutor',
+  empresa: 'tu empresa, y tu profe tutor la gestiona',
+  instituto: 'tu instituto',
+  generalitat: 'la Generalitat',
+};
+/** Hasta dónde ha subido; en el nivel inicial no hace falta decir nada. */
+export const TEXTO_NIVEL: Record<NivelIncidencia, string | null> = {
+  destinatario: null,
+  instituto: 'Pasada al instituto',
+  generalitat: 'Pasada a la Generalitat',
+};
+
+/** Cómo se llama el grupo de las que sigo pero no me toca gestionar, según quién mira. */
+export function tituloSeguidas(rol: Rol): string {
+  if (rol === 'empresa') return 'Sobre tu empresa';
+  if (rol === 'instituto') return 'De tu centro';
+  return 'De mis alumnos';
+}
 
 const abrirDetalle = (id: string) => router.push({ pathname: '/chat', params: { incidencia: id } });
 
@@ -97,7 +122,7 @@ export function BandejaIncidencias() {
         </Tarjeta>
       ) : null}
       {datos.deMisAlumnos.length ? (
-        <Tarjeta titulo={t('De mis alumnos')}>
+        <Tarjeta titulo={t(tituloSeguidas(usuario.rol))}>
           <ListaIncidencias lista={datos.deMisAlumnos} />
         </Tarjeta>
       ) : null}
@@ -140,7 +165,7 @@ function ListaIncidencias({ lista }: { lista: Incidencia[] }) {
             <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
               {i.creadaPorNombre ?? 'Alguien'} · {fechaCorta(i.creadaEn.slice(0, 10))} ·{' '}
               {TEXTO_CATEGORIA[i.categoria]}
-              {i.escalada ? ' · escalada' : ''}
+              {TEXTO_NIVEL[i.nivel] ? ` · ${t(TEXTO_NIVEL[i.nivel] as string).toLowerCase()}` : ''}
             </ThemedText>
           </View>
           <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
@@ -209,6 +234,9 @@ export function NuevaIncidencia({
         valor={categoria}
         onCambio={setCategoria}
       />
+      <ThemedText type="small" themeColor="textSecondary">
+        {t('Le llegará a {destino}.', { destino: t(TEXTO_DESTINO[destinoDe(categoria)]) })}
+      </ThemedText>
       {aviso ? <Mensaje tipo="error" texto={aviso} /> : null}
       <Boton
         texto={t('Enviar')}
@@ -254,7 +282,7 @@ export function DetalleIncidencia({ id, onVolver }: { id: string; onVolver: () =
         <View style={styles.chips}>
           <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
           <Chip texto={TEXTO_PRIORIDAD[i.prioridad]} />
-          {i.escalada ? <Chip texto={t('Escalada a la Generalitat')} /> : null}
+          {TEXTO_NIVEL[i.nivel] ? <Chip texto={t(TEXTO_NIVEL[i.nivel] as string)} /> : null}
         </View>
         <ThemedText type="small" themeColor="textSecondary">
           Abierta por {i.creadaPorNombre ?? 'alguien'}
@@ -304,8 +332,8 @@ export function Atender({
     }
   }
 
-  const puedeEscalar =
-    usuario.rol === 'instituto' && !incidencia.escalada && incidencia.estado !== 'resuelta';
+  // Quien la lleva la pasa al siguiente nivel: profe → instituto → Generalitat.
+  const subeA = incidencia.estado === 'resuelta' ? null : siguienteNivel(incidencia);
   return (
     <Tarjeta titulo={t('Atender')}>
       <Selector
@@ -333,15 +361,15 @@ export function Atender({
           )
         }
       />
-      {puedeEscalar ? (
+      {subeA ? (
         <Boton
-          texto={t('Pasar a la Generalitat')}
+          texto={subeA === 'instituto' ? t('Pasar al instituto') : t('Pasar a la Generalitat')}
           variante="secundario"
           desactivado={enviando}
           onPress={() =>
             ejecutar(
               () => escalarIncidencia(container.incidencias, usuario, incidencia, respuesta),
-              'Escalada a la Generalitat',
+              subeA === 'instituto' ? 'Pasada al instituto' : 'Pasada a la Generalitat',
             )
           }
         />
