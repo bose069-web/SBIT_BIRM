@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {},
     "android": {
+      "package": "com.teambirm.kampus",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,11 +32,24 @@
           "imageWidth": 96
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "color": "#0A0A0A",
+          "defaultChannel": "recordatorios"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "906ad57f-67b0-47f1-bc5d-e6eed7603a17"
+      }
+    },
+    "owner": "izanml44"
   }
 }

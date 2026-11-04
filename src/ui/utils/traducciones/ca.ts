@@ -1061,4 +1061,13 @@ export const CATALAN: Record<string, string> = {
   'Pasada a la Generalitat': 'Passada a la Generalitat',
   'Sobre tu empresa': 'Sobre la teva empresa',
   'De tu centro': 'Del teu centre',
+  'Recordatorio diario (18:00)': 'Recordatori diari (18:00)',
+  'Probar recordatorio': 'Provar el recordatori',
+  'Te avisaremos cada día a las 18:00': 'Et recordarem cada dia a les 18:00',
+  'Recordatorio desactivado': 'Recordatori desactivat',
+  'Llegará en unos segundos': "Arribarà d'aquí a uns segons",
+  'Este dispositivo no admite notificaciones': 'Aquest dispositiu no admet notificacions',
+  'Permite las notificaciones de Kampus en los ajustes del móvil':
+    'Permet les notificacions de Kampus a la configuració del mòbil',
+  'Hora del recordatorio no válida': 'Hora del recordatori no vàlida',
 };

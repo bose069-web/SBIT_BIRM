@@ -1,9 +1,15 @@
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { cambiarContrasena } from '@/core/application/auth';
 import { obtenerDossierActual } from '@/core/application/dossier';
+import {
+  activarRecordatorio,
+  desactivarRecordatorio,
+  probarRecordatorio,
+  recordatorioActivo,
+} from '@/core/application/recordatorio';
 import {
   cambiarEmail,
   cambiarNombre,
@@ -434,6 +440,9 @@ function Formulario({
         onCambio={(v) => cambiar('notificaciones', v)}
         compacto={ancho}
       />
+      {usuario.rol === 'alumno' && container.recordatorios.disponible ? (
+        <Recordatorio usuario={usuario} compacto={ancho} />
+      ) : null}
     </Tarjeta>
   );
 
@@ -544,6 +553,73 @@ function TarjetaContrasena() {
         cargando={guardando}
       />
     </Tarjeta>
+  );
+}
+
+/** Notificación local diaria a las 18:00; se guarda al momento, sin pasar por «Guardar cambios». */
+function Recordatorio({ usuario, compacto }: { usuario: Usuario; compacto: boolean }) {
+  const [activo, setActivo] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+
+  useEffect(() => {
+    let vigente = true;
+    recordatorioActivo(container.recordatorios)
+      .then((leido) => vigente && setActivo(leido))
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const ejecutar = async (accion: () => Promise<void>, ok: string) => {
+    if (ocupado) return;
+    setOcupado(true);
+    setAviso(null);
+    try {
+      await accion();
+      setAviso({ tipo: 'ok', texto: ok });
+    } catch (e) {
+      setAviso({
+        tipo: 'error',
+        texto: e instanceof Error ? t(e.message) : t('No se pudo cambiar'),
+      });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const cambiar = (valor: boolean) =>
+    ejecutar(
+      async () => {
+        if (valor) await activarRecordatorio(container.recordatorios, usuario);
+        else await desactivarRecordatorio(container.recordatorios);
+        setActivo(valor);
+      },
+      valor ? t('Te avisaremos cada día a las 18:00') : t('Recordatorio desactivado'),
+    );
+
+  return (
+    <>
+      <Interruptor
+        texto={t('Recordatorio diario (18:00)')}
+        valor={activo}
+        onCambio={cambiar}
+        compacto={compacto}
+      />
+      <Boton
+        texto={t('Probar recordatorio')}
+        variante="secundario"
+        cargando={ocupado}
+        onPress={() =>
+          ejecutar(
+            () => probarRecordatorio(container.recordatorios, usuario),
+            t('Llegará en unos segundos'),
+          )
+        }
+      />
+      {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
+    </>
   );
 }
 
