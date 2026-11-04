@@ -641,7 +641,6 @@ export const CATALAN: Record<string, string> = {
   'Sin incidencias': 'Sense incidències',
   'Si algo no va bien en las prácticas, con la empresa o con la app, cuéntalo aquí.':
     "Si alguna cosa no va bé a les pràctiques, amb l'empresa o amb l'app, explica-ho aquí.",
-  '· escalada': '· escalada',
   '+ Nueva incidencia': '+ Incidència nova',
   'Nueva incidencia': 'Incidència nova',
   'Qué pasa': 'Què passa',
@@ -653,7 +652,6 @@ export const CATALAN: Record<string, string> = {
   Incidencia: 'Incidència',
   'No se encuentra': 'No es troba',
   'Puede que se haya borrado.': "Potser s'ha esborrat.",
-  'Escalada a la Generalitat': 'Escalada a la Generalitat',
   Respuesta: 'Resposta',
   Conversación: 'Conversa',
   Atender: 'Atendre',
@@ -1051,4 +1049,16 @@ export const CATALAN: Record<string, string> = {
   'El código del centro debe tener 8 dígitos': 'El codi del centre ha de tenir 8 dígits',
   'No se ha podido crear el centro': "No s'ha pogut crear el centre",
   'Ya existe un centro con ese código': 'Ja existeix un centre amb aquest codi',
+
+  // Destino de las incidencias: sobre qué va decide a quién le llega
+  'Le llegará a {destino}.': 'Li arribarà a {destino}.',
+  'tu profe tutor': 'el teu profe tutor',
+  'tu empresa, y tu profe tutor la gestiona': 'la teva empresa, i el teu profe tutor la gestiona',
+  'tu instituto': 'el teu institut',
+  'la Generalitat': 'la Generalitat',
+  'Pasar al instituto': "Passar a l'institut",
+  'Pasada al instituto': "Passada a l'institut",
+  'Pasada a la Generalitat': 'Passada a la Generalitat',
+  'Sobre tu empresa': 'Sobre la teva empresa',
+  'De tu centro': 'Del teu centre',
 };

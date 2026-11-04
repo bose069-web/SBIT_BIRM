@@ -33,7 +33,6 @@ import {
 } from '@/core/domain/registro-diario';
 import { mesCerrado, mesDe } from '@/core/domain/valoracion';
 import { container } from '@/config/container';
-import { AvisoBorrador } from '@/ui/components/aviso-borrador';
 import { BarraProgreso } from '@/ui/components/barra-progreso';
 import { Boton } from '@/ui/components/boton';
 import { Campo } from '@/ui/components/campo';
@@ -235,6 +234,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       periodo={dossier}
       hoy={hoy}
       cerrado={cerrado}
+      expandido={ancha}
       seleccionada={fecha}
       onElegir={(f) => {
         irA(f);
@@ -319,6 +319,7 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
       aviso={aviso}
       onEnviar={enviar}
       onBorrar={borrar}
+      compacto={ancha}
     />
   );
 
@@ -344,7 +345,6 @@ export function VistaRegistroDia({ fechaInicial }: { fechaInicial?: string }) {
         {ancha ? (
           <View style={styles.columnas}>
             <View style={styles.izquierda}>
-              {navegacion}
               <Tarjeta>{calendario}</Tarjeta>
             </View>
             <View style={styles.derecha}>{formulario}</View>
@@ -367,12 +367,14 @@ function BotonIcono({
   onPress,
   desactivado,
   onLongPress,
+  compacto = false,
 }: {
   texto: string;
   etiqueta: string;
   onPress: () => void;
   desactivado?: boolean;
   onLongPress?: () => void;
+  compacto?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -385,7 +387,7 @@ function BotonIcono({
       onLongPress={onLongPress}
       hitSlop={4}
       style={({ pressed }) => [
-        styles.icono,
+        compacto ? styles.iconoCompacto : styles.icono,
         { borderColor: theme.border, backgroundColor: theme.surface },
         (desactivado || (Platform.OS === 'web' && pressed)) && { opacity: 0.4 },
       ]}>
@@ -488,7 +490,7 @@ function Enlace({ texto, onPress }: { texto: string; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  columnas: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
+  columnas: { flexDirection: 'row', gap: Spacing.three, alignItems: 'stretch' },
   izquierda: { flex: 5, gap: Spacing.three },
   derecha: { flex: 6, gap: Spacing.three },
   navFecha: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
@@ -530,6 +532,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconoCompacto: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   textoIcono: { lineHeight: 28 },
   tipos: { flexDirection: 'row', gap: Spacing.two },
   tipo: {
@@ -541,11 +551,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.one,
   },
+  tipoCompacto: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one,
+  },
+  tarjetaCompacta: { padding: Spacing.two, gap: Spacing.two },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
     paddingVertical: Spacing.two,
+  },
+  filaCompacta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
   },
   filaTexto: { flex: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
@@ -584,6 +610,7 @@ interface PropsFormulario {
   aviso: { tipo: 'error' | 'ok'; texto: string } | null;
   onEnviar: (valores: ValoresDia, huellaBase: string | null) => Promise<ResultadoEnvio | null>;
   onBorrar: () => Promise<boolean>;
+  compacto: boolean;
 }
 
 function textoConflicto(servidor: RegistroDiario | null): string {
@@ -617,6 +644,7 @@ function FormularioDia({
   aviso,
   onEnviar,
   onBorrar,
+  compacto,
 }: PropsFormulario) {
   const theme = useTheme();
   const [tipo, setTipo] = useState<TipoDia>(existente?.tipo ?? 'trabajo');
@@ -699,7 +727,7 @@ function FormularioDia({
     // Tocar fuera de un campo cierra el teclado. En web no: el clic en el campo también
     // llega aquí y le quitaría el foco.
     <Pressable accessible={false} onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}>
-      <Tarjeta titulo={t('Qué has hecho')}>
+      <Tarjeta titulo={t('Qué has hecho')} style={compacto ? styles.tarjetaCompacta : undefined}>
         {local ? (
           <Mensaje
             tipo="error"
@@ -730,7 +758,7 @@ function FormularioDia({
                   setTipo(t.valor);
                 }}
                 style={[
-                  styles.tipo,
+                  compacto ? styles.tipoCompacto : styles.tipo,
                   elegido
                     ? { borderColor: theme.primary, backgroundColor: theme.primarySuave }
                     : { borderColor: theme.border, backgroundColor: theme.surface },
@@ -801,7 +829,7 @@ function FormularioDia({
                     {i > 0 ? (
                       <View style={[styles.separadorFlechas, { backgroundColor: theme.border }]} />
                     ) : null}
-                    <View style={styles.fila}>
+                    <View style={compacto ? styles.filaCompacta : styles.fila}>
                       <ThemedText
                         style={styles.filaTexto}
                         themeColor={valor > 0 ? 'text' : 'textSecondary'}>
@@ -825,6 +853,7 @@ function FormularioDia({
                           onPress={() => cambiar(a.id, -0.5)}
                           // Mantener pulsado ajusta de 15 en 15 min.
                           onLongPress={() => cambiar(a.id, -0.25)}
+                          compacto={compacto}
                         />
                         <ThemedText
                           type="smallBold"
@@ -840,6 +869,7 @@ function FormularioDia({
                           desactivado={bloqueado || total >= MAX_HORAS_DIA}
                           onPress={() => cambiar(a.id, 0.5)}
                           onLongPress={() => cambiar(a.id, 0.25)}
+                          compacto={compacto}
                         />
                       </View>
                     </View>
@@ -866,13 +896,6 @@ function FormularioDia({
                 ? 'Opcional: qué festivo es'
                 : 'Opcional'
           }
-        />
-        <AvisoBorrador
-          guardadoEn={borrador.guardadoEn}
-          fallo={borrador.fallo}
-          onDescartar={() => {
-            void borrador.descartar().then(onDescartado);
-          }}
         />
         {aviso ? <Mensaje tipo={aviso.tipo} texto={aviso.texto} /> : null}
         {conflicto !== undefined ? (

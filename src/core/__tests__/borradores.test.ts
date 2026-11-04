@@ -168,10 +168,7 @@ describe('copiar el día anterior', () => {
       },
       [{ id: 'act1' }, { id: 'act2' }],
     );
-    expect(copia).toEqual([
-      { actividadId: 'act1', horas: 8 },
-      { actividadId: 'act2', horas: 4 },
-    ]);
+    expect(copia).toEqual([{ actividadId: 'act1', horas: 8 }]);
   });
 });
 

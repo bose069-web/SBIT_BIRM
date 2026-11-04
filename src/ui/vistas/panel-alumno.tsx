@@ -70,6 +70,13 @@ export function PanelAlumno() {
   const mesesValidados = datos?.seguimiento.mensuales.map((v) => v.mes) ?? [];
   const semana = datos ? semanaDePracticas(datos.dossier, hoy) : null;
   const estadoMes = <EstadoMes hoy={hoy} mesesValidados={mesesValidados} />;
+  const resumenCabecera = semana
+    ? t('{fecha} · semana {actual} de {total}', {
+        fecha: fechaCorta(hoy),
+        actual: semana.actual,
+        total: semana.total,
+      })
+    : fechaCorta(hoy);
   const valoraciones = datos ? (
     <Tarjeta titulo={t('Valoraciones de la empresa')}>
       <ListaValoraciones mensuales={datos.seguimiento.mensuales} final={datos.seguimiento.final} />
@@ -79,18 +86,15 @@ export function PanelAlumno() {
   return (
     <Pantalla
       titulo={t('Hola, {nombre}', { nombre: usuario.nombre.split(' ')[0] })}
-      subtitulo={
-        semana
-          ? t('{fecha} · semana {actual} de {total}', {
-              fecha: fechaCorta(hoy),
-              actual: semana.actual,
-              total: semana.total,
-            })
-          : fechaCorta(hoy)
+      subtitulo={ancho ? undefined : resumenCabecera}
+      accion={
+        ancho ? (
+          <ThemedText themeColor="textSecondary" style={styles.resumenCabecera}>
+            {resumenCabecera}
+          </ThemedText>
+        ) : undefined
       }
-      // En la web el estado del mes llena el hueco junto al saludo; el botón de registrar ya
-      // está en la cabecera.
-      accion={ancho && datos ? estadoMes : undefined}
+      accionJunta={ancho}
       amplia={ancho}>
       {datos && <AvisoToqueAlumno key={datos.dossier.id} dossier={datos.dossier} />}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
@@ -109,44 +113,88 @@ export function PanelAlumno() {
           ancho={ancho}
           izquierda={
             <>
-              <TarjetaPendientes
-                pendientes={pendientesAlumno({
-                  hoy,
-                  sinApuntar: datos.progreso.sinApuntar,
-                  seguimiento: datos.seguimiento,
-                  incidencias: datos.incidencias,
-                })}
-                textoAlDia="Tienes los días apuntados y ninguna incidencia abierta."
-                sinConfirmar={
-                  datos.incidencias ? null : 'No se han podido comprobar tus incidencias.'
-                }
-              />
-              {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
-                  sola con el calendario arriba. */}
-              <Tarjeta titulo={t('Horas de prácticas')}>
-                {ancho ? null : (
-                  <MiniCalendario hoy={hoy} registros={datos.registros} periodo={datos.dossier} />
-                )}
-                <View style={styles.quesito}>
-                  <Quesito
-                    porcentaje={datos.resumen.porcentaje}
-                    etiqueta={t('Horas de prácticas completadas')}
-                  />
-                  <View style={ancho ? undefined : styles.flex}>
-                    <View style={styles.horas}>
-                      <ThemedText type="title">{formatoHoras(datos.resumen.realizadas)}</ThemedText>
-                      <ThemedText themeColor="textSecondary">
-                        de {formatoHoras(datos.resumen.totales)}
+              {!ancho ? (
+                <TarjetaPendientes
+                  pendientes={pendientesAlumno({
+                    hoy,
+                    sinApuntar: datos.progreso.sinApuntar,
+                    seguimiento: datos.seguimiento,
+                    incidencias: datos.incidencias,
+                  })}
+                  textoAlDia="Tienes los días apuntados y ninguna incidencia abierta."
+                  sinConfirmar={
+                    datos.incidencias ? null : 'No se han podido comprobar tus incidencias.'
+                  }
+                />
+              ) : null}
+              {ancho ? (
+                <Tarjeta titulo={t('Horas de prácticas')}>
+                  <View style={styles.quesito}>
+                    <Quesito
+                      porcentaje={datos.resumen.porcentaje}
+                      etiqueta={t('Horas de prácticas completadas')}
+                    />
+                    <View>
+                      <View style={styles.horas}>
+                        <ThemedText type="title">
+                          {formatoHoras(datos.resumen.realizadas)}
+                        </ThemedText>
+                        <ThemedText themeColor="textSecondary">
+                          de {formatoHoras(datos.resumen.totales)}
+                        </ThemedText>
+                      </View>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {datos.resumen.porcentaje}% completado
                       </ThemedText>
                     </View>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {datos.resumen.porcentaje}% completado
-                    </ThemedText>
+                    <DatosProgreso progreso={datos.progreso} />
                   </View>
-                  {/* En la web sobra sitio junto al quesito: lo que falta y si se llega a tiempo. */}
-                  {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
-                </View>
-              </Tarjeta>
+                </Tarjeta>
+              ) : null}
+              {ancho ? (
+                <TarjetaPendientes
+                  pendientes={pendientesAlumno({
+                    hoy,
+                    sinApuntar: datos.progreso.sinApuntar,
+                    seguimiento: datos.seguimiento,
+                    incidencias: datos.incidencias,
+                  })}
+                  textoAlDia="Tienes los días apuntados y ninguna incidencia abierta."
+                  sinConfirmar={
+                    datos.incidencias ? null : 'No se han podido comprobar tus incidencias.'
+                  }
+                />
+              ) : null}
+              {/* En la web, horas y calendario en tarjetas separadas; en el móvil, juntos en una
+                  sola con el calendario arriba. */}
+              {!ancho ? (
+                <Tarjeta titulo={t('Horas de prácticas')}>
+                  {ancho ? null : (
+                    <MiniCalendario hoy={hoy} registros={datos.registros} periodo={datos.dossier} />
+                  )}
+                  <View style={styles.quesito}>
+                    <Quesito
+                      porcentaje={datos.resumen.porcentaje}
+                      etiqueta={t('Horas de prácticas completadas')}
+                    />
+                    <View style={ancho ? undefined : styles.flex}>
+                      <View style={styles.horas}>
+                        <ThemedText type="title">
+                          {formatoHoras(datos.resumen.realizadas)}
+                        </ThemedText>
+                        <ThemedText themeColor="textSecondary">
+                          de {formatoHoras(datos.resumen.totales)}
+                        </ThemedText>
+                      </View>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {datos.resumen.porcentaje}% completado
+                      </ThemedText>
+                    </View>
+                    {/* En la web sobra sitio junto al quesito: lo que falta y si se llega a tiempo. */}
+                    {ancho ? <DatosProgreso progreso={datos.progreso} /> : null}
+                  </View>
+                </Tarjeta>
+              ) : null}
               {ancho ? (
                 <Tarjeta
                   titulo={nombreMes(mes)}
@@ -184,13 +232,12 @@ export function PanelAlumno() {
                   />
                 </Tarjeta>
               )}
-              {/* En la web las valoraciones van con el mes: así las dos columnas quedan
-                  parejas. En el móvil, al final. */}
-              {ancho ? valoraciones : null}
+              {ancho ? estadoMes : null}
             </>
           }
           derecha={
             <>
+              {ancho ? valoraciones : null}
               <Tarjeta titulo={t('Tareas')}>
                 <TareasDossier dossier={datos.dossier} onCambio={recargar} />
               </Tarjeta>
@@ -445,7 +492,8 @@ function Columnas({
 }
 
 const styles = StyleSheet.create({
-  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  resumenCabecera: { fontSize: 18 },
+  columnas: { flexDirection: 'row', alignItems: 'stretch', gap: Spacing.three },
   principal: { flex: 1.7, gap: Spacing.three },
   lateral: { flex: 1, gap: Spacing.three },
   horas: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two },

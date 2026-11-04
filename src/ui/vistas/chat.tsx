@@ -37,7 +37,6 @@ import { useWebAncha } from '@/ui/hooks/use-web-ancha';
 import { Radius, Spacing } from '@/ui/theme/theme';
 
 import { ChatDirecto } from './chat-directo';
-import { ChatEmpresa } from './chat-empresa';
 import { ErrorCarga, EsqueletoPanel, EstadoVacio } from './comun';
 import {
   Atender,
@@ -45,15 +44,18 @@ import {
   NuevaIncidencia,
   TEXTO_CATEGORIA,
   TEXTO_ESTADO,
+  TEXTO_NIVEL,
   TEXTO_PRIORIDAD,
+  tituloSeguidas,
 } from './incidencias';
 import { t } from '@/ui/utils/idioma';
 
 /** La empresa y el alumno tienen chat directo; el alumno conserva también sus incidencias. */
 export function VistaChat() {
   const usuario = useUsuario();
-  if (usuario.rol === 'empresa') return <ChatEmpresa />;
-  if (usuario.rol === 'alumno' || usuario.rol === 'profe') return <ChatConIncidencias />;
+  if (usuario.rol === 'alumno' || usuario.rol === 'profe' || usuario.rol === 'empresa') {
+    return <ChatConIncidencias />;
+  }
   return <ChatIncidencias />;
 }
 
@@ -136,7 +138,7 @@ function useListaConversaciones() {
     const bandeja = await obtenerBandeja(container.incidencias, usuario);
     const grupos: [string, Incidencia[]][] = [
       ['Por atender', bandeja.porAtender],
-      ['De mis alumnos', bandeja.deMisAlumnos],
+      [tituloSeguidas(usuario.rol), bandeja.deMisAlumnos],
       ['Abierta por mí', bandeja.mias],
     ];
     const vistas = new Set<string>();
@@ -266,7 +268,7 @@ function FilaConversacion({
             numberOfLines={1}
             style={[styles.flex, styles.meta]}>
             {i.creadaPorNombre ?? 'Alguien'} · {TEXTO_CATEGORIA[i.categoria]}
-            {i.escalada ? ' · escalada' : ''}
+            {TEXTO_NIVEL[i.nivel] ? ` · ${t(TEXTO_NIVEL[i.nivel] as string).toLowerCase()}` : ''}
           </ThemedText>
           <EstadoPunto incidencia={i} />
         </View>
@@ -422,7 +424,7 @@ function CabeceraConversacion({
       <View style={styles.chips}>
         <Chip texto={TEXTO_ESTADO[i.estado]} color={COLOR_ESTADO[i.estado]} />
         <Chip texto={TEXTO_PRIORIDAD[i.prioridad]} />
-        {i.escalada ? <Chip texto={t('Escalada a la Generalitat')} /> : null}
+        {TEXTO_NIVEL[i.nivel] ? <Chip texto={t(TEXTO_NIVEL[i.nivel] as string)} /> : null}
       </View>
       {detalles ? (
         <View style={styles.detalles}>

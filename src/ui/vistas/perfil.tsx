@@ -62,7 +62,13 @@ const TITULO_ROL: Record<Rol, string | null> = {
   generalitat: null,
 };
 
-function SelectorApariencia({ t }: { t: (texto: string) => string }) {
+function SelectorApariencia({
+  t,
+  compacto = false,
+}: {
+  t: (texto: string) => string;
+  compacto?: boolean;
+}) {
   const actual = useColorScheme() === 'dark' ? 'dark' : 'light';
   return (
     <Selector
@@ -73,6 +79,7 @@ function SelectorApariencia({ t }: { t: (texto: string) => string }) {
       ]}
       valor={actual}
       onCambio={cambiarEsquemaWeb}
+      compacto={compacto}
     />
   );
 }
@@ -102,17 +109,8 @@ export function VistaPerfil() {
         dni={datos.dni}
         ancho={ancho}
         cabecera={cabecera}
-        sesion={
-          <>
-            <TarjetaContrasena />
-            <Tarjeta titulo={t('Sesión')}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {t('Datos: {origen}', { origen: container.auth.nombre })}
-              </ThemedText>
-              <Boton texto={t('Cerrar sesión')} variante="peligro" onPress={salir} />
-            </Tarjeta>
-          </>
-        }
+        cerrarSesion={<Boton texto={t('Cerrar sesión')} variante="peligro" onPress={salir} />}
+        sesion={<TarjetaContrasena />}
       />
     );
   }
@@ -199,6 +197,7 @@ function Formulario({
   dni,
   ancho,
   cabecera,
+  cerrarSesion,
   sesion,
 }: {
   usuario: Usuario;
@@ -206,6 +205,7 @@ function Formulario({
   dni: string | null;
   ancho: boolean;
   cabecera: ReactNode;
+  cerrarSesion: ReactNode;
   sesion: ReactNode;
 }) {
   const theme = useTheme();
@@ -419,18 +419,20 @@ function Formulario({
   ) : null;
 
   const preferencias = (
-    <Tarjeta titulo={t('Preferencias')}>
-      <SelectorApariencia t={t} />
+    <Tarjeta titulo={t('Preferencias')} style={ancho ? styles.preferenciasCompactas : undefined}>
+      <SelectorApariencia t={t} compacto={ancho} />
       <Selector
         etiqueta={t('Idioma')}
         opciones={OPCIONES_IDIOMA}
         valor={datos.idioma}
         onCambio={(v) => cambiar('idioma', v)}
+        compacto={ancho}
       />
       <Interruptor
         texto={t('Avisos y notificaciones')}
         valor={datos.notificaciones}
         onCambio={(v) => cambiar('notificaciones', v)}
+        compacto={ancho}
       />
     </Tarjeta>
   );
@@ -467,6 +469,7 @@ function Formulario({
           <View style={[styles.columna, styles.lateral]}>
             {cuenta}
             {sesion}
+            <View style={styles.cerrarSesion}>{cerrarSesion}</View>
           </View>
         </View>
       ) : (
@@ -476,6 +479,7 @@ function Formulario({
           {tarjetaRol}
           {preferencias}
           {sesion}
+          <View style={styles.cerrarSesion}>{cerrarSesion}</View>
         </>
       )}
     </Pantalla>
@@ -569,10 +573,12 @@ function Interruptor({
   texto,
   valor,
   onCambio,
+  compacto = false,
 }: {
   texto: string;
   valor: boolean;
   onCambio: (valor: boolean) => void;
+  compacto?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -593,7 +599,7 @@ function Interruptor({
             }
           : undefined
       }
-      style={styles.interruptor}>
+      style={[styles.interruptor, compacto && styles.interruptorCompacto]}>
       <ThemedText type="small" style={styles.flex}>
         {texto}
       </ThemedText>
@@ -603,7 +609,7 @@ function Interruptor({
         aria-hidden
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={styles.areaInterruptor}>
+        style={[styles.areaInterruptor, compacto && styles.areaInterruptorCompacta]}>
         <Switch
           value={valor}
           trackColor={{ true: theme.primary, false: theme.borderStrong }}
@@ -649,8 +655,12 @@ const styles = StyleSheet.create({
   },
   estadoGuardado: { flex: 1, minWidth: 0 },
   interruptor: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
+  interruptorCompacto: { minHeight: 36 },
+  areaInterruptorCompacta: { minWidth: 36, minHeight: 36 },
   columna: { minWidth: 0, gap: Spacing.three },
-  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  columnas: { flexDirection: 'row', alignItems: 'stretch', gap: Spacing.three },
+  cerrarSesion: { alignItems: 'stretch' },
+  preferenciasCompactas: { flex: 1, padding: Spacing.two, gap: Spacing.two },
   principal: { flex: 1.7 },
   lateral: { flex: 1, maxWidth: 380 },
   pareja: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: Spacing.three },

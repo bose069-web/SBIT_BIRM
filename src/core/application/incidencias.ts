@@ -5,6 +5,8 @@ import {
   comprobarMensaje,
   participaEnIncidencia,
   ordenarIncidencias,
+  siguienteNivel,
+  sigueIncidencia,
   type BorradorIncidencia,
   type CambiosIncidencia,
   type Incidencia,
@@ -17,11 +19,11 @@ import type { IncidenciaPort } from '../ports/incidencia-port';
 // aquí se avisa antes con errores claros.
 
 export interface BandejaIncidencias {
-  /** Las que tengo que atender (instituto y generalitat). */
+  /** Las que me toca gestionar a mí: profe tutor, instituto o generalitat. */
   porAtender: Incidencia[];
   /** Las que he abierto yo. */
   mias: Incidencia[];
-  /** Profe: las de sus alumnos que no ha abierto él. */
+  /** Profe: las de sus alumnos que lleva otro. Empresa: las que van sobre su empresa. */
   deMisAlumnos: Incidencia[];
   /** Pendientes (abiertas o en curso) de las que atiendo. */
   pendientes: number;
@@ -35,14 +37,15 @@ export async function obtenerBandeja(
   const porAtender = ordenarIncidencias(
     todas.filter((i) => i.creadaPor !== usuario.id && atiendeIncidencia(usuario, i)),
   );
+  // Lo que sigo pero no me toca gestionar: lo de mis alumnos, lo de mi empresa, lo de mi centro.
+  const sigo = todas.filter(
+    (i) =>
+      i.creadaPor !== usuario.id && !atiendeIncidencia(usuario, i) && sigueIncidencia(usuario, i),
+  );
   return {
     porAtender,
     mias: ordenarIncidencias(todas.filter((i) => i.creadaPor === usuario.id)),
-    deMisAlumnos: ordenarIncidencias(
-      todas.filter(
-        (i) => usuario.rol === 'profe' && i.creadaPor !== usuario.id && i.tutorId === usuario.id,
-      ),
-    ),
+    deMisAlumnos: ordenarIncidencias(sigo),
     pendientes: porAtender.filter((i) => i.estado !== 'resuelta').length,
   };
 }
@@ -99,21 +102,22 @@ export function atenderIncidencia(
   return incidencias.atender(incidencia.id, { ...cambios, respuesta });
 }
 
-/** El instituto pasa a la generalitat lo que le supera. */
+/** Quien la lleva la pasa al siguiente nivel cuando le supera: profe → instituto → generalitat. */
 export function escalarIncidencia(
   incidencias: IncidenciaPort,
   usuario: Usuario,
   incidencia: Incidencia,
   motivo: string,
 ): Promise<Incidencia> {
-  if (usuario.rol !== 'instituto' || !atiendeIncidencia(usuario, incidencia)) {
+  if (!atiendeIncidencia(usuario, incidencia)) {
     throw new SinPermisoError('escalar esta incidencia');
   }
-  if (incidencia.escalada) throw new DatosInvalidosError('Ya está escalada a la generalitat');
+  const nivel = siguienteNivel(incidencia);
+  if (!nivel) throw new DatosInvalidosError('Ya la lleva la Generalitat: no hay nivel por encima');
   if (incidencia.estado === 'resuelta') throw new DatosInvalidosError('Ya está resuelta');
   if (!motivo.trim()) throw new DatosInvalidosError('Explica por qué la escalas');
   return incidencias.atender(incidencia.id, {
-    escalada: true,
+    nivel,
     estado: 'en_curso',
     respuesta: motivo.trim(),
   });
