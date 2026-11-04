@@ -96,6 +96,12 @@ export function PanelAlumno() {
       }
       accionJunta={ancho}
       amplia={ancho}>
+      {datos && !ancho ? (
+        <Tarjeta titulo={t('Este mes')}>
+          <EstadoMes hoy={hoy} mesesValidados={mesesValidados} enTarjeta />
+          <Boton texto={t('Registrar el día de hoy')} onPress={() => router.push('/registro')} />
+        </Tarjeta>
+      ) : null}
       {datos && <AvisoToqueAlumno key={datos.dossier.id} dossier={datos.dossier} />}
       {error ? <ErrorCarga texto={error} onReintentar={recargar} /> : null}
       {cargando && !datos ? <EsqueletoPanel tarjetas={3} /> : null}
@@ -223,15 +229,7 @@ export function PanelAlumno() {
                     </View>
                   </View>
                 </Tarjeta>
-              ) : (
-                <Tarjeta titulo={t('Este mes')}>
-                  <EstadoMes hoy={hoy} mesesValidados={mesesValidados} enTarjeta />
-                  <Boton
-                    texto={t('Registrar el día de hoy')}
-                    onPress={() => router.push('/registro')}
-                  />
-                </Tarjeta>
-              )}
+              ) : null}
               {ancho ? estadoMes : null}
             </>
           }
