@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { entrarComo, fechaCortaHoy, mesEnCurso } = require('./helpers');
+const { entrarComo, fechaCortaHoy } = require('./helpers');
 
 test('el alumno registra un día de trabajo con horas por actividad', async ({ page }) => {
   await entrarComo(page, 'alumno@kampus.test');
@@ -10,7 +10,8 @@ test('el alumno registra un día de trabajo con horas por actividad', async ({ p
 
   await page.getByLabel('Desarrollo de interfaces').fill('4');
   await page.getByLabel('Acceso a datos').fill('2');
-  await expect(page.getByText('Total del día: 6 h')).toBeVisible();
+  await expect(page.getByText('Total del día')).toBeVisible();
+  await expect(page.getByText('6 h', { exact: true }).first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Guardar día' }).click();
 
@@ -18,9 +19,9 @@ test('el alumno registra un día de trabajo con horas por actividad', async ({ p
   await expect(page.getByText('Apuntado')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guardar cambios' })).toBeVisible();
 
-  const listado = page.getByText(`Días de ${mesEnCurso()}`);
-  await expect(listado).toBeVisible();
-  const diaApuntado = page.getByRole('button', { name: fechaCortaHoy() });
+  await page.getByText('Calendario', { exact: true }).click();
+  const diaApuntado = page.getByRole('button', {
+    name: `${fechaCortaHoy()}: Trabajo, 6h`,
+  });
   await expect(diaApuntado).toBeVisible();
-  await expect(diaApuntado).toContainText('6 h');
 });
